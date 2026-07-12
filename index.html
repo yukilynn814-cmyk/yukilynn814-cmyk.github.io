@@ -81,7 +81,7 @@
   .status-badge.online{background:rgba(63,185,80,0.08);color:#3fb950;border:1px solid rgba(63,185,80,0.15)}
   .status-badge.wip{background:rgba(248,81,73,0.08);color:#f85149;border:1px solid rgba(248,81,73,0.15)}
 
-  footer{text-align:center;padding:40px 0 60px;color:rgba(255,255,255,0.06);font-size:0.75rem;letter-spacing:1px;user-select:none;cursor:default;caret-color:transparent}
+  footer{text-align:center;padding:40px 0 60px;color:rgba(255,255,255,0.06);font-size:0.75rem;letter-spacing:1px}
 
   /* ===== Message Board Modal ===== */
   .modal-overlay{
@@ -282,7 +282,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>🦐 小虾虾 · Stark Industries 出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.1</span></footer>
+  <footer>🦐 小虾虾 · Stark Industries 出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.2</span></footer>
 </div>
 
 <!-- Hover Preview -->
@@ -328,6 +328,18 @@
         <input type="text" id="postInput" placeholder="说点什么…" maxlength="200" onkeydown="if(event.key==='Enter')postMessage()">
         <button id="postBtn" onclick="postMessage()">➤</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Changelog Modal -->
+<div class="modal-overlay" id="changelogModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3>📋 更新日志</h3>
+      <button class="close-btn" onclick="closeChangelog()">✕</button>
+    </div>
+    <div class="modal-body" id="changelogBody">
     </div>
   </div>
 </div>
@@ -424,6 +436,7 @@ class Nebula{constructor(cx,cy,rx,ry,cols){this.cx=cx;this.cy=cy;this.rx=rx;this
 
 // ===== Star =====
 const STYPES=["circle","spark","diamond","cluster"];
+let crossStar=null; // single special cross star
 class Star{
   constructor(x,y){
     this.x=x!==undefined?x:rnd(0,W);this.y=y!==undefined?y:rnd(0,H);
@@ -431,7 +444,8 @@ class Star{
     this.baseSize=rnd(2.5,6.5);this.size=this.baseSize;
     this.alpha=rnd(0.3,0.8);this.twinkleSpeed=rnd(0.008,0.03);
     this.twinklePhase=rnd(0,Math.PI*2);
-    this.type=STYPES[Math.floor(rnd(0,STYPES.length))];
+    this.type=this.isCross?"cross":STYPES[Math.floor(rnd(0,STYPES.length))];
+    this.isCross=false;
     this.falling=false;this.fallSpeed=0;this.fallAngle=rnd(-0.3,0.3);
     this.fA=rnd(0,Math.PI*2);this.fS=rnd(0.0005,0.002);this.fR=rnd(0.5,2.5);
     const t=Math.random();this.tint=t<0.12?[255,200,180]:t<0.25?[180,210,255]:t<0.35?[255,225,160]:[255,255,255];
@@ -445,7 +459,7 @@ class Star{
     return true
   }
   draw(){if(this.alpha<=0)return;const tw=0.6+0.4*Math.sin(this.twinklePhase),a=Math.min(this.alpha*tw,1),[r,g,b]=this.tint;
-    if(this.type==="circle")this._c(a,r,g,b);else if(this.type==="spark")this._s(a,r,g,b);else if(this.type==="diamond")this._d(a,r,g,b);else if(this.type==="cluster"&&this.cluster)this._cl(a,r,g,b)}
+    if(this.type==="circle")this._c(a,r,g,b);else if(this.type==="spark")this._s(a,r,g,b);else if(this.type==="diamond")this._d(a,r,g,b);else if(this.type==="cluster"&&this.cluster)this._cl(a,r,g,b);else if(this.type==="cross")this._cr(a)}
   _c(a,r,g,b){ctx.beginPath();ctx.arc(this.x,this.y,this.size*0.5,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.9})`;ctx.fill()
     if(this.size>1.8){ctx.beginPath();ctx.arc(this.x,this.y,this.size*1.4,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.06})`;ctx.fill()}}
   _s(a,r,g,b){const s=this.size*0.65;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.twinklePhase*0.15);ctx.beginPath();
@@ -458,23 +472,56 @@ class Star{
   _cl(a,r,g,b){this.cluster.forEach((c,i)=>{const ca=a*(0.5+0.5*(1-i/this.cluster.length));
     ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.8})`;ctx.fill()
     ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s*2,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.03})`;ctx.fill()})}
+  _cr(a){
+    const s=this.size;
+    // Outer glow
+    const grd=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,s*3);
+    grd.addColorStop(0,`rgba(255,220,100,${a*0.06})`);grd.addColorStop(1,"rgba(255,220,100,0)");
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(this.x,this.y,s*3,0,Math.PI*2);ctx.fill();
+    ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.twinklePhase*0.1);
+    // Cross arms
+    const armW=s*0.25,armL=s*1.2;
+    ctx.fillStyle=`rgba(255,230,140,${a*0.9})`;
+    ctx.fillRect(-armW/2,-armL/2,armW,armL);
+    ctx.fillRect(-armL/2,-armW/2,armL,armW);
+    // Center core
+    const cGrd=ctx.createRadialGradient(0,0,0,0,0,s*0.3);
+    cGrd.addColorStop(0,`rgba(255,255,255,${a})`);cGrd.addColorStop(1,`rgba(255,240,180,${a*0.6})`);
+    ctx.fillStyle=cGrd;ctx.beginPath();ctx.arc(0,0,s*0.3,0,Math.PI*2);ctx.fill();
+    ctx.restore()}
   contains(px,py){return dist(px,py,this.x,this.y)<Math.max(this.size*1.8,12)}
 }
 
 // ===== Shooting Star =====
-class SS{constructor(tx,ty){this.sx=W+80;this.sy=-30;this.tx=tx;this.ty=ty;this.prog=0;this.speed=rnd(0.015,0.025);this.trail=[];this.alive=true}
+class SS{constructor(tx,ty,isWhite,isCrossReplacement){this.sx=isCrossReplacement?W+80:W+80;this.sy=isCrossReplacement?H*0.05:-30;this.tx=tx;this.ty=ty;this.prog=0;this.speed=isCrossReplacement?0.025:rnd(0.015,0.025);this.trail=[];this.alive=true;this.isWhite=isWhite||false}
   update(){if(!this.alive)return false;this.prog+=this.speed;this.trail.push({x:this.getX(),y:this.getY(),a:1});
     if(this.trail.length>35)this.trail.shift();this.trail.forEach(t=>t.a-=0.035);if(this.prog>=1){this.alive=false;return false}return true}
   getX(){return this.sx+(this.tx-this.sx)*this.prog}
   getY(){return this.sy+(this.ty-this.sy)*this.prog-45*Math.sin(this.prog*Math.PI)}
-  draw(){this.trail.forEach((t,i)=>{if(t.a<=0)return;ctx.beginPath();ctx.arc(t.x,t.y,1.5*(i/this.trail.length),0,Math.PI*2);ctx.fillStyle=`rgba(255,240,210,${t.a*0.25})`;ctx.fill()});
-    const x=this.getX(),y=this.getY();ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,0.85)";ctx.fill()
-    ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle="rgba(200,220,255,0.15)";ctx.fill()}
+  draw(){this.trail.forEach((t,i)=>{if(t.a<=0)return;ctx.beginPath();ctx.arc(t.x,t.y,this.isWhite?2.5*(i/this.trail.length):1.5*(i/this.trail.length),0,Math.PI*2);
+    const tc=this.isWhite?`rgba(255,255,255,${t.a*0.5})`:`rgba(255,240,210,${t.a*0.25})`;
+    ctx.fillStyle=tc;ctx.fill()});
+    const x=this.getX(),y=this.getY();
+    if(this.isWhite){
+      // Flash glow at head for cross star
+      const flsh=ctx.createRadialGradient(x,y,0,x,y,25);
+      flsh.addColorStop(0,"rgba(255,255,255,0.3)");flsh.addColorStop(1,"rgba(255,255,255,0)");
+      ctx.fillStyle=flsh;ctx.beginPath();ctx.arc(x,y,25,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,1)";ctx.fill();
+    }else{
+      ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,0.85)";ctx.fill();
+    }
+    ctx.beginPath();ctx.arc(x,y,this.isWhite?20:10,0,Math.PI*2);ctx.fillStyle=this.isWhite?"rgba(255,255,255,0.1)":"rgba(200,220,255,0.15)";ctx.fill()}
 }
 
 // ===== Init =====
 function initScene(){
-  stars=[];for(let i=0;i<STAR_COUNT;i++)stars.push(new Star());
+  stars=[];
+  // Create cross star at a nice position
+  const cs=new Star(W*0.65,H*0.35);
+  cs.isCross=true;cs.type="cross";cs.baseSize=6;cs.size=6;
+  crossStar=cs;stars.push(cs);
+  for(let i=1;i<STAR_COUNT;i++)stars.push(new Star());
   planets=[
     new Celestial(Math.min(160,W*0.1),Math.min(H-140,H*0.78),60,"Earth","80,160,255",false,
       [{angle:0,dist:100,size:5,speed:0.003},{angle:2.2,dist:130,size:3.5,speed:0.002}]),
@@ -501,11 +548,30 @@ canvas.addEventListener("click",e=>{
   for(const p of planets){
     if(p.contains(px,py)){
       if(p.isEarth){openMsgModal();return}
+      if(p.name==="Mars"){showChangelog();return}
       spawnBurst(p.cx,p.cy,p.baseColor);return
     }
   }
+  // Check cross star first
+  if(crossStar&&!crossStar.falling&&crossStar.contains(px,py)){
+    crossStar.falling=true;crossStar.fallSpeed=0.3;
+    crossStar.fallAngle=0.1;
+    // White burst
+    for(let i=0;i<20;i++)particles.push({x:crossStar.x,y:crossStar.y,color:"255,255,255",vx:rnd(-5,5),vy:rnd(-3,5),life:20+rnd(0,10),age:0});
+    // Schedule replacement with flash
+    setTimeout(()=>{
+      // Flash effect at top-right
+      for(let i=0;i<30;i++)particles.push({x:W-40,y:30,color:"255,255,200",vx:rnd(-6,6),vy:rnd(-4,4),life:25+rnd(0,10),age:0});
+      // Create cross shooting star
+      setTimeout(()=>{
+        const ss=new SS(crossStar.homeX||(W*0.65),crossStar.homeY||(H*0.35),true,true);
+        shootingStars.push(ss);
+      },300);
+    },2000);
+    return;
+  }
   let best=null,bestD=50;
-  for(const s of stars){if(s.falling)continue;const d=dist(px,py,s.x,s.y);if(d<bestD){bestD=d;best=s}}
+  for(const s of stars){if(s.falling||s.isCross)continue;const d=dist(px,py,s.x,s.y);if(d<bestD){bestD=d;best=s}}
   if(best){best.startFall();spawnBurst(best.x,best.y,"255,255,255")}
 });
 
@@ -791,7 +857,18 @@ function render(){
   for(let i=shootingStars.length-1;i>=0;i--){
     const ss=shootingStars[i];
     if(ss.alive){ss.update();ss.draw()}
-    if(!ss.alive){stars.push(new Star(ss.tx,ss.ty));shootingStars.splice(i,1)}
+    if(!ss.alive){
+      if(ss.isWhite){
+        // Cross star replacement lands
+        const ns=new Star(ss.tx,ss.ty);
+        ns.isCross=true;ns.type="cross";ns.baseSize=6;ns.size=6;
+        ns.homeX=ss.tx;ns.homeY=ss.ty;
+        crossStar=ns;stars.push(ns);
+      }else{
+        stars.push(new Star(ss.tx,ss.ty));
+      }
+      shootingStars.splice(i,1)
+    }
   }
   for(let i=particles.length-1;i>=0;i--){
     const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.age++;
@@ -815,6 +892,66 @@ window.addEventListener("resize",()=>{
     planets[2].cx=Math.max(W-200,W*0.78);planets[2].cy=Math.min(H*0.5,H*0.48);
     planets[3].cx=Math.max(W-130,W*0.85);planets[3].cy=Math.min(H-80,H*0.85);
   }
+});
+
+// ============================================================
+// 📋 更新日志
+// ============================================================
+const CHANGELOG=[
+  {
+    ver:"v1.2",
+    date:"2026-07-13",
+    items:[
+      "✨ 新增：黄色十字星 — 点击它看白色尾迹流星",
+      "📋 新增：更新日志 — 点击火星查看版本历史",
+      "🛠️ 修复：版本号光标闪烁问题",
+    ]
+  },
+  {
+    ver:"v1.1",
+    date:"2026-07-12",
+    items:[
+      "🔑 新增：留言板左侧管理员钥匙图标",
+      "🔐 管理员密码：yukiyuki",
+      "➕ 底部显示版本号",
+    ]
+  },
+  {
+    ver:"v1.0",
+    date:"2026-07-12",
+    items:[
+      "🌌 星域背景 + 4颗行星",
+      "🌍 地球留言星（留言板）",
+      "💬 微信风格留言系统",
+      "📦 项目卡片导航",
+    ]
+  },
+];
+
+function showChangelog(){
+  const body=document.getElementById("changelogBody");
+  body.innerHTML=CHANGELOG.map(v=>`
+    <div style="margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+        <span style="font-weight:600;font-size:0.95rem;color:#58a6ff">${v.ver}</span>
+        <span style="font-size:0.7rem;color:rgba(255,255,255,0.25)">${v.date}</span>
+      </div>
+      <ul style="list-style:none;padding:0">
+        ${v.items.map(i=>`<li style="padding:3px 0;font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.5">${i}</li>`).join("")}
+      </ul>
+    </div>
+  `).join("");
+  document.getElementById("changelogModal").classList.add("show");
+  document.body.style.overflow="hidden";
+}
+
+function closeChangelog(){
+  document.getElementById("changelogModal").classList.remove("show");
+  document.body.style.overflow="";
+}
+
+document.getElementById("changelogModal").addEventListener("click",e=>{
+  if(e.target===e.currentTarget)closeChangelog();
 });
 
 // Load messages on init
