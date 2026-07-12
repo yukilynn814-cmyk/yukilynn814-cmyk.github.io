@@ -282,7 +282,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>🦐 小虾虾 · Stark Industries 出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.2</span></footer>
+  <footer>🦐 小虾虾 · Stark Industries 出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.3</span></footer>
 </div>
 
 <!-- Hover Preview -->
@@ -514,12 +514,58 @@ class SS{constructor(tx,ty,isWhite,isCrossReplacement){this.sx=isCrossReplacemen
     ctx.beginPath();ctx.arc(x,y,this.isWhite?20:10,0,Math.PI*2);ctx.fillStyle=this.isWhite?"rgba(255,255,255,0.1)":"rgba(200,220,255,0.15)";ctx.fill()}
 }
 
+// ===== Comet Class (long tail, 3s flight) =====
+class Comet{
+  constructor(tx,ty){
+    this.sx=W+60;this.sy=H*0.08;this.tx=tx;this.ty=ty;
+    this.prog=0;this.speed=0.005; // 3 seconds at 60fps = 180 frames
+    this.tail=[];this.alive=true;this.age=0;
+    this.arrived=false;
+  }
+  update(){
+    this.age++;
+    if(!this.alive)return false;
+    this.prog+=this.speed;
+    const x=this.getX(),y=this.getY();
+    this.tail.push({x,y,a:1});
+    if(this.tail.length>60)this.tail.shift();
+    this.tail.forEach(t=>t.a-=0.016);
+    if(this.prog>=1){
+      this.alive=false;this.arrived=true;
+      return false;
+    }
+    return true;
+  }
+  getX(){return this.sx+(this.tx-this.sx)*this.prog}
+  getY(){return this.sy+(this.ty-this.sy)*this.prog-30*Math.sin(this.prog*Math.PI)}
+  draw(){
+    // Tail (long, fading)
+    for(let i=0;i<this.tail.length;i++){
+      const t=this.tail[i];
+      if(t.a<=0)continue;
+      const idx=i/this.tail.length;
+      const w=1+idx*3.5;
+      ctx.beginPath();ctx.arc(t.x,t.y,w,0,Math.PI*2);
+      ctx.fillStyle=`rgba(220,230,255,${t.a*idx*0.5})`;
+      ctx.fill();
+    }
+    // Head glow
+    if(!this.alive)return;
+    const x=this.getX(),y=this.getY();
+    const g=ctx.createRadialGradient(x,y,0,x,y,20);
+    g.addColorStop(0,"rgba(255,255,255,0.4)");g.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle="rgba(255,255,255,1)";ctx.fill();
+  }
+}
+
 // ===== Init =====
 function initScene(){
   stars=[];
-  // Create cross star — top-right area, clear of content
+  // Create cross star — top-left area
   const cs=new Star(W*0.08,H*0.15);
-  cs.isCross=true;cs.type="cross";cs.baseSize=5;cs.size=5;cs.homeX=W*0.08;cs.homeY=H*0.15;
+  cs.isCross=true;cs.type="cross";cs.baseSize=12;cs.size=12;cs.homeX=W*0.08;cs.homeY=H*0.15;
   crossStar=cs;stars.push(cs);
   for(let i=1;i<STAR_COUNT;i++)stars.push(new Star());
   planets=[
@@ -554,20 +600,74 @@ canvas.addEventListener("click",e=>{
   }
   // Check cross star first
   if(crossStar&&!crossStar.falling&&crossStar.contains(px,py)){
-    crossStar.falling=true;crossStar.fallSpeed=0.3;
-    crossStar.fallAngle=0.1;
-    // White burst
-    for(let i=0;i<20;i++)particles.push({x:crossStar.x,y:crossStar.y,color:"255,255,255",vx:rnd(-5,5),vy:rnd(-3,5),life:20+rnd(0,10),age:0});
-    // Schedule replacement with flash
-    setTimeout(()=>{
-      // Flash effect at top-right
-      for(let i=0;i<30;i++)particles.push({x:W-40,y:30,color:"255,255,200",vx:rnd(-6,6),vy:rnd(-4,4),life:25+rnd(0,10),age:0});
-      // Create cross shooting star
-      setTimeout(()=>{
-        const ss=new SS(crossStar.homeX||(W*0.08),crossStar.homeY||(H*0.15),true,true);
-        shootingStars.push(ss);
-      },300);
-    },2000);
+    const cs=crossStar;
+    const earth=planets[0];
+    // Calculate arc toward Earth
+    cs.falling=true;cs.fallSpeed=0.02;
+    const startX=cs.x,startY=cs.y;
+    const targetX=earth?earth.cx:startX,targetY=earth?earth.cy:startY;
+    let fallProg=0;
+    // Animate fall toward Earth
+    function animateFall(){
+      if(!cs.falling)return;
+      fallProg+=0.015;
+      if(fallProg>=1){
+        cs.falling=false;cs.alpha=0;cs.size=0;
+        // Small impact effect on Earth
+        if(earth){
+          for(let i=0;i<25;i++)particles.push({x:earth.cx+rnd(-20,20),y:earth.cy+rnd(-20,20),
+            color:"100,200,255",vx:rnd(-3,3),vy:rnd(-4,1),life:20+rnd(0,10),age:0});
+          earth.hoverPulse=true;
+          setTimeout(()=>{if(earth)earth.hoverPulse=false;},1500);
+        }
+        // Remove from stars array
+        const idx=stars.indexOf(cs);
+        if(idx>=0)stars.splice(idx,1);
+        crossStar=null;
+        // Start replacement sequence
+        // Phase 1: Flash at source for 2 seconds
+        let flashFrame=0;
+        const flashInterval=setInterval(()=>{
+          flashFrame++;
+          for(let i=0;i<3;i++)particles.push({
+            x:W-30+rnd(-10,10),y:20+rnd(-10,10),
+            color:"255,255,200",vx:rnd(-1,1),vy:rnd(-1,1),
+            life:10+rnd(0,5),age:0
+          });
+          // Bigger flash pulse every 500ms
+          if(flashFrame%10===0){
+            for(let i=0;i<8;i++)particles.push({
+              x:W-30+rnd(-15,15),y:20+rnd(-15,15),
+              color:"255,255,255",vx:rnd(-3,3),vy:rnd(-3,3),
+              life:15+rnd(0,10),age:0
+            });
+          }
+        },50);
+        // Phase 2: After 2 seconds, launch comet
+        setTimeout(()=>{
+          clearInterval(flashInterval);
+          const homeX=cs.homeX||(W*0.08);
+          const homeY=cs.homeY||(H*0.15);
+          const comet=new Comet(homeX,homeY);
+          shootingStars.push(comet);
+          // After comet arrives, recreate the cross star
+          setTimeout(()=>{
+            const ns=new Star(homeX,homeY);
+            ns.isCross=true;ns.type="cross";ns.baseSize=12;ns.size=12;
+            ns.homeX=homeX;ns.homeY=homeY;
+            crossStar=ns;stars.push(ns);
+          },3000);
+        },2000);
+        return;
+      }
+      const cx=startX+(targetX-startX)*fallProg;
+      const cy=startY+(targetY-startY)*fallProg-80*Math.sin(fallProg*Math.PI);
+      cs.x=cx;cs.y=cy;
+      // Trail particles
+      if(fallProg>0.2)particles.push({x:cx+rnd(-3,3),y:cy,color:"255,255,255",vx:rnd(-0.5,0.5),vy:0.5,life:15+rnd(0,8),age:0});
+      requestAnimationFrame(animateFall);
+    }
+    animateFall();
     return;
   }
   let best=null,bestD=50;
@@ -837,7 +937,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMsgModal()});
 
 // ===== Render Loop =====
 function render(){
-  ctx.fillStyle="rgba(3,6,11,0.25)";ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle="#03060b";ctx.fillRect(0,0,W,H);
   nebulae.forEach(n=>n.draw());
 
   for(let i=pendingReplacements.length-1;i>=0;i--){
@@ -855,20 +955,14 @@ function render(){
   planets.forEach(p=>p.draw());
 
   for(let i=shootingStars.length-1;i>=0;i--){
-    const ss=shootingStars[i];
-    if(ss.alive){ss.update();ss.draw()}
-    if(!ss.alive){
-      if(ss.isWhite){
-        // Cross star replacement lands
-        const ns=new Star(ss.tx,ss.ty);
-        ns.isCross=true;ns.type="cross";ns.baseSize=6;ns.size=6;
-        ns.homeX=ss.tx;ns.homeY=ss.ty;
-        ns.baseSize=5;ns.size=5;
-        crossStar=ns;stars.push(ns);
-      }else{
-        stars.push(new Star(ss.tx,ss.ty));
-      }
-      shootingStars.splice(i,1)
+    const obj=shootingStars[i];
+    if(obj instanceof Comet){
+      if(obj.alive)obj.update();obj.draw();
+      if(!obj.alive&&obj.arrived){shootingStars.splice(i,1)}
+      else if(!obj.alive&&!obj.arrived){shootingStars.splice(i,1)}
+    }else if(obj.alive!==undefined){
+      if(obj.alive){obj.update();obj.draw()}
+      if(!obj.alive){shootingStars.splice(i,1)}
     }
   }
   for(let i=particles.length-1;i>=0;i--){
@@ -900,12 +994,13 @@ window.addEventListener("resize",()=>{
 // ============================================================
 const CHANGELOG=[
   {
-    ver:"v1.2",
+    ver:"v1.3",
     date:"2026-07-13",
     items:[
-      "✨ 新增：黄色十字星 — 点击它看白色尾迹流星",
-      "📋 新增：更新日志 — 点击火星查看版本历史",
-      "🛠️ 修复：版本号光标闪烁问题",
+      "⭐ 十字星重做：点击坠向地球（撞入动画）",
+      "☄️ 彗星入场：2秒闪烁预示 → 3秒长尾彗星补位",
+      "🧹 修复：清除残留光轨，背景纯净",
+      "📏 十字星尺寸与标题字号一致",
     ]
   },
   {
