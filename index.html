@@ -517,9 +517,9 @@ class SS{constructor(tx,ty,isWhite,isCrossReplacement){this.sx=isCrossReplacemen
 // ===== Init =====
 function initScene(){
   stars=[];
-  // Create cross star at a nice position
-  const cs=new Star(W*0.65,H*0.35);
-  cs.isCross=true;cs.type="cross";cs.baseSize=6;cs.size=6;
+  // Create cross star — top-right area, clear of content
+  const cs=new Star(W*0.08,H*0.15);
+  cs.isCross=true;cs.type="cross";cs.baseSize=5;cs.size=5;cs.homeX=W*0.08;cs.homeY=H*0.15;
   crossStar=cs;stars.push(cs);
   for(let i=1;i<STAR_COUNT;i++)stars.push(new Star());
   planets=[
@@ -564,7 +564,7 @@ canvas.addEventListener("click",e=>{
       for(let i=0;i<30;i++)particles.push({x:W-40,y:30,color:"255,255,200",vx:rnd(-6,6),vy:rnd(-4,4),life:25+rnd(0,10),age:0});
       // Create cross shooting star
       setTimeout(()=>{
-        const ss=new SS(crossStar.homeX||(W*0.65),crossStar.homeY||(H*0.35),true,true);
+        const ss=new SS(crossStar.homeX||(W*0.08),crossStar.homeY||(H*0.15),true,true);
         shootingStars.push(ss);
       },300);
     },2000);
@@ -863,6 +863,7 @@ function render(){
         const ns=new Star(ss.tx,ss.ty);
         ns.isCross=true;ns.type="cross";ns.baseSize=6;ns.size=6;
         ns.homeX=ss.tx;ns.homeY=ss.ty;
+        ns.baseSize=5;ns.size=5;
         crossStar=ns;stars.push(ns);
       }else{
         stars.push(new Star(ss.tx,ss.ty));
