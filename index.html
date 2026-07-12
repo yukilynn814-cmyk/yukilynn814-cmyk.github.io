@@ -8,84 +8,141 @@
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{
     font-family:-apple-system,"PingFang SC","Helvetica Neue",system-ui,sans-serif;
-    background:#0d1117;color:#e6edf3;min-height:100vh;
-    background-image:radial-gradient(ellipse at 20% 20%, rgba(88,166,255,0.05) 0%, transparent 50%),
-                     radial-gradient(ellipse at 80% 80%, rgba(188,140,255,0.05) 0%, transparent 50%);
+    background:#05080f;color:#e6edf3;min-height:100vh;overflow-x:hidden;
+    cursor:default;
+  }
+
+  /* ===== Starfield Canvas ===== */
+  #starfield{
+    position:fixed;inset:0;z-index:0;pointer-events:auto;
   }
 
   /* ===== Container ===== */
-  .container{max-width:900px;margin:0 auto;padding:40px 24px}
+  .container{max-width:900px;margin:0 auto;padding:40px 24px;position:relative;z-index:1}
 
   /* ===== Header ===== */
-  header{text-align:center;padding:60px 0 48px}
+  header{text-align:center;padding:60px 0 48px;position:relative}
   header .avatar{
     width:80px;height:80px;border-radius:50%;
     background:linear-gradient(135deg,#58a6ff,#bc8cff);
     display:flex;align-items:center;justify-content:center;
-    font-size:36px;margin:0 auto 20px;box-shadow:0 4px 30px rgba(88,166,255,0.2);
+    font-size:36px;margin:0 auto 20px;
+    box-shadow:0 0 40px rgba(88,166,255,0.15),0 4px 30px rgba(88,166,255,0.2);
+    animation:glow 3s ease-in-out infinite;
   }
+  @keyframes glow{0%,100%{box-shadow:0 0 40px rgba(88,166,255,0.15),0 4px 30px rgba(88,166,255,0.2)}50%{box-shadow:0 0 60px rgba(88,166,255,0.25),0 4px 30px rgba(88,166,255,0.3)}}
   header h1{font-size:2rem;font-weight:700;margin-bottom:8px}
   header h1 span{background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-  header p{color:rgba(255,255,255,0.4);font-size:0.95rem;max-width:500px;margin:0 auto;line-height:1.6}
+  header p{color:rgba(255,255,255,0.35);font-size:0.9rem;max-width:500px;margin:0 auto;line-height:1.7}
+
+  /* ===== Nebula overlay ===== */
+  header::before{
+    content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);
+    width:600px;height:300px;
+    background:radial-gradient(ellipse, rgba(88,166,255,0.04) 0%, transparent 70%);
+    pointer-events:none;
+  }
 
   /* ===== Section ===== */
   .section{margin-bottom:40px}
   .section-title{
-    font-size:0.8rem;text-transform:uppercase;letter-spacing:3px;
-    color:rgba(255,255,255,0.3);margin-bottom:16px;padding-bottom:8px;
-    border-bottom:1px solid rgba(255,255,255,0.06);
+    font-size:0.72rem;text-transform:uppercase;letter-spacing:4px;
+    color:rgba(255,255,255,0.2);margin-bottom:16px;padding-bottom:10px;
+    border-bottom:1px solid rgba(255,255,255,0.04);
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-title::after{
+    content:'';flex:1;height:1px;
+    background:linear-gradient(90deg, rgba(255,255,255,0.06), transparent);
   }
 
   /* ===== Project Card ===== */
   .project-card{
     display:flex;align-items:center;gap:20px;
-    background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);
-    border-radius:14px;padding:20px 24px;margin-bottom:16px;
-    transition:all 0.25s;cursor:pointer;text-decoration:none;color:inherit;
+    background:rgba(255,255,255,0.02);
+    border:1px solid rgba(255,255,255,0.05);
+    border-radius:14px;padding:20px 24px;margin-bottom:14px;
+    transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+    cursor:pointer;text-decoration:none;color:inherit;
     position:relative;overflow:hidden;
+    backdrop-filter:blur(2px);
   }
   .project-card::before{
     content:'';position:absolute;inset:0;opacity:0;
     background:linear-gradient(135deg,var(--card-accent,transparent),transparent 60%);
-    transition:opacity 0.25s;border-radius:14px;
+    transition:opacity 0.4s;border-radius:14px;
   }
-  .project-card:hover{transform:translateY(-3px);border-color:var(--card-accent,rgba(255,255,255,0.15))}
+  .project-card::after{
+    content:'';position:absolute;inset:-1px;border-radius:14px;
+    border:1px solid transparent;
+    background:linear-gradient(135deg,var(--card-accent,transparent),transparent 60%) border-box;
+    -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;
+    opacity:0;transition:opacity 0.4s;
+  }
+  .project-card:hover{
+    transform:translateY(-3px);
+    background:rgba(255,255,255,0.04);
+    border-color:transparent;
+  }
   .project-card:hover::before{opacity:0.08}
-  .project-card:active{transform:translateY(-1px)}
+  .project-card:hover::after{opacity:1}
 
   .project-card .icon{
     width:52px;height:52px;border-radius:12px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;font-size:24px;
     position:relative;z-index:1;
     background:var(--card-icon-bg,rgba(255,255,255,0.05));
+    box-shadow:0 0 20px rgba(255,255,255,0.02);
   }
   .project-card .info{flex:1;position:relative;z-index:1;min-width:0}
-  .project-card .info h3{font-size:1.05rem;font-weight:600;margin-bottom:4px}
-  .project-card .info .desc{font-size:0.85rem;color:rgba(255,255,255,0.45);line-height:1.5;margin-bottom:8px}
+  .project-card .info h3{
+    font-size:1.02rem;font-weight:600;margin-bottom:5px;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  }
+  .project-card .info .desc{
+    font-size:0.84rem;color:rgba(255,255,255,0.4);
+    line-height:1.55;margin-bottom:10px;
+  }
   .project-card .info .tags{display:flex;gap:6px;flex-wrap:wrap}
   .project-card .info .tags span{
-    font-size:0.7rem;padding:2px 10px;border-radius:20px;
-    background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);
-    border:1px solid rgba(255,255,255,0.06);
+    font-size:0.68rem;padding:2px 10px;border-radius:20px;
+    background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);
+    border:1px solid rgba(255,255,255,0.05);
   }
   .project-card .arrow{
-    font-size:18px;color:rgba(255,255,255,0.15);flex-shrink:0;
-    transition:transform 0.2s,color 0.2s;position:relative;z-index:1;
+    font-size:18px;color:rgba(255,255,255,0.1);flex-shrink:0;
+    transition:transform 0.3s,color 0.3s;position:relative;z-index:1;
   }
   .project-card:hover .arrow{
-    transform:translateX(4px);color:var(--card-accent,rgba(255,255,255,0.4));
+    transform:translateX(6px);color:var(--card-accent,rgba(255,255,255,0.4));
   }
 
   /* ===== Status Badge ===== */
   .status-badge{
     display:inline-flex;align-items:center;gap:4px;
-    font-size:0.7rem;padding:2px 10px;border-radius:20px;margin-left:8px;
+    font-size:0.68rem;padding:2px 10px;border-radius:20px;
   }
-  .status-badge.online{background:rgba(63,185,80,0.1);color:#3fb950;border:1px solid rgba(63,185,80,0.2)}
-  .status-badge.wip{background:rgba(248,81,73,0.1);color:#f85149;border:1px solid rgba(248,81,73,0.2)}
+  .status-badge.online{
+    background:rgba(63,185,80,0.08);color:#3fb950;
+    border:1px solid rgba(63,185,80,0.15);
+  }
+  .status-badge.wip{
+    background:rgba(248,81,73,0.08);color:#f85149;
+    border:1px solid rgba(248,81,73,0.15);
+  }
+
+  /* ===== Particle cursor hint ===== */
+  .cursor-hint{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    font-size:0.7rem;color:rgba(255,255,255,0.12);z-index:2;
+    pointer-events:none;letter-spacing:1px;
+    animation:hintPulse 3s ease-in-out infinite;
+  }
+  @keyframes hintPulse{0%,100%{opacity:0.12}50%{opacity:0.3}}
 
   /* ===== Footer ===== */
-  footer{text-align:center;padding:40px 0 60px;color:rgba(255,255,255,0.15);font-size:0.78rem}
+  footer{text-align:center;padding:40px 0 60px;color:rgba(255,255,255,0.08);font-size:0.75rem;letter-spacing:1px}
 
   /* ===== Responsive ===== */
   @media(max-width:600px){
@@ -94,42 +151,43 @@
     header h1{font-size:1.5rem}
     .project-card{padding:16px;gap:14px}
     .project-card .icon{width:44px;height:44px;font-size:20px}
-    .project-card .info h3{font-size:0.95rem}
+    .project-card .info h3{font-size:0.92rem}
     .project-card .info .desc{font-size:0.8rem}
+    .cursor-hint{display:none}
   }
 </style>
 </head>
 <body>
+
+<!-- Starfield Canvas -->
+<canvas id="starfield"></canvas>
+
+<!-- Container -->
 <div class="container">
-  <!-- Header -->
   <header>
     <div class="avatar">🚀</div>
     <h1><span>Y老大</span> 的项目</h1>
     <p>钢铁侠负责拍脑袋，小虾虾负责落地。<br>这里放着我们一起折腾出来的东西。</p>
   </header>
 
-  <!-- Projects -->
   <div class="section">
-    <div class="section-title">📦 项目列表</div>
+    <div class="section-title">✦ 项目列表</div>
 
-    <!-- Date Game -->
     <a class="project-card" href="https://yukilynn814-cmyk.github.io/date-game/date-game.html" target="_blank" rel="noopener"
        style="--card-accent:#ff6b8a;--card-icon-bg:linear-gradient(135deg,rgba(231,76,111,0.15),rgba(255,107,138,0.15))">
       <div class="icon">🐳</div>
       <div class="info">
         <h3>和小明宝宝的一天 <span class="status-badge online">● 已上线</span></h3>
-        <div class="desc">互动约会文字小游戏。女朋友以小鲸鱼的视角，经历在北京站见面、逛商场、吃饭、回酒店、亲吻的甜蜜一天。每步有选项，好感度决定结局。</div>
+        <div class="desc">互动约会文字小游戏。女朋友以小鲸鱼的视角，经历在北京站见面、逛街、吃饭、回酒店、亲吻的甜蜜一天。每步有选项，好感度决定结局。</div>
         <div class="tags">
           <span>💕 约会</span>
           <span>🎮 互动游戏</span>
           <span>📱 手机友好</span>
-          <span>🐳 小鲸鱼</span>
         </div>
       </div>
       <div class="arrow">→</div>
     </a>
 
-    <!-- SlideForge -->
     <a class="project-card" href="https://yukilynn814-cmyk.github.io/slideforge/" target="_blank" rel="noopener"
        style="--card-accent:#58a6ff;--card-icon-bg:linear-gradient(135deg,rgba(88,166,255,0.15),rgba(188,140,255,0.15))">
       <div class="icon">🎯</div>
@@ -140,15 +198,13 @@
           <span>🤖 AI 驱动</span>
           <span>📊 PPT 生成</span>
           <span>🎨 10+ 主题</span>
-          <span>📤 PPTX 导出</span>
         </div>
       </div>
       <div class="arrow">→</div>
     </a>
 
-    <!-- Future placeholder -->
-    <a class="project-card" href="javascript:void(0)" 
-       style="--card-accent:rgba(255,255,255,0.1);--card-icon-bg:rgba(255,255,255,0.03);opacity:0.4;cursor:default">
+    <a class="project-card" href="javascript:void(0)"
+       style="--card-accent:rgba(255,255,255,0.1);--card-icon-bg:rgba(255,255,255,0.03);opacity:0.35;cursor:default">
       <div class="icon">✨</div>
       <div class="info">
         <h3>下一个项目 <span class="status-badge wip">● 规划中</span></h3>
@@ -159,10 +215,320 @@
     </a>
   </div>
 
-  <!-- Footer -->
-  <footer>
-    🦐 小虾虾 · Stark Industries 出品
-  </footer>
+  <footer>🦐 小虾虾 · Stark Industries 出品</footer>
 </div>
+
+<div class="cursor-hint">✦ 点击星星 · 流星划过 ✦</div>
+
+<script>
+// ============================================================
+// 🌟 交互式星域引擎
+// ============================================================
+const canvas = document.getElementById("starfield");
+const ctx = canvas.getContext("2d");
+let W, H, stars = [], shootingStars = [];
+let mouseX = -9999, mouseY = -9999;
+let animId;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+// ===== Star Class =====
+class Star {
+  constructor(x, y) {
+    this.x = x !== undefined ? x : Math.random() * W;
+    this.y = y !== undefined ? y : Math.random() * H;
+    this.baseSize = Math.random() * 2.2 + 0.4;
+    this.size = this.baseSize;
+    this.baseAlpha = Math.random() * 0.5 + 0.3;
+    this.alpha = this.baseAlpha;
+    this.twinkleSpeed = Math.random() * 0.02 + 0.005;
+    this.twinklePhase = Math.random() * Math.PI * 2;
+    this.pulsePhase = Math.random() * Math.PI * 2;
+    this.falling = false;
+    this.fallSpeed = 0;
+    this.fallAngle = Math.random() * 0.4 - 0.2;
+    this.targetX = this.x;
+    this.targetY = this.y;
+    // Warmth tint: mostly white with occasional blue/warm tint
+    this.tint = Math.random();
+    this.color = this.tint < 0.2 ? `rgba(255,200,180` :  // warm
+                 this.tint < 0.4 ? `rgba(180,200,255` :  // cool
+                 `rgba(255,255,255`;                      // white
+    this.orbiting = false;
+    this.orbitAngle = Math.random() * Math.PI * 2;
+    this.orbitSpeed = (Math.random() - 0.5) * 0.002;
+    this.orbitRadius = Math.random() * 1.5 + 0.5;
+    this.orbitCenterX = this.x;
+    this.orbitCenterY = this.y;
+  }
+
+  update() {
+    this.twinklePhase += this.twinkleSpeed;
+    this.pulsePhase += 0.003;
+
+    if (this.falling) {
+      this.fallSpeed += 0.15;
+      this.x += Math.sin(this.fallAngle) * this.fallSpeed * 0.3;
+      this.y += this.fallSpeed;
+      this.alpha -= 0.008;
+      this.size *= 0.998;
+      if (this.alpha <= 0 || this.y > H + 50) {
+        this.falling = false;
+        // Schedule new star arrival
+        scheduleNewStar(this);
+        return false;
+      }
+    } else {
+      // Gentle orbital drift
+      this.orbitAngle += this.orbitSpeed;
+      this.x = this.orbitCenterX + Math.sin(this.orbitAngle) * this.orbitRadius;
+      this.y = this.orbitCenterY + Math.cos(this.orbitAngle * 0.7) * this.orbitRadius * 0.5;
+    }
+
+    return true;
+  }
+
+  draw() {
+    if (this.alpha <= 0) return;
+    const twinkle = 0.7 + 0.3 * Math.sin(this.twinklePhase);
+    const a = Math.min(this.alpha * twinkle, 1);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `${this.color},${a})`;
+    ctx.fill();
+
+    // Glow for brighter stars
+    if (this.size > 1.5 && a > 0.4) {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+      ctx.fillStyle = `${this.color},${a * 0.06})`;
+      ctx.fill();
+    }
+  }
+
+  contains(px, py) {
+    const dx = this.x - px;
+    const dy = this.y - py;
+    return dx * dx + dy * dy < (this.size * 6) * (this.size * 6);
+  }
+
+  startFall() {
+    if (this.falling) return;
+    this.falling = true;
+    this.fallSpeed = Math.random() * 0.5 + 0.3;
+    this.fallAngle = (Math.random() - 0.5) * 0.3;
+  }
+}
+
+// ===== Shooting Star (补星动画) =====
+class ShootingStar {
+  constructor(targetX, targetY, targetSize) {
+    this.startX = W + 80;
+    this.startY = -40;
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.targetSize = targetSize || 1;
+    this.progress = 0;
+    this.speed = 0.02 + Math.random() * 0.015;
+    this.trail = [];
+    this.alive = true;
+  }
+
+  update() {
+    if (!this.alive) return false;
+    this.progress += this.speed;
+    this.trail.push({x: this.getX(), y: this.getY(), a: 1});
+
+    // Limit trail
+    if (this.trail.length > 20) this.trail.shift();
+
+    // Fade trail
+    this.trail.forEach(t => t.a -= 0.05);
+
+    if (this.progress >= 1) {
+      this.alive = false;
+      return false;
+    }
+    return true;
+  }
+
+  getX() {
+    const t = this.progress;
+    // Arc from top-right to target
+    const x = this.startX + (this.targetX - this.startX) * t;
+    return x;
+  }
+
+  getY() {
+    const t = this.progress;
+    const y = this.startY + (this.targetY - this.startY) * t;
+    // Small arc: dip down then rise
+    const arc = -40 * Math.sin(t * Math.PI);
+    return y + arc;
+  }
+
+  draw() {
+    // Trail
+    this.trail.forEach((t, i) => {
+      if (t.a <= 0) return;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, 1.5 * (i / this.trail.length), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${t.a * 0.4})`;
+      ctx.fill();
+    });
+
+    // Head
+    const x = this.getX();
+    const y = this.getY();
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fill();
+
+    // Glow
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(200,220,255,0.3)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(200,220,255,0.08)";
+    ctx.fill();
+  }
+}
+
+// ===== Stars Initialization =====
+const STAR_COUNT = 120;
+let pendingStars = [];
+
+function initStars() {
+  stars = [];
+  for (let i = 0; i < STAR_COUNT; i++) {
+    stars.push(new Star());
+  }
+}
+initStars();
+
+function scheduleNewStar(oldStar) {
+  // Remember where to place the replacement
+  pendingStars.push({
+    x: (oldStar && !isNaN(oldStar.orbitCenterX)) ? oldStar.orbitCenterX : Math.random() * W,
+    y: (oldStar && !isNaN(oldStar.orbitCenterY)) ? oldStar.orbitCenterY : Math.random() * H,
+    size: oldStar ? oldStar.baseSize : (Math.random() * 2.2 + 0.4),
+    countdown: 30 + Math.floor(Math.random() * 40)
+  });
+}
+
+// ===== Click Handler =====
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left;
+  const py = e.clientY - rect.top;
+
+  // Find closest star within range
+  let closest = null;
+  let closestDist = 30;
+  for (const star of stars) {
+    if (star.falling) continue;
+    const d = Math.abs(star.x - px) + Math.abs(star.y - py);
+    if (d < closestDist) {
+      closestDist = d;
+      closest = star;
+    }
+  }
+
+  if (closest) {
+    closest.startFall();
+    // Small meteor trail effect at click position
+    for (let i = 0; i < 8; i++) {
+      shootingStars.push({
+        x: closest.x + (Math.random() - 0.5) * 10,
+        y: closest.y + (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * 4,
+        vy: Math.random() * 3 + 2,
+        life: 20 + Math.random() * 10,
+        age: 0,
+        alive: true,
+        isParticle: true,
+      });
+    }
+  }
+});
+
+// ===== Render Loop =====
+function render() {
+  // Clear with slight trail fade
+  ctx.fillStyle = "rgba(5,8,15,0.35)";
+  ctx.fillRect(0, 0, W, H);
+
+  // Update pending stars
+  for (let i = pendingStars.length - 1; i >= 0; i--) {
+    const p = pendingStars[i];
+    p.countdown--;
+    if (p.countdown <= 0) {
+      // Create shooting star animation
+      const ss = new ShootingStar(p.x, p.y, p.size);
+      shootingStars.push(ss);
+      pendingStars.splice(i, 1);
+    }
+  }
+
+  // Update shooting stars
+  for (let i = shootingStars.length - 1; i >= 0; i--) {
+    const ss = shootingStars[i];
+    if (ss.isParticle) {
+      ss.x += ss.vx;
+      ss.y += ss.vy;
+      ss.vy += 0.05;
+      ss.age++;
+      if (ss.age >= ss.life) {
+        shootingStars.splice(i, 1);
+        continue;
+      }
+      ctx.beginPath();
+      ctx.arc(ss.x, ss.y, 1.5 * (1 - ss.age / ss.life), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,200,180,${0.6 * (1 - ss.age / ss.life)})`;
+      ctx.fill();
+    } else if (ss.alive) {
+      const alive = ss.update();
+      ss.draw();
+      if (!alive) {
+        // Shooting star arrived - create the actual star
+        stars.splice(stars.findIndex(s => s.falling && s.alpha <= 0), 1);
+        stars.push(new Star(ss.targetX, ss.targetY));
+        shootingStars.splice(i, 1);
+      }
+    }
+  }
+
+  // Update and draw stars
+  stars = stars.filter(s => s.update());
+  stars.forEach(s => s.draw());
+
+  // Ensure we always have enough stars
+  while (stars.length < STAR_COUNT) {
+    stars.push(new Star());
+  }
+
+  animId = requestAnimationFrame(render);
+}
+render();
+
+// Resize handler
+window.addEventListener("resize", () => {
+  resize();
+  // Recalculate star positions proportionally
+  stars.forEach(s => {
+    s.orbitCenterX = Math.min(s.orbitCenterX, W - 10);
+    s.orbitCenterY = Math.min(s.orbitCenterY, H - 10);
+  });
+});
+</script>
 </body>
 </html>
