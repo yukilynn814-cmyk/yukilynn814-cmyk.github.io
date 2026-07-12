@@ -249,38 +249,11 @@
       点击左下角的 🌍 地球，留下你的话 ✨</p>
   </header>
 
-  <div class="section">
-    <div class="section-title">✦ 项目列表</div>
-    <a class="project-card" href="https://yukilynn814-cmyk.github.io/date-game/date-game.html" target="_blank" rel="noopener"
-       style="--card-accent:#ff6b8a;--card-icon-bg:linear-gradient(135deg,rgba(231,76,111,0.15),rgba(255,107,138,0.15))">
-      <div class="icon">🐳</div>
-      <div class="info">
-        <h3>和小明宝宝的一天 <span class="status-badge online">● 已上线</span></h3>
-        <div class="desc">互动约会文字小游戏。以小鲸鱼的视角，经历北京站见面、逛街、吃饭、回酒店、亲吻的甜蜜一天。</div>
-        <div class="tags"><span>💕 约会</span><span>🎮 互动游戏</span><span>📱 手机友好</span></div>
-      </div>
-      <div class="arrow">→</div>
-    </a>
-    <a class="project-card" href="https://yukilynn814-cmyk.github.io/slideforge/" target="_blank" rel="noopener"
-       style="--card-accent:#58a6ff;--card-icon-bg:linear-gradient(135deg,rgba(88,166,255,0.15),rgba(188,140,255,0.15))">
-      <div class="icon">🎯</div>
-      <div class="info">
-        <h3>SlideForge <span class="status-badge online">● 已上线</span></h3>
-        <div class="desc">AI PPT 生成器。输入主题选个风格，AI 自动生成完整幻灯片。支持编辑和导出 .pptx。</div>
-        <div class="tags"><span>🤖 AI 驱动</span><span>📊 PPT 生成</span><span>🎨 10+ 主题</span></div>
-      </div>
-      <div class="arrow">→</div>
-    </a>
-    <a class="project-card" href="javascript:void(0)"
-       style="--card-accent:rgba(255,255,255,0.1);--card-icon-bg:rgba(255,255,255,0.03);opacity:0.35;cursor:default">
-      <div class="icon">✨</div>
-      <div class="info">
-        <h3>下一个项目 <span class="status-badge wip">● 规划中</span></h3>
-        <div class="desc">这里还空着，等 Y老大 的新点子来填。</div>
-        <div class="tags"><span>🔮 敬请期待</span></div>
-      </div>
-      <div class="arrow">→</div>
-    </a>
+  <div class="section" id="projectsSection">
+    <div class="section-title">✦ 项目列表 <span id="adminProjectControls" style="display:none;margin-left:8px">
+      <button onclick="showAddProject()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);padding:2px 10px;border-radius:6px;cursor:pointer;font-size:0.65rem;font-family:inherit">+ 添加项目</button>
+    </span></div>
+    <div id="projectList"></div>
   </div>
   <footer>🦐 小虾虾 · Stark Industries 出品</footer>
 </div>
@@ -296,8 +269,11 @@
 <div class="modal-overlay" id="msgModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3>💬 留言星 🌍</h3>
-      <button class="close-btn" onclick="closeMsgModal()">✕</button>
+      <h3>💬 留言星 🌍 <span id="adminBadge" style="font-size:0.65rem;color:rgba(255,255,255,0.2);margin-left:4px"></span></h3>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="close-btn" id="adminKeyBtn" onclick="toggleAdminMode()" title="管理员" style="font-size:14px">🔑</button>
+        <button class="close-btn" onclick="closeMsgModal()">✕</button>
+      </div>
     </div>
     <div class="modal-body" id="msgBody">
       <div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>
@@ -305,7 +281,6 @@
     <div class="modal-footer">
       <div class="post-name-row">
         <input type="text" id="postName" placeholder="你的名字" maxlength="12">
-        <!-- 🔑 管理员入口：Ctrl+Shift+A -->
       </div>
       <div class="post-form">
         <input type="text" id="postInput" placeholder="说点什么…" maxlength="200" onkeydown="if(event.key==='Enter')postMessage()">
@@ -352,6 +327,13 @@ class Celestial{
       ctx.strokeStyle=`rgba(200,190,170,${0.08+0.03*Math.sin(this.pulse)})`;
       ctx.lineWidth=1.5;ctx.stroke();
       ctx.restore();
+    }
+    // Earth mobile touch ring
+    if(this.isEarth){
+      const pulseRing=0.5+0.5*Math.sin(this.pulse*3);
+      ctx.beginPath();ctx.arc(cx,cy,r+15+pulseRing*8,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(80,200,255,${0.04+0.04*pulseRing})`;
+      ctx.lineWidth=1.5;ctx.setLineDash([4,8]);ctx.stroke();ctx.setLineDash([]);
     }
     // Earth special - atmosphere glow when hovered
     if(this.isEarth && this.hoverPulse){
@@ -406,7 +388,8 @@ class Nebula{constructor(cx,cy,rx,ry,cols){this.cx=cx;this.cy=cy;this.rx=rx;this
 }
 
 // ===== Star =====
-const STYPES=["circle","spark","diamond","cluster"];
+const STYPES=["circle","spark","diamond","cluster","cross"];
+const CROSS_STAR_COUNT=6;
 class Star{
   constructor(x,y){
     this.x=x!==undefined?x:rnd(0,W);this.y=y!==undefined?y:rnd(0,H);
@@ -414,7 +397,9 @@ class Star{
     this.baseSize=rnd(2.5,6.5);this.size=this.baseSize;
     this.alpha=rnd(0.3,0.8);this.twinkleSpeed=rnd(0.008,0.03);
     this.twinklePhase=rnd(0,Math.PI*2);
-    this.type=STYPES[Math.floor(rnd(0,STYPES.length))];
+    this.type=this.special?"cross":STYPES[Math.floor(rnd(0,STYPES.length-1))];
+    this.special=this.special||false;
+    this.redTrail=false;
     this.falling=false;this.fallSpeed=0;this.fallAngle=rnd(-0.3,0.3);
     this.fA=rnd(0,Math.PI*2);this.fS=rnd(0.0005,0.002);this.fR=rnd(0.5,2.5);
     const t=Math.random();this.tint=t<0.12?[255,200,180]:t<0.25?[180,210,255]:t<0.35?[255,225,160]:[255,255,255];
@@ -428,7 +413,7 @@ class Star{
     return true
   }
   draw(){if(this.alpha<=0)return;const tw=0.6+0.4*Math.sin(this.twinklePhase),a=Math.min(this.alpha*tw,1),[r,g,b]=this.tint;
-    if(this.type==="circle")this._c(a,r,g,b);else if(this.type==="spark")this._s(a,r,g,b);else if(this.type==="diamond")this._d(a,r,g,b);else if(this.type==="cluster"&&this.cluster)this._cl(a,r,g,b)}
+    if(this.type==="circle")this._c(a,r,g,b);else if(this.type==="spark")this._s(a,r,g,b);else if(this.type==="diamond")this._d(a,r,g,b);else if(this.type==="cluster"&&this.cluster)this._cl(a,r,g,b);else if(this.type==="cross")this._cr(a,r,g,b)}
   _c(a,r,g,b){ctx.beginPath();ctx.arc(this.x,this.y,this.size*0.5,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.9})`;ctx.fill()
     if(this.size>1.8){ctx.beginPath();ctx.arc(this.x,this.y,this.size*1.4,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.06})`;ctx.fill()}}
   _s(a,r,g,b){const s=this.size*0.65;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.twinklePhase*0.15);ctx.beginPath();
@@ -441,7 +426,19 @@ class Star{
   _cl(a,r,g,b){this.cluster.forEach((c,i)=>{const ca=a*(0.5+0.5*(1-i/this.cluster.length));
     ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.8})`;ctx.fill()
     ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s*2,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.03})`;ctx.fill()})}
-  contains(px,py){return dist(px,py,this.x,this.y)<Math.max(this.size*1.8,12)}
+  _cr(a,r,g,b){const s=this.size*0.9;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.twinklePhase*0.12);
+    // Glow backdrop
+    const g=ctx.createRadialGradient(0,0,0,0,0,s*1.8);
+    g.addColorStop(0,`rgba(255,200,120,${a*0.08})`);g.addColorStop(1,`rgba(255,200,120,0)`);
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,s*1.8,0,Math.PI*2);ctx.fill();
+    // Cross arms
+    for(let i=0;i<4;i++){const ang=i/4*Math.PI*2;ctx.beginPath();ctx.moveTo(0,0);
+      ctx.lineTo(Math.cos(ang)*s,Math.sin(ang)*s);ctx.lineTo(Math.cos(ang+0.12)*s*0.3,Math.sin(ang+0.12)*s*0.3);ctx.closePath();
+      ctx.fillStyle=`rgba(${255-20*i},${200-30*i},${120+30*i},${a*0.85})`;ctx.fill()}
+    // Core
+    ctx.beginPath();ctx.arc(0,0,this.size*0.2,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fill();ctx.restore()}
+  contains(px,py){return dist(px,py,this.x,this.y)<Math.max(this.size*2,16)}
 }
 
 // ===== Shooting Star =====
@@ -450,9 +447,14 @@ class SS{constructor(tx,ty){this.sx=W+80;this.sy=-30;this.tx=tx;this.ty=ty;this.
     if(this.trail.length>35)this.trail.shift();this.trail.forEach(t=>t.a-=0.035);if(this.prog>=1){this.alive=false;return false}return true}
   getX(){return this.sx+(this.tx-this.sx)*this.prog}
   getY(){return this.sy+(this.ty-this.sy)*this.prog-45*Math.sin(this.prog*Math.PI)}
-  draw(){this.trail.forEach((t,i)=>{if(t.a<=0)return;ctx.beginPath();ctx.arc(t.x,t.y,1.5*(i/this.trail.length),0,Math.PI*2);ctx.fillStyle=`rgba(255,240,210,${t.a*0.25})`;ctx.fill()});
-    const x=this.getX(),y=this.getY();ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,0.85)";ctx.fill()
-    ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle="rgba(200,220,255,0.15)";ctx.fill()}
+  draw(){this.trail.forEach((t,i)=>{if(t.a<=0)return;ctx.beginPath();ctx.arc(t.x,t.y,1.5*(i/this.trail.length),0,Math.PI*2);
+    const tc=this.isRed?`rgba(255,80,50,${t.a*0.35})`:`rgba(255,240,210,${t.a*0.25})`;
+    ctx.fillStyle=tc;ctx.fill()});
+    const x=this.getX(),y=this.getY();
+    const hc=this.isRed?"rgba(255,120,80,0.95)":"rgba(255,255,255,0.85)";
+    const gc=this.isRed?"rgba(255,100,60,0.25)":"rgba(200,220,255,0.15)";
+    ctx.beginPath();ctx.arc(x,y,this.isRed?4:3,0,Math.PI*2);ctx.fillStyle=hc;ctx.fill()
+    ctx.beginPath();ctx.arc(x,y,this.isRed?15:10,0,Math.PI*2);ctx.fillStyle=gc;ctx.fill()}
 }
 
 // ===== Init =====
@@ -475,22 +477,39 @@ const nebulae=[
 ];
 initScene();
 
-function scheduleReplacement(o){pendingReplacements.push({x:o?o.homeX:rnd(0,W),y:o?o.homeY:rnd(0,H),cd:15+Math.floor(rnd(0,25))})}
+function scheduleReplacement(o){pendingReplacements.push({x:o?o.homeX:rnd(0,W),y:o?o.homeY:rnd(0,H),cd:15+Math.floor(rnd(0,25)),extra:(o&&o.special)?{isRed:true}:{}})}
 function spawnBurst(x,y,c){for(let i=0;i<12;i++)particles.push({x,y,color:c,vx:rnd(-4,4),vy:rnd(1,5),life:15+rnd(0,10),age:0})}
 
-// ===== Click Handler =====
-canvas.addEventListener("click",e=>{
-  const rect=canvas.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
+// ===== Click/Touch Handler =====
+function handleCanvasTap(px,py){
+  // Larger hit area for Earth on mobile
   for(const p of planets){
-    if(p.contains(px,py)){
+    const hitR=p.isEarth?Math.max(p.r+25,80):p.r+10;
+    if(dist(px,py,p.cx,p.cy)<hitR){
       if(p.isEarth){openMsgModal();return}
       spawnBurst(p.cx,p.cy,p.baseColor);return
     }
   }
-  let best=null,bestD=50;
+  let best=null,bestD=60;
   for(const s of stars){if(s.falling)continue;const d=dist(px,py,s.x,s.y);if(d<bestD){bestD=d;best=s}}
   if(best){best.startFall();spawnBurst(best.x,best.y,"255,255,255")}
+}
+canvas.addEventListener("click",e=>{
+  const rect=canvas.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
+  handleCanvasTap(px,py);
 });
+canvas.addEventListener("touchstart",e=>{
+  e.preventDefault();
+  const touch=e.touches[0];
+  if(!touch)return;
+  const rect=canvas.getBoundingClientRect(),px=touch.clientX-rect.left,py=touch.clientY-rect.top;
+  // Vibrate on Earth touch for feedback
+  const earth=planets[0];
+  if(earth&&dist(px,py,earth.cx,earth.cy)<earth.r+30){
+    if(navigator.vibrate)navigator.vibrate(10);
+  }
+  handleCanvasTap(px,py);
+},{passive:false});
 
 // ===== Earth Hover =====
 let hoverTimer=null;
@@ -659,11 +678,11 @@ async function postMessage(){
 
   msgData.push({
     id:"m_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),
-    name:isAdmin?name+" ✦":name,
+    name,
     text,
     ts:Date.now(),
     userId,
-    isAdmin
+    isAdmin:isAdmin
   });
   document.getElementById("postInput").value="";
   renderMessages();
@@ -706,8 +725,9 @@ function toggleAdminMode(){
   if(!code)return;
   if(code==="yukiyuki"){
     isAdmin=!isAdmin;
+    document.getElementById("adminBadge").textContent=isAdmin?"✦ 管理员":"";
+    document.getElementById("adminKeyBtn").style.opacity=isAdmin?"1":"0.4";
     renderMessages();
-    alert(isAdmin?"✅ 管理员模式已开启":"已退出管理员模式");
   }else{
     adminAttempts++;
     if(adminAttempts>=3){
@@ -742,7 +762,7 @@ function render(){
 
   for(let i=pendingReplacements.length-1;i>=0;i--){
     const p=pendingReplacements[i];p.cd--;
-    if(p.cd<=0){shootingStars.push(new SS(p.x,p.y));pendingReplacements.splice(i,1)}
+    if(p.cd<=0){shootingStars.push(new SS(p.x,p.y,p.extra&&p.extra.isRed));pendingReplacements.splice(i,1)}
   }
 
   // Asteroids
@@ -757,7 +777,7 @@ function render(){
   for(let i=shootingStars.length-1;i>=0;i--){
     const ss=shootingStars[i];
     if(ss.alive){ss.update();ss.draw()}
-    if(!ss.alive){stars.push(new Star(ss.tx,ss.ty));shootingStars.splice(i,1)}
+    if(!ss.alive){const ns=new Star(ss.tx,ss.ty);if(ss.isRed){ns.type="cross";ns.special=true;ns.baseSize=rnd(4,7);ns.size=ns.baseSize;ns.tint=[255,200,120]};stars.push(ns);shootingStars.splice(i,1)}
   }
   for(let i=particles.length-1;i>=0;i--){
     const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.age++;
@@ -783,8 +803,109 @@ window.addEventListener("resize",()=>{
   }
 });
 
-// Load messages on init
+// ============================================================
+// 📦 项目管理（管理员可添加/删除）
+// ============================================================
+const PROJ_API_URL="https://api.github.com/repos/yukilynn814-cmyk/yukilynn814-cmyk.github.io/contents/data/projects.json";
+const PROJ_RAW_URL="https://raw.githubusercontent.com/yukilynn814-cmyk/yukilynn814-cmyk.github.io/main/data/projects.json";
+let projects=[];
+
+async function loadProjects(){
+  try{
+    const r=await fetch(PROJ_RAW_URL);
+    if(!r.ok)throw new Error("fetch failed");
+    projects=JSON.parse(await r.text());
+    if(!Array.isArray(projects))projects=[];
+  }catch(e){projects=[]}
+  renderProjects();
+}
+
+async function saveProjects(){
+  if(!TOKEN){
+    const t=prompt("🔑 需要 GitHub Token 才能保存项目：");
+    if(!t)return;
+    TOKEN=***
+    localStorage.setItem("sf_gh_token",TOKEN);
+  }
+  try{
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(projects,null,2))));
+    const getR=await fetch(PROJ_API_URL,{headers:{"Authorization":"***"+TOKEN,"Accept":"application/vnd.github.v3+json"}});
+    const getD=await getR.json();
+    const sha=getD.sha||"";
+    const r=await fetch(PROJ_API_URL,{
+      method:"PUT",
+      headers:{"Authorization":"***"+TOKEN,"Content-Type":"application/json"},
+      body:JSON.stringify({message:"📦 更新项目列表",content,sha})
+    });
+    if(!r.ok)throw new Error("save failed");
+    renderProjects();
+  }catch(e){alert("保存失败："+e.message)}
+}
+
+function renderProjects(){
+  const el=document.getElementById("projectList");
+  const adminCtrls=document.getElementById("adminProjectControls");
+  if(adminCtrls)adminCtrls.style.display=isAdmin?"inline":"none";
+  if(!projects||projects.length===0){
+    el.innerHTML=`<div class="project-card" style="opacity:0.35;cursor:default"><div class="icon">✨</div><div class="info"><h3>还没有项目</h3><div class="desc">等 Y老大 添加新项目</div></div><div class="arrow">→</div></div>`;
+    return;
+  }
+  el.innerHTML=projects.map((p,i)=>{
+    const tags=p.tags&&Array.isArray(p.tags)?p.tags.map(t=>`<span>${esc(t)}</span>`).join(""):"";
+    const statusHtml=p.status==="online"?`<span class="status-badge online">● 已上线</span>`:`<span class="status-badge wip">● 规划中</span>`;
+    const adminActions=isAdmin?`<div style="position:absolute;top:8px;right:8px;z-index:2;display:flex;gap:4px">
+      <button onclick="event.stopPropagation();deleteProject('${p.id}')" style="background:rgba(248,81,73,0.15);border:none;color:#f85149;padding:2px 8px;border-radius:6px;cursor:pointer;font-size:0.65rem;font-family:inherit">🗑️</button>
+    </div>`:"";
+    return `<a class="project-card" href="${esc(p.url)}" target="_blank" rel="noopener"
+      style="--card-accent:${p.accent||"rgba(255,255,255,0.1)"};--card-icon-bg:${p.iconBg||"rgba(255,255,255,0.03)"}">
+      ${adminActions}
+      <div class="icon">${p.icon||"📦"}</div>
+      <div class="info">
+        <h3>${esc(p.name)} ${statusHtml}</h3>
+        <div class="desc">${esc(p.desc)}</div>
+        <div class="tags">${tags}</div>
+      </div>
+      <div class="arrow">→</div>
+    </a>`;
+  }).join("");
+}
+
+function showAddProject(){
+  const name=prompt("项目名称：");if(!name)return;
+  const desc=prompt("项目描述：");if(!desc)return;
+  const url=prompt("项目链接：");if(!url)return;
+  const icon=prompt("项目图标（Emoji）：")||"📦";
+  const tagsStr=prompt("标签（逗号分隔）：")||"";
+  const tags=tagsStr.split(",").map(t=>t.trim()).filter(Boolean);
+  projects.push({
+    id:"p_"+Date.now(),
+    icon,name,desc,url,
+    tags,
+    accent:"#58a6ff",
+    iconBg:"linear-gradient(135deg,rgba(88,166,255,0.15),rgba(188,140,255,0.15))",
+    status:"online"
+  });
+  renderProjects();
+  saveProjects();
+}
+
+function deleteProject(id){
+  if(!confirm("删除这个项目？"))return;
+  projects=projects.filter(p=>p.id!==id);
+  renderProjects();
+  saveProjects();
+}
+
+// Wrap the admin toggle to also show project controls
+const origToggle=toggleAdminMode;
+toggleAdminMode=function(){
+  origToggle();
+  renderProjects();
+};
+
+// Load on init
 loadMessages();
+loadProjects();
 </script>
 </body>
 </html>
