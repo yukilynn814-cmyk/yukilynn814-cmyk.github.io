@@ -297,10 +297,27 @@
   <div class="modal-box">
     <div class="modal-header">
       <h3>💬 留言星 🌍</h3>
-      <button class="close-btn" onclick="closeMsgModal()">✕</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span id="adminBadge" style="font-size:0.65rem;color:#58a6ff;display:none">✦ 管理员</span>
+        <button class="close-btn" onclick="closeMsgModal()">✕</button>
+      </div>
     </div>
-    <div class="modal-body" id="msgBody">
-      <div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>
+    <div style="position:relative;flex:1;display:flex;min-height:0">
+      <div id="adminKeyTab" onclick="toggleAdminMode()" style="
+        position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:10;
+        writing-mode:vertical-lr;cursor:pointer;user-select:none;
+        padding:10px 5px;border-radius:0 8px 8px 0;
+        background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);
+        border-left:none;transition:all 0.2s;font-size:16px;line-height:1.2;
+        color:rgba(255,255,255,0.15);" 
+        title="管理员"
+        onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.3)'"
+        onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color=isAdmin?'#58a6ff':'rgba(255,255,255,0.15)'">
+        🔑
+      </div>
+      <div class="modal-body" id="msgBody" style="padding-left:32px">
+        <div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>
+      </div>
     </div>
     <div class="modal-footer">
       <div class="post-name-row">
@@ -693,7 +710,7 @@ async function saveEdit(id){
   renderMessages();
 }
 
-// Admin — 隐藏入口：Ctrl+Shift+A
+// Admin — 点击钥匙 or Ctrl+Shift+A
 let adminAttempts=0;
 document.addEventListener("keydown",e=>{
   if(e.ctrlKey&&e.shiftKey&&e.key==="A"){
@@ -702,20 +719,37 @@ document.addEventListener("keydown",e=>{
   }
 });
 function toggleAdminMode(){
-  const code=prompt("🔑 输入管理员暗号：");
+  if(isAdmin){
+    isAdmin=false;
+    updateAdminUI();
+    renderMessages();
+    return;
+  }
+  const code=prompt("🔑 输入管理员密码：");
   if(!code)return;
   if(code==="yukiyuki"){
-    isAdmin=!isAdmin;
+    isAdmin=true;
+    updateAdminUI();
     renderMessages();
-    alert(isAdmin?"✅ 管理员模式已开启":"已退出管理员模式");
   }else{
     adminAttempts++;
     if(adminAttempts>=3){
-      alert("暗号错误次数过多");
+      alert("密码错误次数过多");
       adminAttempts=0;
     }else{
-      alert("暗号错误，请重试");
+      alert("密码错误");
     }
+  }
+}
+function updateAdminUI(){
+  const badge=document.getElementById("adminBadge");
+  const key=document.getElementById("adminKeyTab");
+  if(badge)badge.style.display=isAdmin?"inline":"none";
+  if(key){
+    key.style.color=isAdmin?"#58a6ff":"rgba(255,255,255,0.15)";
+    key.style.background=isAdmin?"rgba(88,166,255,0.08)":"rgba(255,255,255,0.03)";
+    key.style.borderColor=isAdmin?"rgba(88,166,255,0.2)":"rgba(255,255,255,0.04)";
+    key.title=isAdmin?"点击退出管理员" :"管理员登录";
   }
 }
 
