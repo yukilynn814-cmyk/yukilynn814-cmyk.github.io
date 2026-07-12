@@ -8,16 +8,10 @@
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{
     font-family:-apple-system,"PingFang SC","Helvetica Neue",system-ui,sans-serif;
-    background:#05080f;color:#e6edf3;min-height:100vh;overflow-x:hidden;
-    cursor:default;
+    background:#03060b;color:#e6edf3;min-height:100vh;overflow-x:hidden;
   }
-  #starfield{
-    position:fixed;inset:0;z-index:0;display:block;
-  }
-  .container{
-    max-width:900px;margin:0 auto;padding:40px 24px;
-    position:relative;z-index:1;pointer-events:none;
-  }
+  #starfield{position:fixed;inset:0;z-index:0;display:block;cursor:pointer}
+  .container{max-width:900px;margin:0 auto;padding:40px 24px;position:relative;z-index:1;pointer-events:none}
   .container *{pointer-events:auto}
 
   /* ===== Header ===== */
@@ -33,22 +27,17 @@
   @keyframes glow{0%,100%{box-shadow:0 0 40px rgba(88,166,255,0.15),0 4px 30px rgba(88,166,255,0.2)}50%{box-shadow:0 0 60px rgba(88,166,255,0.25),0 4px 30px rgba(88,166,255,0.3)}}
   header h1{font-size:2rem;font-weight:700;margin-bottom:8px}
   header h1 span{background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-  header p{color:rgba(255,255,255,0.35);font-size:0.9rem;max-width:500px;margin:0 auto;line-height:1.7}
+  header p{color:rgba(255,255,255,0.3);font-size:0.9rem;max-width:500px;margin:0 auto;line-height:1.7}
 
-  /* ===== Section ===== */
+  /* ===== Projects Section ===== */
   .section{margin-bottom:40px}
   .section-title{
     font-size:0.72rem;text-transform:uppercase;letter-spacing:4px;
-    color:rgba(255,255,255,0.2);margin-bottom:16px;padding-bottom:10px;
+    color:rgba(255,255,255,0.18);margin-bottom:16px;padding-bottom:10px;
     border-bottom:1px solid rgba(255,255,255,0.04);
     display:flex;align-items:center;gap:8px;
   }
-  .section-title::after{
-    content:'';flex:1;height:1px;
-    background:linear-gradient(90deg, rgba(255,255,255,0.06), transparent);
-  }
-
-  /* ===== Project Card ===== */
+  .section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.06),transparent)}
   .project-card{
     display:flex;align-items:center;gap:20px;
     background:rgba(255,255,255,0.02);
@@ -67,74 +56,173 @@
   .project-card::after{
     content:'';position:absolute;inset:-1px;border-radius:14px;
     border:1px solid transparent;
-    background:linear-gradient(135deg,var(--card-accent,transparent),transparent 60%) border-box;
-    -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);
+    background:linear-gradient(135deg,var(--card-accent,transparent),transparent 60%)border-box;
+    -webkit-mask:linear-gradient(#fff 0 0)padding-box,linear-gradient(#fff 0 0);
     -webkit-mask-composite:xor;mask-composite:exclude;
     opacity:0;transition:opacity 0.4s;
   }
-  .project-card:hover{
-    transform:translateY(-3px);
-    background:rgba(255,255,255,0.04);
-    border-color:transparent;
-  }
+  .project-card:hover{transform:translateY(-3px);background:rgba(255,255,255,0.04);border-color:transparent}
   .project-card:hover::before{opacity:0.08}
   .project-card:hover::after{opacity:1}
-
   .project-card .icon{
     width:52px;height:52px;border-radius:12px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;font-size:24px;
     position:relative;z-index:1;
     background:var(--card-icon-bg,rgba(255,255,255,0.05));
-    box-shadow:0 0 20px rgba(255,255,255,0.02);
   }
   .project-card .info{flex:1;position:relative;z-index:1;min-width:0}
-  .project-card .info h3{
-    font-size:1.02rem;font-weight:600;margin-bottom:5px;
-    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  }
-  .project-card .info .desc{
-    font-size:0.84rem;color:rgba(255,255,255,0.4);
-    line-height:1.55;margin-bottom:10px;
-  }
+  .project-card .info h3{font-size:1.02rem;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .project-card .info .desc{font-size:0.84rem;color:rgba(255,255,255,0.4);line-height:1.55;margin-bottom:10px}
   .project-card .info .tags{display:flex;gap:6px;flex-wrap:wrap}
-  .project-card .info .tags span{
-    font-size:0.68rem;padding:2px 10px;border-radius:20px;
-    background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);
-    border:1px solid rgba(255,255,255,0.05);
-  }
-  .project-card .arrow{
-    font-size:18px;color:rgba(255,255,255,0.1);flex-shrink:0;
-    transition:transform 0.3s,color 0.3s;position:relative;z-index:1;
-  }
-  .project-card:hover .arrow{
-    transform:translateX(6px);color:var(--card-accent,rgba(255,255,255,0.4));
-  }
+  .project-card .info .tags span{font-size:0.68rem;padding:2px 10px;border-radius:20px;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.05)}
+  .project-card .arrow{font-size:18px;color:rgba(255,255,255,0.1);flex-shrink:0;transition:transform 0.3s,color 0.3s;position:relative;z-index:1}
+  .project-card:hover .arrow{transform:translateX(6px);color:var(--card-accent,rgba(255,255,255,0.4))}
+  .status-badge{display:inline-flex;align-items:center;gap:4px;font-size:0.68rem;padding:2px 10px;border-radius:20px}
+  .status-badge.online{background:rgba(63,185,80,0.08);color:#3fb950;border:1px solid rgba(63,185,80,0.15)}
+  .status-badge.wip{background:rgba(248,81,73,0.08);color:#f85149;border:1px solid rgba(248,81,73,0.15)}
 
-  /* ===== Status Badge ===== */
-  .status-badge{
-    display:inline-flex;align-items:center;gap:4px;
-    font-size:0.68rem;padding:2px 10px;border-radius:20px;
-  }
-  .status-badge.online{
-    background:rgba(63,185,80,0.08);color:#3fb950;
-    border:1px solid rgba(63,185,80,0.15);
-  }
-  .status-badge.wip{
-    background:rgba(248,81,73,0.08);color:#f85149;
-    border:1px solid rgba(248,81,73,0.15);
-  }
+  footer{text-align:center;padding:40px 0 60px;color:rgba(255,255,255,0.06);font-size:0.75rem;letter-spacing:1px}
 
-  .cursor-hint{
-    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-    font-size:0.7rem;color:rgba(255,255,255,0.12);z-index:2;
-    pointer-events:none;letter-spacing:1px;
-    animation:hintPulse 3s ease-in-out infinite;
+  /* ===== Message Board Modal ===== */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.65);
+    backdrop-filter:blur(6px);z-index:1000;
+    display:none;align-items:center;justify-content:center;
+    animation:fadeIn 0.25s ease;padding:20px;
   }
-  @keyframes hintPulse{0%,100%{opacity:0.12}50%{opacity:0.3}}
+  .modal-overlay.show{display:flex}
+  @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+  @keyframes slideUp{0%{transform:translateY(30px);opacity:0}100%{transform:translateY(0);opacity:1}}
 
-  footer{
-    text-align:center;padding:40px 0 60px;
-    color:rgba(255,255,255,0.08);font-size:0.75rem;letter-spacing:1px;
+  .modal-box{
+    background:#0d1117;border:1px solid rgba(255,255,255,0.08);
+    border-radius:18px;width:100%;max-width:480px;max-height:80vh;
+    display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    animation:slideUp 0.3s ease;
+  }
+  .modal-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .modal-header h3{font-size:0.95rem;font-weight:600;display:flex;align-items:center;gap:8px}
+  .modal-header .close-btn{
+    width:32px;height:32px;border-radius:50%;border:none;
+    background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);
+    cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
+    transition:all 0.2s;font-family:inherit;
+  }
+  .modal-header .close-btn:hover{background:rgba(255,255,255,0.12);color:#fff}
+
+  .modal-body{flex:1;overflow-y:auto;padding:16px 20px}
+  .modal-body::-webkit-scrollbar{width:4px}
+  .modal-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
+
+  /* ===== Messages ===== */
+  .msg-list{display:flex;flex-direction:column;gap:14px}
+  .msg-item{
+    display:flex;gap:10px;animation:fadeIn 0.3s ease;
+    position:relative;
+  }
+  .msg-item .avatar{
+    width:36px;height:36px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:600;margin-top:2px;
+  }
+  .msg-item .body{flex:1;min-width:0}
+  .msg-item .body .meta{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  .msg-item .body .meta .name{font-size:0.78rem;font-weight:600;color:rgba(255,255,255,0.6)}
+  .msg-item .body .meta .time{font-size:0.65rem;color:rgba(255,255,255,0.2)}
+  .msg-item .body .text{
+    font-size:0.88rem;line-height:1.55;color:#e6edf3;
+    background:rgba(255,255,255,0.04);border-radius:4px 12px 12px 12px;
+    padding:8px 12px;word-break:break-word;
+  }
+  .msg-item .body .text.admin-badge{
+    border-left:2px solid #58a6ff;
+  }
+  .msg-item .body .actions{
+    display:none;gap:6px;margin-top:4px;padding-left:4px;
+  }
+  .msg-item:hover .body .actions{display:flex}
+  .msg-item .body .actions button{
+    background:none;border:none;color:rgba(255,255,255,0.25);
+    font-size:0.68rem;cursor:pointer;padding:2px 6px;
+    border-radius:4px;font-family:inherit;
+  }
+  .msg-item .body .actions button:hover{background:rgba(255,255,255,0.06);color:#58a6ff}
+  .msg-item .body .actions .del:hover{color:#f85149}
+
+  .empty-msg{padding:40px 20px;text-align:center;color:rgba(255,255,255,0.15);font-size:0.85rem;line-height:1.7}
+
+  /* ===== Post Form ===== */
+  .modal-footer{
+    padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,0.06);
+  }
+  .post-form{display:flex;gap:8px}
+  .post-form input[type="text"]{
+    flex:1;padding:10px 14px;border-radius:20px;
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+    color:#e6edf3;font-size:0.85rem;font-family:inherit;
+    outline:none;transition:border-color 0.2s;
+  }
+  .post-form input:focus{border-color:#58a6ff}
+  .post-form button{
+    width:40px;height:40px;border-radius:50%;border:none;
+    background:linear-gradient(135deg,#58a6ff,#bc8cff);
+    color:#fff;cursor:pointer;font-size:18px;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform 0.15s;flex-shrink:0;
+  }
+  .post-form button:hover{transform:scale(1.05)}
+  .post-form button:active{transform:scale(0.95)}
+  .post-form button:disabled{opacity:0.3;cursor:default;transform:none}
+
+  .post-name-row{display:flex;gap:8px;margin-bottom:8px}
+  .post-name-row input{flex:1;padding:8px 12px;border-radius:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:#e6edf3;font-size:0.8rem;font-family:inherit;outline:none}
+  .post-name-row input:focus{border-color:#58a6ff}
+  .post-name-row .admin-badge-input{
+    font-size:0.68rem;color:rgba(255,255,255,0.2);display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;
+  }
+  .post-name-row .admin-badge-input:hover{color:rgba(255,255,255,0.4)}
+
+  /* ===== Edit mode ===== */
+  .edit-input{
+    width:100%;padding:8px 10px;border-radius:8px;
+    background:rgba(88,166,255,0.08);border:1px solid #58a6ff;
+    color:#e6edf3;font-size:0.88rem;font-family:inherit;
+    outline:none;margin-bottom:4px;
+  }
+  .edit-actions{display:flex;gap:6px}
+  .edit-actions button{
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.6);padding:2px 12px;border-radius:8px;
+    cursor:pointer;font-size:0.7rem;font-family:inherit;
+  }
+  .edit-actions button:hover{background:rgba(255,255,255,0.12)}
+
+  /* ===== Hover Preview ===== */
+  .hover-preview{
+    position:fixed;z-index:500;pointer-events:none;
+    background:rgba(13,17,23,0.95);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px;padding:12px 16px;max-width:280px;
+    backdrop-filter:blur(12px);
+    animation:fadeIn 0.3s ease;display:none;
+    box-shadow:0 8px 30px rgba(0,0,0,0.4);
+  }
+  .hover-preview.show{display:block}
+  .hover-preview .hp-title{
+    font-size:0.72rem;color:rgba(255,255,255,0.3);margin-bottom:8px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .hover-preview .hp-msg{
+    font-size:0.78rem;color:rgba(255,255,255,0.6);
+    padding:4px 0;line-height:1.4;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .hover-preview .hp-more{
+    font-size:0.7rem;color:rgba(88,166,255,0.4);margin-top:6px;
   }
 
   @media(max-width:600px){
@@ -145,7 +233,8 @@
     .project-card .icon{width:44px;height:44px;font-size:20px}
     .project-card .info h3{font-size:0.92rem}
     .project-card .info .desc{font-size:0.8rem}
-    .cursor-hint{display:none}
+    .modal-box{max-height:90vh;border-radius:14px}
+    .hover-preview{max-width:220px}
   }
 </style>
 </head>
@@ -156,23 +245,22 @@
   <header>
     <div class="avatar">🚀</div>
     <h1><span>Y老大</span> 的项目</h1>
-    <p>钢铁侠负责拍脑袋，小虾虾负责落地。<br>这里放着我们一起折腾出来的东西。</p>
+    <p>钢铁侠负责拍脑袋，小虾虾负责落地。<br>
+      点击左下角的 🌍 地球，留下你的话 ✨</p>
   </header>
 
   <div class="section">
     <div class="section-title">✦ 项目列表</div>
-
     <a class="project-card" href="https://yukilynn814-cmyk.github.io/date-game/date-game.html" target="_blank" rel="noopener"
        style="--card-accent:#ff6b8a;--card-icon-bg:linear-gradient(135deg,rgba(231,76,111,0.15),rgba(255,107,138,0.15))">
       <div class="icon">🐳</div>
       <div class="info">
         <h3>和小明宝宝的一天 <span class="status-badge online">● 已上线</span></h3>
-        <div class="desc">互动约会文字小游戏。女朋友以小鲸鱼的视角，经历在北京站见面、逛街、吃饭、回酒店、亲吻的甜蜜一天。</div>
+        <div class="desc">互动约会文字小游戏。以小鲸鱼的视角，经历北京站见面、逛街、吃饭、回酒店、亲吻的甜蜜一天。</div>
         <div class="tags"><span>💕 约会</span><span>🎮 互动游戏</span><span>📱 手机友好</span></div>
       </div>
       <div class="arrow">→</div>
     </a>
-
     <a class="project-card" href="https://yukilynn814-cmyk.github.io/slideforge/" target="_blank" rel="noopener"
        style="--card-accent:#58a6ff;--card-icon-bg:linear-gradient(135deg,rgba(88,166,255,0.15),rgba(188,140,255,0.15))">
       <div class="icon">🎯</div>
@@ -183,7 +271,6 @@
       </div>
       <div class="arrow">→</div>
     </a>
-
     <a class="project-card" href="javascript:void(0)"
        style="--card-accent:rgba(255,255,255,0.1);--card-icon-bg:rgba(255,255,255,0.03);opacity:0.35;cursor:default">
       <div class="icon">✨</div>
@@ -195,473 +282,498 @@
       <div class="arrow">→</div>
     </a>
   </div>
-
   <footer>🦐 小虾虾 · Stark Industries 出品</footer>
 </div>
 
-<div class="cursor-hint">✦ 点击星星 · 流星划过 ✦</div>
+<!-- Hover Preview -->
+<div class="hover-preview" id="hoverPreview">
+  <div class="hp-title">💬 留言星 · 最新</div>
+  <div id="hpMsgs"></div>
+  <div class="hp-more">点击地球查看全部 →</div>
+</div>
+
+<!-- Message Board Modal -->
+<div class="modal-overlay" id="msgModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>💬 留言星 🌍</h3>
+      <button class="close-btn" onclick="closeMsgModal()">✕</button>
+    </div>
+    <div class="modal-body" id="msgBody">
+      <div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>
+    </div>
+    <div class="modal-footer">
+      <div class="post-name-row">
+        <input type="text" id="postName" placeholder="你的名字" maxlength="12">
+        <span class="admin-badge-input" id="adminToggle" onclick="toggleAdminMode()">🔑 管理员</span>
+      </div>
+      <div class="post-form">
+        <input type="text" id="postInput" placeholder="说点什么…" maxlength="200" onkeydown="if(event.key==='Enter')postMessage()">
+        <button id="postBtn" onclick="postMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ============================================================
-// 🌌 深空星域引擎 v2
+// 🌌 深空星域引擎 v3
 // ============================================================
-const canvas = document.getElementById("starfield");
-const ctx = canvas.getContext("2d");
-let W, H, stars = [], shootingStars = [], asteroids = [];
-let planet = null;
-let animId;
+const canvas=document.getElementById("starfield");
+const ctx=canvas.getContext("2d");
+let W,H,stars=[],shootingStars=[],particles=[];
+let planets=[],pendingReplacements=[];
+const STAR_COUNT=150;
 
-// ===== Sizing =====
-function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resize);
-resize();
-
-// ===== Utility =====
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+window.addEventListener("resize",resize); resize();
 function dist(x1,y1,x2,y2){return Math.hypot(x2-x1,y2-y1)}
-function lerp(a,b,t){return a+(b-a)*t}
+function rnd(a,b){return a+Math.random()*(b-a)}
 
-// ===== Planet (Earth) =====
-class Planet {
-  constructor() {
-    this.cx = Math.min(180, W * 0.12);
-    this.cy = Math.min(H - 160, H * 0.82);
-    this.r = 70;
-    this.atmoR = this.r + 18;
-    this.glowR = this.r + 40;
-    this.rot = 0;
-    this.rotSpeed = 0.001;
-    this.moons = [];
-    // Moon
-    this.moons.push({angle:0,dist:120,size:6,speed:0.003});
-    this.moons.push({angle:2.2,dist:155,size:4,speed:0.002});
+// ===== Celestial Body =====
+class Celestial{
+  constructor(cx,cy,r,name,color,hasRing,moons){
+    this.cx=cx;this.cy=cy;this.r=r;this.name=name;this.baseColor=color;
+    this.hasRing=hasRing;this.rot=0;this.rotSpeed=rnd(0.0005,0.002);
+    this.moons=moons||[];this.pulse=0;this.isEarth=name==="Earth";
   }
+  draw(){
+    this.rot+=this.rotSpeed;this.pulse+=0.005;
+    const cx=this.cx,cy=this.cy,r=this.r;
+    // Glow
+    const grd=ctx.createRadialGradient(cx,cy,r,cx,cy,r*3);
+    grd.addColorStop(0,`rgba(${this.baseColor},0.06)`);
+    grd.addColorStop(1,`rgba(${this.baseColor},0)`);
+    ctx.fillStyle=grd; ctx.beginPath();ctx.arc(cx,cy,r*3,0,Math.PI*2);ctx.fill();
 
-  draw() {
-    this.rot += this.rotSpeed;
-
-    // Outer glow
-    const grd = ctx.createRadialGradient(this.cx,this.cy,this.r,this.cx,this.cy,this.glowR);
-    grd.addColorStop(0,"rgba(80,160,255,0.08)");
-    grd.addColorStop(0.5,"rgba(80,160,255,0.03)");
-    grd.addColorStop(1,"rgba(80,160,255,0)");
-    ctx.fillStyle = grd;
-    ctx.beginPath(); ctx.arc(this.cx,this.cy,this.glowR,0,Math.PI*2); ctx.fill();
-
-    // Atmosphere
-    const atmo = ctx.createRadialGradient(this.cx,this.cy,this.r-5,this.cx,this.cy,this.atmoR);
-    atmo.addColorStop(0,"rgba(100,180,255,0.15)");
-    atmo.addColorStop(0.6,"rgba(100,180,255,0.08)");
-    atmo.addColorStop(1,"rgba(100,180,255,0)");
-    ctx.fillStyle = atmo;
-    ctx.beginPath(); ctx.arc(this.cx,this.cy,this.atmoR,0,Math.PI*2); ctx.fill();
-
-    // Planet body
-    const body = ctx.createRadialGradient(
-      this.cx-this.r*0.3, this.cy-this.r*0.3, this.r*0.1,
-      this.cx, this.cy, this.r
-    );
-    body.addColorStop(0,"#4a9eff");
-    body.addColorStop(0.4,"#2a7adf");
-    body.addColorStop(0.7,"#1a5abf");
-    body.addColorStop(1,"#0a2a6f");
-    ctx.fillStyle = body;
-    ctx.beginPath(); ctx.arc(this.cx,this.cy,this.r,0,Math.PI*2); ctx.fill();
-
-    // Continents (simplified blobs)
-    ctx.save();
-    ctx.translate(this.cx,this.cy);
-    ctx.rotate(this.rot);
-    const conts = [
-      {x:-20,y:-15,rx:22,ry:16,c:"#3aaf5a"},
-      {x:15,y:-20,rx:18,ry:22,c:"#4abf6a"},
-      {x:-30,y:20,rx:15,ry:12,c:"#3aaa50"},
-      {x:25,y:15,rx:16,ry:14,c:"#45b560"},
-      {x:-5,y:-40,rx:12,ry:10,c:"#4abf5a"},
-      {x:40,y:-5,rx:10,ry:8,c:"#38a848"},
-    ];
-    conts.forEach(c => {
-      ctx.beginPath();
-      ctx.ellipse(c.x,c.y,c.rx,c.ry,0,0,Math.PI*2);
-      ctx.fillStyle = c.c;
-      ctx.fill();
-    });
-    // Highlight edge
-    const hilite = ctx.createRadialGradient(-this.r*0.2,-this.r*0.2,0,0,0,this.r);
-    hilite.addColorStop(0,"rgba(255,255,255,0.1)");
-    hilite.addColorStop(0.5,"rgba(255,255,255,0.02)");
-    hilite.addColorStop(1,"rgba(0,0,0,0.2)");
-    ctx.fillStyle = hilite;
-    ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-
+    if(this.hasRing){
+      ctx.save();ctx.translate(cx,cy);ctx.rotate(this.rot*0.5);
+      ctx.beginPath();ctx.ellipse(0,0,r*1.8,r*0.4,0,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(200,190,170,${0.08+0.03*Math.sin(this.pulse)})`;
+      ctx.lineWidth=1.5;ctx.stroke();
+      ctx.restore();
+    }
+    // Earth special - atmosphere glow when hovered
+    if(this.isEarth && this.hoverPulse){
+      const atmo=ctx.createRadialGradient(cx,cy,r*0.8,cx,cy,r*1.3);
+      atmo.addColorStop(0,`rgba(80,180,255,${0.04+0.03*Math.sin(this.pulse*2)})`);
+      atmo.addColorStop(1,"rgba(80,180,255,0)");
+      ctx.fillStyle=atmo; ctx.beginPath();ctx.arc(cx,cy,r*1.3,0,Math.PI*2);ctx.fill();
+    }
+    // Body
+    const bGrd=ctx.createRadialGradient(cx-r*0.3,cy-r*0.3,r*0.1,cx,cy,r);
+    bGrd.addColorStop(0,`rgba(${this.baseColor},1)`);
+    bGrd.addColorStop(0.5,`rgba(${this.baseColor},0.8)`);
+    bGrd.addColorStop(1,`rgba(${this.baseColor},0.4)`);
+    ctx.fillStyle=bGrd;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    // Continents for Earth
+    if(this.isEarth){
+      ctx.save();ctx.translate(cx,cy);ctx.rotate(this.rot*0.2);
+      [
+        {x:-15,y:-10,rx:16,ry:12,c:"rgba(60,180,90,0.5)"},
+        {x:12,y:-14,rx:14,ry:18,c:"rgba(70,190,100,0.4)"},
+        {x:-22,y:14,rx:12,ry:10,c:"rgba(60,175,85,0.45)"},
+        {x:18,y:12,rx:13,ry:11,c:"rgba(65,185,95,0.4)"},
+        {x:-4,y:-30,rx:10,ry:8,c:"rgba(75,195,105,0.35)"},
+      ].forEach(c=>{ctx.beginPath();ctx.ellipse(c.x,c.y,c.rx,c.ry,0,0,Math.PI*2);
+        ctx.fillStyle=c.c;ctx.fill()});
+      ctx.restore();
+    }
+    // Highlight
+    const hl=ctx.createRadialGradient(cx-r*0.2,cy-r*0.2,0,cx,cy,r);
+    hl.addColorStop(0,"rgba(255,255,255,0.1)");
+    hl.addColorStop(1,"rgba(0,0,0,0.15)");
+    ctx.fillStyle=hl;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
     // Moons
-    this.moons.forEach(m => {
-      m.angle += m.speed;
-      const mx = this.cx + Math.cos(m.angle)*m.dist;
-      const my = this.cy + Math.sin(m.angle)*m.dist;
-      ctx.beginPath(); ctx.arc(mx,my,m.size,0,Math.PI*2);
-      ctx.fillStyle = "rgba(200,200,200,0.5)";
-      ctx.fill();
+    this.moons.forEach(m=>{
+      m.angle+=m.speed;
+      const mx=cx+Math.cos(m.angle)*m.dist,my=cy+Math.sin(m.angle)*m.dist;
+      ctx.beginPath();ctx.arc(mx,my,m.size,0,Math.PI*2);
+      ctx.fillStyle="rgba(200,200,210,0.3)";ctx.fill();
     });
   }
-
-  contains(px,py) {
-    return dist(px,py,this.cx,this.cy) < this.r + 10;
-  }
+  contains(px,py){return dist(px,py,this.cx,this.cy)<this.r+10}
 }
 
-// ===== Asteroid =====
-class Asteroid {
-  constructor(angle,dist,size) {
-    this.angle = angle;
-    this.dist = dist;
-    this.size = size || (Math.random()*3+1.5);
-    this.speed = (0.001 + Math.random()*0.002) * (Math.random()>0.5?1:-1);
-    this.rot = Math.random()*Math.PI*2;
-    this.shape = Array.from({length:5+Math.floor(Math.random()*3)},()=>this.size*(0.6+Math.random()*0.4));
-  }
-
-  draw(cx,cy) {
-    this.angle += this.speed;
-    const x = cx + Math.cos(this.angle)*this.dist;
-    const y = cy + Math.sin(this.angle)*this.dist * 0.4;
-    this.rot += 0.01;
-    ctx.save();
-    ctx.translate(x,y);
-    ctx.rotate(this.rot);
-    ctx.beginPath();
-    this.shape.forEach((r,i) => {
-      const a = (i/this.shape.length)*Math.PI*2;
-      const px = Math.cos(a)*r;
-      const py = Math.sin(a)*r*0.7;
-      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
-    });
-    ctx.closePath();
-    ctx.fillStyle = `rgba(160,160,150,${0.3+Math.random()*0.15})`;
-    ctx.fill();
-    ctx.restore();
-  }
+// ===== Nebula =====
+class Nebula{constructor(cx,cy,rx,ry,cols){this.cx=cx;this.cy=cy;this.rx=rx;this.ry=ry;this.cols=cols;this.rot=0}
+  draw(){this.rot+=0.0002;ctx.save();ctx.translate(this.cx,this.cy);ctx.rotate(this.rot);
+    this.cols.forEach(c=>{const x=rnd(-this.rx*0.5,this.rx*0.5),y=rnd(-this.ry*0.5,this.ry*0.5),size=rnd(this.rx*0.2,this.rx*0.4);
+      const grd=ctx.createRadialGradient(x,y,0,x,y,size);
+      grd.addColorStop(0,c);grd.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.fill()});
+    ctx.restore()}
 }
 
 // ===== Star =====
-const STAR_TYPES = ["circle","spark","diamond","cluster"];
-
-class Star {
-  constructor(x,y) {
-    this.x = x !== undefined ? x : Math.random()*W;
-    this.y = y !== undefined ? y : Math.random()*H;
-    this.baseSize = 2.5 + Math.random()*4;
-    this.size = this.baseSize;
-    this.baseAlpha = 0.4 + Math.random()*0.5;
-    this.alpha = this.baseAlpha;
-    this.twinkleSpeed = 0.008 + Math.random()*0.025;
-    this.twinklePhase = Math.random()*Math.PI*2;
-    this.type = STAR_TYPES[Math.floor(Math.random()*STAR_TYPES.length)];
-    this.falling = false;
-    this.fallSpeed = 0;
-    this.fallAngle = (Math.random()-0.5)*0.3;
-    this.orbitAngle = Math.random()*Math.PI*2;
-    this.orbitSpeed = (Math.random()-0.5)*0.0015;
-    this.orbitRadius = 1 + Math.random()*2;
-    this.ox = this.x;
-    this.oy = this.y;
-    // Warm/cool tint
-    const t = Math.random();
-    if(t<0.15) this.tint = [255,200,180];
-    else if(t<0.3) this.tint = [180,210,255];
-    else if(t<0.42) this.tint = [255,220,150];
-    else this.tint = [255,255,255];
-    this.cluster = (this.type==="cluster") ? this._genCluster() : null;
+const STYPES=["circle","spark","diamond","cluster"];
+class Star{
+  constructor(x,y){
+    this.x=x!==undefined?x:rnd(0,W);this.y=y!==undefined?y:rnd(0,H);
+    this.homeX=this.x;this.homeY=this.y;
+    this.baseSize=rnd(2.5,6.5);this.size=this.baseSize;
+    this.alpha=rnd(0.3,0.8);this.twinkleSpeed=rnd(0.008,0.03);
+    this.twinklePhase=rnd(0,Math.PI*2);
+    this.type=STYPES[Math.floor(rnd(0,STYPES.length))];
+    this.falling=false;this.fallSpeed=0;this.fallAngle=rnd(-0.3,0.3);
+    this.fA=rnd(0,Math.PI*2);this.fS=rnd(0.0005,0.002);this.fR=rnd(0.5,2.5);
+    const t=Math.random();this.tint=t<0.12?[255,200,180]:t<0.25?[180,210,255]:t<0.35?[255,225,160]:[255,255,255];
+    this.cluster=this.type==="cluster"?Array.from({length:2+Math.floor(rnd(0,3))},()=>({dx:rnd(-5,5),dy:rnd(-5,5),s:rnd(0.5,1.8)})):null;
   }
-
-  _genCluster() {
-    const n = 2+Math.floor(Math.random()*3);
-    return Array.from({length:n},()=>({
-      dx:(Math.random()-0.5)*6,
-      dy:(Math.random()-0.5)*6,
-      s:0.5+Math.random()*1.5
-    }));
+  update(){
+    this.twinklePhase+=this.twinkleSpeed;this.fA+=this.fS;
+    this.x=this.homeX+Math.sin(this.fA)*this.fR;this.y=this.homeY+Math.cos(this.fA*0.7)*this.fR*0.5;
+    if(this.falling){this.fallSpeed+=0.1;this.x+=Math.sin(this.fallAngle)*this.fallSpeed*0.2;this.y+=this.fallSpeed;this.alpha-=0.008;this.size*=0.998;
+      if(this.alpha<=0||this.y>H+60){this.falling=false;scheduleReplacement(this);return false}}
+    return true
   }
-
-  update() {
-    this.twinklePhase += this.twinkleSpeed;
-    this.orbitAngle += this.orbitSpeed;
-    this.x = this.ox + Math.sin(this.orbitAngle)*this.orbitRadius;
-    this.y = this.oy + Math.cos(this.orbitAngle*0.7)*this.orbitRadius*0.5;
-
-    if(this.falling) {
-      this.fallSpeed += 0.12;
-      this.x += Math.sin(this.fallAngle)*this.fallSpeed*0.3;
-      this.y += this.fallSpeed;
-      this.alpha -= 0.01;
-      this.size *= 0.997;
-      if(this.alpha<=0 || this.y>H+50) {
-        this.falling = false;
-        scheduleReplacement(this);
-        return false;
-      }
-    }
-    return true;
-  }
-
-  draw() {
-    if(this.alpha<=0) return;
-    const tw = 0.6+0.4*Math.sin(this.twinklePhase);
-    const a = Math.min(this.alpha*tw,1);
-    const [r,g,b] = this.tint;
-
-    if(this.type==="circle") {
-      this._drawCircle(a,r,g,b);
-    } else if(this.type==="spark") {
-      this._drawSpark(a,r,g,b);
-    } else if(this.type==="diamond") {
-      this._drawDiamond(a,r,g,b);
-    } else if(this.type==="cluster" && this.cluster) {
-      this._drawCluster(a,r,g,b);
-    }
-  }
-
-  _drawCircle(a,r,g,b) {
-    // Core
-    ctx.beginPath();
-    ctx.arc(this.x,this.y,this.size*0.5,0,Math.PI*2);
-    ctx.fillStyle = `rgba(${r},${g},${b},${a*0.9})`;
-    ctx.fill();
-    // Glow
-    if(this.size>2) {
-      ctx.beginPath();
-      ctx.arc(this.x,this.y,this.size*1.2,0,Math.PI*2);
-      ctx.fillStyle = `rgba(${r},${g},${b},${a*0.08})`;
-      ctx.fill();
-    }
-  }
-
-  _drawSpark(a,r,g,b) {
-    // 4-point star
-    const s = this.size*0.7;
-    ctx.save();
-    ctx.translate(this.x,this.y);
-    ctx.rotate(this.twinklePhase*0.2);
-    ctx.beginPath();
-    for(let i=0;i<4;i++) {
-      const ang = (i/4)*Math.PI*2 - Math.PI/4;
-      const len = i%2===0 ? s : s*0.35;
-      ctx.lineTo(Math.cos(ang)*len,Math.sin(ang)*len);
-    }
-    ctx.closePath();
-    ctx.fillStyle = `rgba(${r},${g},${b},${a*0.7})`;
-    ctx.fill();
-    // Center dot
-    ctx.beginPath();
-    ctx.arc(0,0,this.size*0.2,0,Math.PI*2);
-    ctx.fillStyle = `rgba(${Math.min(r+30,255)},${Math.min(g+30,255)},${Math.min(b+30,255)},${a})`;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  _drawDiamond(a,r,g,b) {
-    const s = this.size*0.6;
-    ctx.save();
-    ctx.translate(this.x,this.y);
-    ctx.rotate(Math.PI/4 + this.twinklePhase*0.1);
-    ctx.beginPath();
-    ctx.rect(-s/2,-s/2,s,s);
-    ctx.fillStyle = `rgba(${r},${g},${b},${a*0.5})`;
-    ctx.fill();
-    // Inner glow
-    ctx.beginPath();
-    ctx.rect(-s/4,-s/4,s/2,s/2);
-    ctx.fillStyle = `rgba(${Math.min(r+50,255)},${Math.min(g+50,255)},${Math.min(b+50,255)},${a*0.3})`;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  _drawCluster(a,r,g,b) {
-    this.cluster.forEach((c,i)=> {
-      const ca = a*(0.6+0.4*(1-i/this.cluster.length));
-      ctx.beginPath();
-      ctx.arc(this.x+c.dx,this.y+c.dy,c.s,0,Math.PI*2);
-      ctx.fillStyle = `rgba(${r},${g},${b},${ca*0.8})`;
-      ctx.fill();
-      // Tiny glow for each
-      ctx.beginPath();
-      ctx.arc(this.x+c.dx,this.y+c.dy,c.s*2,0,Math.PI*2);
-      ctx.fillStyle = `rgba(${r},${g},${b},${ca*0.04})`;
-      ctx.fill();
-    });
-  }
-
-  contains(px,py) {
-    const hitR = this.type==="cluster" ? this.size*1.5 : this.size*1.2;
-    return dist(px,py,this.x,this.y) < hitR;
-  }
+  draw(){if(this.alpha<=0)return;const tw=0.6+0.4*Math.sin(this.twinklePhase),a=Math.min(this.alpha*tw,1),[r,g,b]=this.tint;
+    if(this.type==="circle")this._c(a,r,g,b);else if(this.type==="spark")this._s(a,r,g,b);else if(this.type==="diamond")this._d(a,r,g,b);else if(this.type==="cluster"&&this.cluster)this._cl(a,r,g,b)}
+  _c(a,r,g,b){ctx.beginPath();ctx.arc(this.x,this.y,this.size*0.5,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.9})`;ctx.fill()
+    if(this.size>1.8){ctx.beginPath();ctx.arc(this.x,this.y,this.size*1.4,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.06})`;ctx.fill()}}
+  _s(a,r,g,b){const s=this.size*0.65;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.twinklePhase*0.15);ctx.beginPath();
+    for(let i=0;i<4;i++){const ang=i/4*Math.PI*2-Math.PI/4,l=i%2===0?s:s*0.3;ctx.lineTo(Math.cos(ang)*l,Math.sin(ang)*l)}
+    ctx.closePath();ctx.fillStyle=`rgba(${r},${g},${b},${a*0.65})`;ctx.fill()
+    ctx.beginPath();ctx.arc(0,0,this.size*0.2,0,Math.PI*2);ctx.fillStyle=`rgba(${Math.min(r+40,255)},${Math.min(g+40,255)},${Math.min(b+40,255)},${a})`;ctx.fill();ctx.restore()}
+  _d(a,r,g,b){const s=this.size*0.55;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(Math.PI/4+this.twinklePhase*0.08);
+    ctx.fillStyle=`rgba(${r},${g},${b},${a*0.5})`;ctx.fillRect(-s/2,-s/2,s,s)
+    ctx.fillStyle=`rgba(${Math.min(r+50,255)},${Math.min(g+50,255)},${Math.min(b+50,255)},${a*0.25})`;ctx.fillRect(-s/4,-s/4,s/2,s/2);ctx.restore()}
+  _cl(a,r,g,b){this.cluster.forEach((c,i)=>{const ca=a*(0.5+0.5*(1-i/this.cluster.length));
+    ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.8})`;ctx.fill()
+    ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s*2,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.03})`;ctx.fill()})}
+  contains(px,py){return dist(px,py,this.x,this.y)<Math.max(this.size*1.8,12)}
 }
 
 // ===== Shooting Star =====
-class ShootingStar {
-  constructor(tx,ty) {
-    this.sx = W+60; this.sy = -30;
-    this.tx = tx; this.ty = ty;
-    this.progress = 0;
-    this.speed = 0.018 + Math.random()*0.012;
-    this.trail = [];
-    this.alive = true;
-  }
-  update() {
-    if(!this.alive) return false;
-    this.progress += this.speed;
-    this.trail.push({x:this.getX(),y:this.getY(),a:1});
-    if(this.trail.length>30) this.trail.shift();
-    this.trail.forEach(t=>t.a-=0.04);
-    if(this.progress>=1) { this.alive=false; return false; }
-    return true;
-  }
-  getX(){return this.sx+(this.tx-this.sx)*this.progress}
-  getY(){
-    const arc = -50*Math.sin(this.progress*Math.PI);
-    return this.sy+(this.ty-this.sy)*this.progress+arc;
-  }
-  draw(){
-    this.trail.forEach((t,i)=>{
-      if(t.a<=0) return;
-      ctx.beginPath();
-      ctx.arc(t.x,t.y,1.8*(i/this.trail.length),0,Math.PI*2);
-      ctx.fillStyle=`rgba(255,235,200,${t.a*0.3})`;
-      ctx.fill();
-    });
-    const x=this.getX(), y=this.getY();
-    ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
-    ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.fill();
-    ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2);
-    ctx.fillStyle="rgba(200,220,255,0.2)"; ctx.fill();
-  }
+class SS{constructor(tx,ty){this.sx=W+80;this.sy=-30;this.tx=tx;this.ty=ty;this.prog=0;this.speed=rnd(0.015,0.025);this.trail=[];this.alive=true}
+  update(){if(!this.alive)return false;this.prog+=this.speed;this.trail.push({x:this.getX(),y:this.getY(),a:1});
+    if(this.trail.length>35)this.trail.shift();this.trail.forEach(t=>t.a-=0.035);if(this.prog>=1){this.alive=false;return false}return true}
+  getX(){return this.sx+(this.tx-this.sx)*this.prog}
+  getY(){return this.sy+(this.ty-this.sy)*this.prog-45*Math.sin(this.prog*Math.PI)}
+  draw(){this.trail.forEach((t,i)=>{if(t.a<=0)return;ctx.beginPath();ctx.arc(t.x,t.y,1.5*(i/this.trail.length),0,Math.PI*2);ctx.fillStyle=`rgba(255,240,210,${t.a*0.25})`;ctx.fill()});
+    const x=this.getX(),y=this.getY();ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,0.85)";ctx.fill()
+    ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle="rgba(200,220,255,0.15)";ctx.fill()}
 }
 
 // ===== Init =====
-const STAR_COUNT = 90;
-let pendingReplacements = [];
-
-function initScene() {
-  stars = [];
-  for(let i=0;i<STAR_COUNT;i++) stars.push(new Star());
-  planet = new Planet();
-  // Asteroids
-  asteroids = [];
-  for(let i=0;i<35;i++){
-    asteroids.push(new Asteroid(
-      Math.random()*Math.PI*2,
-      120+Math.random()*160,
-      1.5+Math.random()*2.5
-    ));
-  }
+function initScene(){
+  stars=[];for(let i=0;i<STAR_COUNT;i++)stars.push(new Star());
+  planets=[
+    new Celestial(Math.min(160,W*0.1),Math.min(H-140,H*0.78),60,"Earth","80,160,255",false,
+      [{angle:0,dist:100,size:5,speed:0.003},{angle:2.2,dist:130,size:3.5,speed:0.002}]),
+    new Celestial(Math.max(W-160,W*0.82),Math.min(150,H*0.15),28,"Mars","210,100,60",false,
+      [{angle:1.5,dist:50,size:3,speed:0.004}]),
+    new Celestial(Math.max(W-200,W*0.78),Math.min(H*0.5,H*0.48),35,"Saturn","220,200,170",true,
+      [{angle:0.8,dist:70,size:4,speed:0.0025}]),
+    new Celestial(Math.max(W-130,W*0.85),Math.min(H-80,H*0.85),18,"Mercury","190,185,180",false,[])
+  ];
 }
+const nebulae=[
+  new Nebula(W*0.7,H*0.2,180,80,["rgba(120,80,200,0.012)","rgba(80,120,200,0.008)"]),
+  new Nebula(W*0.85,H*0.6,150,100,["rgba(200,100,150,0.01)","rgba(150,100,200,0.006)"]),
+  new Nebula(W*0.75,H*0.85,120,70,["rgba(80,180,200,0.008)","rgba(60,100,220,0.006)"]),
+];
 initScene();
 
-function scheduleReplacement(oldStar) {
-  pendingReplacements.push({
-    x: oldStar ? oldStar.ox : Math.random()*W,
-    y: oldStar ? oldStar.oy : Math.random()*H,
-    cd: 20+Math.floor(Math.random()*30)
-  });
-}
+function scheduleReplacement(o){pendingReplacements.push({x:o?o.homeX:rnd(0,W),y:o?o.homeY:rnd(0,H),cd:15+Math.floor(rnd(0,25))})}
+function spawnBurst(x,y,c){for(let i=0;i<12;i++)particles.push({x,y,color:c,vx:rnd(-4,4),vy:rnd(1,5),life:15+rnd(0,10),age:0})}
 
-// ===== Click =====
-canvas.addEventListener("click",(e)=>{
-  const rect=canvas.getBoundingClientRect();
-  const px=e.clientX-rect.left, py=e.clientY-rect.top;
-
-  // Planet click (hidden game entrance placeholder)
-  if(planet && planet.contains(px,py)){
-    // 🎮 Y老大：这里以后接入隐藏游戏
-    spawnClickParticles(planet.cx,planet.cy,"#58a6ff");
-    return;
+// ===== Click Handler =====
+canvas.addEventListener("click",e=>{
+  const rect=canvas.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
+  for(const p of planets){
+    if(p.contains(px,py)){
+      if(p.isEarth){openMsgModal();return}
+      spawnBurst(p.cx,p.cy,p.baseColor);return
+    }
   }
-
-  let closest=null, closestDist=40;
-  for(const s of stars){
-    if(s.falling) continue;
-    const d=dist(px,py,s.x,s.y);
-    if(d<closestDist){closestDist=d;closest=s;}
-  }
-  if(closest){
-    closest.startFall();
-    spawnClickParticles(closest.x,closest.y,"#ffffff");
-  }
+  let best=null,bestD=50;
+  for(const s of stars){if(s.falling)continue;const d=dist(px,py,s.x,s.y);if(d<bestD){bestD=d;best=s}}
+  if(best){best.startFall();spawnBurst(best.x,best.y,"255,255,255")}
 });
 
-function spawnClickParticles(x,y,color){
-  for(let i=0;i<10;i++){
-    shootingStars.push({
-      x,y,
-      vx:(Math.random()-0.5)*5,
-      vy:Math.random()*3+2,
-      life:15+Math.random()*10,
-      age:0,alive:true,isParticle:true,
-      color
+// ===== Earth Hover =====
+let hoverTimer=null;
+canvas.addEventListener("mousemove",e=>{
+  const rect=canvas.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
+  const earth=planets[0];
+  if(earth&&earth.contains(px,py)){
+    canvas.style.cursor="pointer";
+    if(!hoverTimer){
+      hoverTimer=setTimeout(()=>{showHoverPreview(e.clientX,e.clientY);hoverTimer=null},2000);
+    }
+    earth.hoverPulse=true;
+  }else{
+    canvas.style.cursor="default";
+    if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=null}
+    hideHoverPreview();
+    if(earth)earth.hoverPulse=false;
+  }
+});
+canvas.addEventListener("mouseleave",()=>{
+  if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=null}
+  hideHoverPreview();if(planets[0])planets[0].hoverPulse=false;
+});
+
+// ===== Hover Preview =====
+function showHoverPreview(mx,my){
+  const el=document.getElementById("hoverPreview");
+  const msgs=getMessages();
+  const recent=msgs.slice(-3).reverse();
+  const hp=document.getElementById("hpMsgs");
+  if(recent.length===0){
+    hp.innerHTML='<div style="font-size:0.75rem;color:rgba(255,255,255,0.2)">还没有留言</div>';
+  }else{
+    hp.innerHTML=recent.map(m=>`<div class="hp-msg"><strong>${esc(m.name)}</strong>：${esc(m.text.slice(0,40))}</div>`).join("");
+  }
+  el.style.left=Math.min(mx-140,W-300)+"px";
+  el.style.top=Math.min(my+20,H-200)+"px";
+  el.classList.add("show");
+}
+function hideHoverPreview(){document.getElementById("hoverPreview").classList.remove("show")}
+
+// ============================================================
+// 💬 留言板系统
+// ============================================================
+const API_URL="https://api.github.com/repos/yukilynn814-cmyk/yukilynn814-cmyk.github.io/contents/data/messages.json";
+const RAW_URL="https://raw.githubusercontent.com/yukilynn814-cmyk/yukilynn814-cmyk.github.io/main/data/messages.json";
+let TOKEN=localStorage.getItem("sf_gh_token")||"";
+let msgData=[];
+let isAdmin=false;
+let adminToken=""; // Y老大填管理员暗号
+let editingId=null;
+
+function getMessages(){
+  try{return JSON.parse(localStorage.getItem("sf_msgCache"))||[]}catch(e){return []}
+}
+function setMessages(msgs){localStorage.setItem("sf_msgCache",JSON.stringify(msgs))}
+
+// Load messages
+async function loadMessages(){
+  try{
+    const r=await fetch(RAW_URL);
+    if(!r.ok)throw new Error("fetch failed");
+    const raw=await r.text();
+    msgData=JSON.parse(raw);
+    if(!Array.isArray(msgData))msgData=[];
+    setMessages(msgData);
+  }catch(e){
+    msgData=getMessages();
+  }
+  renderMessages();
+}
+
+// Save messages via GitHub API
+async function saveMessages(){
+  if(!TOKEN){
+    const t=prompt("🔑 需要 GitHub Token 才能保存留言到云端：");
+    if(!t)return false;
+    TOKEN=t.trim();
+    localStorage.setItem("sf_gh_token",TOKEN);
+  }
+  try{
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(msgData,null,2))));
+    // Get current SHA
+    const getR=await fetch(API_URL,{headers:{Authorization:"token "+TOKEN,"Accept":"application/vnd.github.v3+json"}});
+    const getD=await getR.json();
+    const sha=getD.sha||"";
+    const r=await fetch(API_URL,{
+      method:"PUT",
+      headers:{"Authorization":"token "+TOKEN,"Content-Type":"application/json"},
+      body:JSON.stringify({message:"💬 更新留言",content,sha})
     });
+    if(!r.ok)throw new Error("save failed");
+    setMessages(msgData);
+    return true;
+  }catch(e){
+    // Fallback: save to localStorage only
+    setMessages(msgData);
+    return false;
   }
 }
+
+// Render messages
+function renderMessages(){
+  const body=document.getElementById("msgBody");
+  if(msgData.length===0){
+    body.innerHTML='<div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>';
+    return;
+  }
+  body.innerHTML=`<div class="msg-list">${msgData.map((m,i)=>renderMsg(m,i)).join("")}</div>`;
+  body.scrollTop=body.scrollHeight;
+}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function timeAgo(ts){
+  const d=Date.now()-ts;
+  if(d<60000)return"刚刚";
+  if(d<3600000)return Math.floor(d/60000)+"分钟前";
+  if(d<86400000)return Math.floor(d/3600000)+"小时前";
+  return Math.floor(d/86400000)+"天前";
+}
+
+function renderMsg(m,i){
+  const isOwn=m.id===editingId;
+  const nameCls=m.nameClass||["#58a6ff","#bc8cff","#f0883e","#3fb950","#f85149","#f0a0c0"][Math.abs(hashStr(m.name||""))%6];
+  const canEdit=isAdmin||(localStorage.getItem("sf_userId")===m.userId);
+  const isAdminMsg=m.isAdmin;
+
+  if(isOwn){
+    return `<div class="msg-item">
+      <div class="avatar" style="background:${nameCls};color:#fff">${(m.name||"?")[0]}</div>
+      <div class="body">
+        <div class="meta"><span class="name">${esc(m.name)}</span><span class="time">${timeAgo(m.ts)}</span></div>
+        <input class="edit-input" id="editInput" value="${esc(m.text)}" maxlength="200">
+        <div class="edit-actions">
+          <button onclick="saveEdit('${m.id}')">💾 保存</button>
+          <button onclick="cancelEdit()">取消</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="msg-item">
+    <div class="avatar" style="background:${nameCls};color:#fff">${(m.name||"?")[0]}</div>
+    <div class="body">
+      <div class="meta">
+        <span class="name">${esc(m.name)}${isAdminMsg?' <span style="color:#58a6ff;font-size:0.65rem">✦</span>':''}</span>
+        <span class="time">${timeAgo(m.ts)}</span>
+      </div>
+      <div class="text${isAdminMsg?' admin-badge':''}">${esc(m.text)}</div>
+      <div class="actions">
+        ${canEdit?`<button onclick="startEdit('${m.id}')">✏️ 编辑</button>`:''}
+        ${canEdit?`<button class="del" onclick="deleteMsg('${m.id}')">🗑️ 删除</button>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return h}
+
+// Post message
+async function postMessage(){
+  const name=document.getElementById("postName").value.trim()||"匿名";
+  const text=document.getElementById("postInput").value.trim();
+  if(!text)return;
+  let userId=localStorage.getItem("sf_userId");
+  if(!userId){userId="u_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);localStorage.setItem("sf_userId",userId);}
+
+  msgData.push({
+    id:"m_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),
+    name:isAdmin?name+" ✦":name,
+    text,
+    ts:Date.now(),
+    userId,
+    isAdmin
+  });
+  document.getElementById("postInput").value="";
+  renderMessages();
+  const ok=await saveMessages();
+  if(!ok)renderMessages(); // re-render with cache status
+}
+
+// Delete message
+async function deleteMsg(id){
+  if(!confirm("删除这条留言？"))return;
+  msgData=msgData.filter(m=>m.id!==id);
+  await saveMessages();
+  renderMessages();
+}
+
+// Edit
+function startEdit(id){editingId=id;renderMessages();
+  setTimeout(()=>{const el=document.getElementById("editInput");if(el){el.focus();el.select()}},50)}
+function cancelEdit(){editingId=null;renderMessages()}
+async function saveEdit(id){
+  const el=document.getElementById("editInput");
+  if(!el)return;
+  const m=msgData.find(x=>x.id===id);
+  if(m){m.text=el.value.trim()||m.text}
+  editingId=null;
+  await saveMessages();
+  renderMessages();
+}
+
+// Admin
+function toggleAdminMode(){
+  const code=prompt("输入管理员暗号：");
+  if(!code)return;
+  // Simple admin check - Y老大 can set this
+  if(code==="yukilynn"||code==="Y老大"||code==="yukilynn814"){
+    isAdmin=!isAdmin;
+    document.getElementById("adminToggle").style.color=isAdmin?"#58a6ff":"rgba(255,255,255,0.2)";
+    document.getElementById("adminToggle").textContent=isAdmin?"🔑 管理员 ✔":"🔑 管理员";
+    renderMessages();
+  }else{
+    alert("暗号错误");
+  }
+}
+
+// Open/Close modal
+function openMsgModal(){
+  document.getElementById("msgModal").classList.add("show");
+  document.body.style.overflow="hidden";
+  loadMessages();
+}
+function closeMsgModal(){
+  document.getElementById("msgModal").classList.remove("show");
+  document.body.style.overflow="";
+}
+
+// Close on overlay click
+document.getElementById("msgModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeMsgModal()});
+// ESC to close
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMsgModal()});
 
 // ===== Render Loop =====
 function render(){
-  ctx.fillStyle="rgba(5,8,15,0.3)";
-  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(3,6,11,0.25)";ctx.fillRect(0,0,W,H);
+  nebulae.forEach(n=>n.draw());
 
-  // Pending replacements
   for(let i=pendingReplacements.length-1;i>=0;i--){
-    const p=pendingReplacements[i];
-    p.cd--;
-    if(p.cd<=0){
-      shootingStars.push(new ShootingStar(p.x,p.y));
-      pendingReplacements.splice(i,1);
-    }
+    const p=pendingReplacements[i];p.cd--;
+    if(p.cd<=0){shootingStars.push(new SS(p.x,p.y));pendingReplacements.splice(i,1)}
   }
 
   // Asteroids
-  if(planet) asteroids.forEach(a=>a.draw(planet.cx,planet.cy));
-
-  // Planet
-  if(planet) planet.draw();
-
-  // Shooting stars + particles
-  for(let i=shootingStars.length-1;i>=0;i--){
-    const ss=shootingStars[i];
-    if(ss.isParticle){
-      ss.x+=ss.vx; ss.y+=ss.vy; ss.vy+=0.05; ss.age++;
-      if(ss.age>=ss.life){shootingStars.splice(i,1);continue;}
-      const a=0.6*(1-ss.age/ss.life);
-      ctx.beginPath();
-      ctx.arc(ss.x,ss.y,1.5*(1-ss.age/ss.life),0,Math.PI*2);
-      ctx.fillStyle=`rgba(255,220,200,${a})`;
-      ctx.fill();
-    } else if(ss.alive){
-      ss.update(); ss.draw();
-      if(!ss.alive){
-        stars.push(new Star(ss.tx,ss.ty));
-        shootingStars.splice(i,1);
-      }
-    }
+  for(let i=0;i<30;i++){
+    const a=performance.now()*0.0001+i*0.21,d=90+rnd(0,120);
+    const x=planets[0].cx+Math.cos(a)*d,y=planets[0].cy+Math.sin(a)*d*0.35,s=rnd(1.5,3);
+    ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fillStyle=`rgba(160,155,145,${rnd(0.12,0.25)})`;ctx.fill();
   }
 
-  // Stars
-  stars=stars.filter(s=>s.update());
-  stars.forEach(s=>s.draw());
-  while(stars.length<STAR_COUNT) stars.push(new Star());
+  planets.forEach(p=>p.draw());
 
-  animId=requestAnimationFrame(render);
+  for(let i=shootingStars.length-1;i>=0;i--){
+    const ss=shootingStars[i];
+    if(ss.alive){ss.update();ss.draw()}
+    if(!ss.alive){stars.push(new Star(ss.tx,ss.ty));shootingStars.splice(i,1)}
+  }
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.age++;
+    if(p.age>=p.life){particles.splice(i,1);continue}
+    const a=0.7*(1-p.age/p.life);
+    ctx.beginPath();ctx.arc(p.x,p.y,1.8*(1-p.age/p.life),0,Math.PI*2);
+    ctx.fillStyle=`rgba(${p.color},${a})`;ctx.fill();
+  }
+  stars=stars.filter(s=>s.update());stars.forEach(s=>s.draw());
+  while(stars.length<STAR_COUNT)stars.push(new Star());
+
+  requestAnimationFrame(render);
 }
 render();
 
 window.addEventListener("resize",()=>{
   resize();
-  if(planet){
-    planet.cx=Math.min(180,W*0.12);
-    planet.cy=Math.min(H-160,H*0.82);
+  if(planets.length>=4){
+    planets[0].cx=Math.min(160,W*0.1);planets[0].cy=Math.min(H-140,H*0.78);
+    planets[1].cx=Math.max(W-160,W*0.82);planets[1].cy=Math.min(150,H*0.15);
+    planets[2].cx=Math.max(W-200,W*0.78);planets[2].cy=Math.min(H*0.5,H*0.48);
+    planets[3].cx=Math.max(W-130,W*0.85);planets[3].cy=Math.min(H-80,H*0.85);
   }
 });
+
+// Load messages on init
+loadMessages();
 </script>
 </body>
 </html>
