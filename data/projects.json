@@ -1,0 +1,24 @@
+[
+  {
+    "id": "date-game",
+    "icon": "🐳",
+    "name": "和小明宝宝的一天",
+    "desc": "互动约会文字小游戏。以小鲸鱼的视角，经历北京站见面、逛街、吃饭、回酒店、亲吻的甜蜜一天。",
+    "url": "https://yukilynn814-cmyk.github.io/date-game/date-game.html",
+    "tags": ["💕 约会","🎮 互动游戏","📱 手机友好"],
+    "accent": "#ff6b8a",
+    "iconBg": "linear-gradient(135deg,rgba(231,76,111,0.15),rgba(255,107,138,0.15))",
+    "status": "online"
+  },
+  {
+    "id": "slideforge",
+    "icon": "🎯",
+    "name": "SlideForge",
+    "desc": "AI PPT 生成器。输入主题选个风格，AI 自动生成完整幻灯片。支持编辑和导出 .pptx。",
+    "url": "https://yukilynn814-cmyk.github.io/slideforge/",
+    "tags": ["🤖 AI 驱动","📊 PPT 生成","🎨 10+ 主题"],
+    "accent": "#58a6ff",
+    "iconBg": "linear-gradient(135deg,rgba(88,166,255,0.15),rgba(188,140,255,0.15))",
+    "status": "online"
+  }
+]
