@@ -565,7 +565,7 @@ function initScene(){
   stars=[];
   // Create cross star — top-left area
   const cs=new Star(W*0.08,H*0.15);
-  cs.isCross=true;cs.type="cross";cs.baseSize=12;cs.size=12;cs.homeX=W*0.08;cs.homeY=H*0.15;
+  cs.isCross=true;cs.type="cross";cs.baseSize=15;cs.size=15;cs.homeX=W*0.08;cs.homeY=H*0.15;
   crossStar=cs;stars.push(cs);
   for(let i=1;i<STAR_COUNT;i++)stars.push(new Star());
   planets=[
@@ -598,76 +598,38 @@ canvas.addEventListener("click",e=>{
       spawnBurst(p.cx,p.cy,p.baseColor);return
     }
   }
-  // Check cross star first
+  // Check cross star
   if(crossStar&&!crossStar.falling&&crossStar.contains(px,py)){
     const cs=crossStar;
     const earth=planets[0];
-    // Calculate arc toward Earth
-    cs.falling=true;cs.fallSpeed=0.02;
-    const startX=cs.x,startY=cs.y;
-    const targetX=earth?earth.cx:startX,targetY=earth?earth.cy:startY;
-    let fallProg=0;
-    // Animate fall toward Earth
-    function animateFall(){
+    cs.falling=true;
+    const sx=cs.x,sy=cs.y;
+    const tx=earth?earth.cx:sx,ty=earth?earth.cy:sy;
+    let fp=0;
+    const csHomeX=cs.homeX||(W*0.08),csHomeY=cs.homeY||(H*0.15);
+
+    function fallAnim(){
       if(!cs.falling)return;
-      fallProg+=0.015;
-      if(fallProg>=1){
+      fp+=0.015;
+      if(fp>=1){
         cs.falling=false;cs.alpha=0;cs.size=0;
-        // Small impact effect on Earth
         if(earth){
-          for(let i=0;i<25;i++)particles.push({x:earth.cx+rnd(-20,20),y:earth.cy+rnd(-20,20),
-            color:"100,200,255",vx:rnd(-3,3),vy:rnd(-4,1),life:20+rnd(0,10),age:0});
+          for(let i=0;i<25;i++)particles.push({x:earth.cx+rnd(-20,20),y:earth.cy+rnd(-20,20),color:"100,200,255",vx:rnd(-3,3),vy:rnd(-4,1),life:20+rnd(0,10),age:0});
           earth.hoverPulse=true;
           setTimeout(()=>{if(earth)earth.hoverPulse=false;},1500);
         }
-        // Remove from stars array
         const idx=stars.indexOf(cs);
         if(idx>=0)stars.splice(idx,1);
         crossStar=null;
-        // Start replacement sequence
-        // Phase 1: Flash at source for 2 seconds
-        let flashFrame=0;
-        const flashInterval=setInterval(()=>{
-          flashFrame++;
-          for(let i=0;i<3;i++)particles.push({
-            x:W-30+rnd(-10,10),y:20+rnd(-10,10),
-            color:"255,255,200",vx:rnd(-1,1),vy:rnd(-1,1),
-            life:10+rnd(0,5),age:0
-          });
-          // Bigger flash pulse every 500ms
-          if(flashFrame%10===0){
-            for(let i=0;i<8;i++)particles.push({
-              x:W-30+rnd(-15,15),y:20+rnd(-15,15),
-              color:"255,255,255",vx:rnd(-3,3),vy:rnd(-3,3),
-              life:15+rnd(0,10),age:0
-            });
-          }
-        },50);
-        // Phase 2: After 2 seconds, launch comet
-        setTimeout(()=>{
-          clearInterval(flashInterval);
-          const homeX=cs.homeX||(W*0.08);
-          const homeY=cs.homeY||(H*0.15);
-          const comet=new Comet(homeX,homeY);
-          shootingStars.push(comet);
-          // After comet arrives, recreate the cross star
-          setTimeout(()=>{
-            const ns=new Star(homeX,homeY);
-            ns.isCross=true;ns.type="cross";ns.baseSize=12;ns.size=12;
-            ns.homeX=homeX;ns.homeY=homeY;
-            crossStar=ns;stars.push(ns);
-          },3000);
-        },2000);
+        // Use global state for replacement sequence (render loop handles it)
+        window._csReplace={phase:"flash",start:Date.now(),homeX:csHomeX,homeY:csHomeY,cometLaunched:false};
         return;
       }
-      const cx=startX+(targetX-startX)*fallProg;
-      const cy=startY+(targetY-startY)*fallProg-80*Math.sin(fallProg*Math.PI);
-      cs.x=cx;cs.y=cy;
-      // Trail particles
-      if(fallProg>0.2)particles.push({x:cx+rnd(-3,3),y:cy,color:"255,255,255",vx:rnd(-0.5,0.5),vy:0.5,life:15+rnd(0,8),age:0});
-      requestAnimationFrame(animateFall);
+      cs.x=sx+(tx-sx)*fp;cs.y=sy+(ty-sy)*fp-80*Math.sin(fp*Math.PI);
+      if(fp>0.2)particles.push({x:cs.x+rnd(-3,3),y:cs.y,color:"255,255,255",vx:rnd(-0.5,0.5),vy:0.5,life:15+rnd(0,8),age:0});
+      requestAnimationFrame(fallAnim);
     }
-    animateFall();
+    fallAnim();
     return;
   }
   let best=null,bestD=50;
@@ -954,12 +916,49 @@ function render(){
 
   planets.forEach(p=>p.draw());
 
+  // Cross star replacement sequence
+  if(window._csReplace){
+    const r=window._csReplace;
+    const elapsed=Date.now()-r.start;
+    if(r.phase==="flash"){
+      // Big flash ring — 1/2 Mars size (radius 14)
+      const flashR=14+3*Math.sin(elapsed*0.01);
+      const fx=W-30,fy=25;
+      // Outer ring
+      ctx.beginPath();ctx.arc(fx,fy,flashR*2,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,200,${0.04+0.03*Math.sin(elapsed*0.008)})`;ctx.fill();
+      ctx.beginPath();ctx.arc(fx,fy,flashR,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,220,${0.08+0.06*Math.sin(elapsed*0.012)})`;ctx.fill();
+      ctx.beginPath();ctx.arc(fx,fy,flashR*0.5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${0.15+0.1*Math.sin(elapsed*0.015)})`;ctx.fill();
+      // Sparkle particles
+      for(let i=0;i<2;i++)particles.push({x:fx+rnd(-flashR,flashR),y:fy+rnd(-flashR,flashR),color:"255,255,200",vx:rnd(-1,1),vy:rnd(-1,1),life:8+rnd(0,5),age:0});
+      // After 2s, launch comet
+      if(elapsed>=2000&&!r.cometLaunched){
+        r.phase="comet";r.cometLaunched=true;
+        const comet=new Comet(r.homeX,r.homeY);
+        comet.speed=1/180; // exactly 180 frames = 3 seconds at 60fps
+        shootingStars.push(comet);
+        r.cometStart=Date.now();
+      }
+    }else if(r.phase==="comet"){
+      // Check if comet arrived
+      const cometArrived=!shootingStars.some(obj=>obj instanceof Comet&&obj.alive);
+      if(cometArrived&&Date.now()-r.cometStart>2800){
+        // Cross star recreated
+        const ns=new Star(r.homeX,r.homeY);
+        ns.isCross=true;ns.type="cross";ns.baseSize=15;ns.size=15;
+        ns.homeX=r.homeX;ns.homeY=r.homeY;
+        crossStar=ns;stars.push(ns);
+        window._csReplace=null;
+      }
+    }
+  }
+
   for(let i=shootingStars.length-1;i>=0;i--){
     const obj=shootingStars[i];
     if(obj instanceof Comet){
-      if(obj.alive)obj.update();obj.draw();
-      if(!obj.alive&&obj.arrived){shootingStars.splice(i,1)}
-      else if(!obj.alive&&!obj.arrived){shootingStars.splice(i,1)}
+      if(obj.alive){obj.update();obj.draw()}else{shootingStars.splice(i,1)}
     }else if(obj.alive!==undefined){
       if(obj.alive){obj.update();obj.draw()}
       if(!obj.alive){shootingStars.splice(i,1)}
