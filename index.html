@@ -11,14 +11,14 @@
     background:#05080f;color:#e6edf3;min-height:100vh;overflow-x:hidden;
     cursor:default;
   }
-
-  /* ===== Starfield Canvas ===== */
   #starfield{
-    position:fixed;inset:0;z-index:0;pointer-events:auto;
+    position:fixed;inset:0;z-index:0;display:block;
   }
-
-  /* ===== Container ===== */
-  .container{max-width:900px;margin:0 auto;padding:40px 24px;position:relative;z-index:1}
+  .container{
+    max-width:900px;margin:0 auto;padding:40px 24px;
+    position:relative;z-index:1;pointer-events:none;
+  }
+  .container *{pointer-events:auto}
 
   /* ===== Header ===== */
   header{text-align:center;padding:60px 0 48px;position:relative}
@@ -34,14 +34,6 @@
   header h1{font-size:2rem;font-weight:700;margin-bottom:8px}
   header h1 span{background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   header p{color:rgba(255,255,255,0.35);font-size:0.9rem;max-width:500px;margin:0 auto;line-height:1.7}
-
-  /* ===== Nebula overlay ===== */
-  header::before{
-    content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);
-    width:600px;height:300px;
-    background:radial-gradient(ellipse, rgba(88,166,255,0.04) 0%, transparent 70%);
-    pointer-events:none;
-  }
 
   /* ===== Section ===== */
   .section{margin-bottom:40px}
@@ -132,7 +124,6 @@
     border:1px solid rgba(248,81,73,0.15);
   }
 
-  /* ===== Particle cursor hint ===== */
   .cursor-hint{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
     font-size:0.7rem;color:rgba(255,255,255,0.12);z-index:2;
@@ -141,10 +132,11 @@
   }
   @keyframes hintPulse{0%,100%{opacity:0.12}50%{opacity:0.3}}
 
-  /* ===== Footer ===== */
-  footer{text-align:center;padding:40px 0 60px;color:rgba(255,255,255,0.08);font-size:0.75rem;letter-spacing:1px}
+  footer{
+    text-align:center;padding:40px 0 60px;
+    color:rgba(255,255,255,0.08);font-size:0.75rem;letter-spacing:1px;
+  }
 
-  /* ===== Responsive ===== */
   @media(max-width:600px){
     .container{padding:20px 16px}
     header{padding:40px 0 32px}
@@ -158,11 +150,8 @@
 </style>
 </head>
 <body>
-
-<!-- Starfield Canvas -->
 <canvas id="starfield"></canvas>
 
-<!-- Container -->
 <div class="container">
   <header>
     <div class="avatar">🚀</div>
@@ -178,12 +167,8 @@
       <div class="icon">🐳</div>
       <div class="info">
         <h3>和小明宝宝的一天 <span class="status-badge online">● 已上线</span></h3>
-        <div class="desc">互动约会文字小游戏。女朋友以小鲸鱼的视角，经历在北京站见面、逛街、吃饭、回酒店、亲吻的甜蜜一天。每步有选项，好感度决定结局。</div>
-        <div class="tags">
-          <span>💕 约会</span>
-          <span>🎮 互动游戏</span>
-          <span>📱 手机友好</span>
-        </div>
+        <div class="desc">互动约会文字小游戏。女朋友以小鲸鱼的视角，经历在北京站见面、逛街、吃饭、回酒店、亲吻的甜蜜一天。</div>
+        <div class="tags"><span>💕 约会</span><span>🎮 互动游戏</span><span>📱 手机友好</span></div>
       </div>
       <div class="arrow">→</div>
     </a>
@@ -193,12 +178,8 @@
       <div class="icon">🎯</div>
       <div class="info">
         <h3>SlideForge <span class="status-badge online">● 已上线</span></h3>
-        <div class="desc">AI PPT 生成器。输入主题和提示词，选个主题风格，AI 自动生成完整幻灯片。支持在线预览编辑，导出 .pptx 去演讲。</div>
-        <div class="tags">
-          <span>🤖 AI 驱动</span>
-          <span>📊 PPT 生成</span>
-          <span>🎨 10+ 主题</span>
-        </div>
+        <div class="desc">AI PPT 生成器。输入主题选个风格，AI 自动生成完整幻灯片。支持编辑和导出 .pptx。</div>
+        <div class="tags"><span>🤖 AI 驱动</span><span>📊 PPT 生成</span><span>🎨 10+ 主题</span></div>
       </div>
       <div class="arrow">→</div>
     </a>
@@ -222,14 +203,15 @@
 
 <script>
 // ============================================================
-// 🌟 交互式星域引擎
+// 🌌 深空星域引擎 v2
 // ============================================================
 const canvas = document.getElementById("starfield");
 const ctx = canvas.getContext("2d");
-let W, H, stars = [], shootingStars = [];
-let mouseX = -9999, mouseY = -9999;
+let W, H, stars = [], shootingStars = [], asteroids = [];
+let planet = null;
 let animId;
 
+// ===== Sizing =====
 function resize() {
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
@@ -237,297 +219,448 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// ===== Star Class =====
+// ===== Utility =====
+function dist(x1,y1,x2,y2){return Math.hypot(x2-x1,y2-y1)}
+function lerp(a,b,t){return a+(b-a)*t}
+
+// ===== Planet (Earth) =====
+class Planet {
+  constructor() {
+    this.cx = Math.min(180, W * 0.12);
+    this.cy = Math.min(H - 160, H * 0.82);
+    this.r = 70;
+    this.atmoR = this.r + 18;
+    this.glowR = this.r + 40;
+    this.rot = 0;
+    this.rotSpeed = 0.001;
+    this.moons = [];
+    // Moon
+    this.moons.push({angle:0,dist:120,size:6,speed:0.003});
+    this.moons.push({angle:2.2,dist:155,size:4,speed:0.002});
+  }
+
+  draw() {
+    this.rot += this.rotSpeed;
+
+    // Outer glow
+    const grd = ctx.createRadialGradient(this.cx,this.cy,this.r,this.cx,this.cy,this.glowR);
+    grd.addColorStop(0,"rgba(80,160,255,0.08)");
+    grd.addColorStop(0.5,"rgba(80,160,255,0.03)");
+    grd.addColorStop(1,"rgba(80,160,255,0)");
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(this.cx,this.cy,this.glowR,0,Math.PI*2); ctx.fill();
+
+    // Atmosphere
+    const atmo = ctx.createRadialGradient(this.cx,this.cy,this.r-5,this.cx,this.cy,this.atmoR);
+    atmo.addColorStop(0,"rgba(100,180,255,0.15)");
+    atmo.addColorStop(0.6,"rgba(100,180,255,0.08)");
+    atmo.addColorStop(1,"rgba(100,180,255,0)");
+    ctx.fillStyle = atmo;
+    ctx.beginPath(); ctx.arc(this.cx,this.cy,this.atmoR,0,Math.PI*2); ctx.fill();
+
+    // Planet body
+    const body = ctx.createRadialGradient(
+      this.cx-this.r*0.3, this.cy-this.r*0.3, this.r*0.1,
+      this.cx, this.cy, this.r
+    );
+    body.addColorStop(0,"#4a9eff");
+    body.addColorStop(0.4,"#2a7adf");
+    body.addColorStop(0.7,"#1a5abf");
+    body.addColorStop(1,"#0a2a6f");
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.arc(this.cx,this.cy,this.r,0,Math.PI*2); ctx.fill();
+
+    // Continents (simplified blobs)
+    ctx.save();
+    ctx.translate(this.cx,this.cy);
+    ctx.rotate(this.rot);
+    const conts = [
+      {x:-20,y:-15,rx:22,ry:16,c:"#3aaf5a"},
+      {x:15,y:-20,rx:18,ry:22,c:"#4abf6a"},
+      {x:-30,y:20,rx:15,ry:12,c:"#3aaa50"},
+      {x:25,y:15,rx:16,ry:14,c:"#45b560"},
+      {x:-5,y:-40,rx:12,ry:10,c:"#4abf5a"},
+      {x:40,y:-5,rx:10,ry:8,c:"#38a848"},
+    ];
+    conts.forEach(c => {
+      ctx.beginPath();
+      ctx.ellipse(c.x,c.y,c.rx,c.ry,0,0,Math.PI*2);
+      ctx.fillStyle = c.c;
+      ctx.fill();
+    });
+    // Highlight edge
+    const hilite = ctx.createRadialGradient(-this.r*0.2,-this.r*0.2,0,0,0,this.r);
+    hilite.addColorStop(0,"rgba(255,255,255,0.1)");
+    hilite.addColorStop(0.5,"rgba(255,255,255,0.02)");
+    hilite.addColorStop(1,"rgba(0,0,0,0.2)");
+    ctx.fillStyle = hilite;
+    ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // Moons
+    this.moons.forEach(m => {
+      m.angle += m.speed;
+      const mx = this.cx + Math.cos(m.angle)*m.dist;
+      const my = this.cy + Math.sin(m.angle)*m.dist;
+      ctx.beginPath(); ctx.arc(mx,my,m.size,0,Math.PI*2);
+      ctx.fillStyle = "rgba(200,200,200,0.5)";
+      ctx.fill();
+    });
+  }
+
+  contains(px,py) {
+    return dist(px,py,this.cx,this.cy) < this.r + 10;
+  }
+}
+
+// ===== Asteroid =====
+class Asteroid {
+  constructor(angle,dist,size) {
+    this.angle = angle;
+    this.dist = dist;
+    this.size = size || (Math.random()*3+1.5);
+    this.speed = (0.001 + Math.random()*0.002) * (Math.random()>0.5?1:-1);
+    this.rot = Math.random()*Math.PI*2;
+    this.shape = Array.from({length:5+Math.floor(Math.random()*3)},()=>this.size*(0.6+Math.random()*0.4));
+  }
+
+  draw(cx,cy) {
+    this.angle += this.speed;
+    const x = cx + Math.cos(this.angle)*this.dist;
+    const y = cy + Math.sin(this.angle)*this.dist * 0.4;
+    this.rot += 0.01;
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(this.rot);
+    ctx.beginPath();
+    this.shape.forEach((r,i) => {
+      const a = (i/this.shape.length)*Math.PI*2;
+      const px = Math.cos(a)*r;
+      const py = Math.sin(a)*r*0.7;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    });
+    ctx.closePath();
+    ctx.fillStyle = `rgba(160,160,150,${0.3+Math.random()*0.15})`;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ===== Star =====
+const STAR_TYPES = ["circle","spark","diamond","cluster"];
+
 class Star {
-  constructor(x, y) {
-    this.x = x !== undefined ? x : Math.random() * W;
-    this.y = y !== undefined ? y : Math.random() * H;
-    this.baseSize = Math.random() * 2.2 + 0.4;
+  constructor(x,y) {
+    this.x = x !== undefined ? x : Math.random()*W;
+    this.y = y !== undefined ? y : Math.random()*H;
+    this.baseSize = 2.5 + Math.random()*4;
     this.size = this.baseSize;
-    this.baseAlpha = Math.random() * 0.5 + 0.3;
+    this.baseAlpha = 0.4 + Math.random()*0.5;
     this.alpha = this.baseAlpha;
-    this.twinkleSpeed = Math.random() * 0.02 + 0.005;
-    this.twinklePhase = Math.random() * Math.PI * 2;
-    this.pulsePhase = Math.random() * Math.PI * 2;
+    this.twinkleSpeed = 0.008 + Math.random()*0.025;
+    this.twinklePhase = Math.random()*Math.PI*2;
+    this.type = STAR_TYPES[Math.floor(Math.random()*STAR_TYPES.length)];
     this.falling = false;
     this.fallSpeed = 0;
-    this.fallAngle = Math.random() * 0.4 - 0.2;
-    this.targetX = this.x;
-    this.targetY = this.y;
-    // Warmth tint: mostly white with occasional blue/warm tint
-    this.tint = Math.random();
-    this.color = this.tint < 0.2 ? `rgba(255,200,180` :  // warm
-                 this.tint < 0.4 ? `rgba(180,200,255` :  // cool
-                 `rgba(255,255,255`;                      // white
-    this.orbiting = false;
-    this.orbitAngle = Math.random() * Math.PI * 2;
-    this.orbitSpeed = (Math.random() - 0.5) * 0.002;
-    this.orbitRadius = Math.random() * 1.5 + 0.5;
-    this.orbitCenterX = this.x;
-    this.orbitCenterY = this.y;
+    this.fallAngle = (Math.random()-0.5)*0.3;
+    this.orbitAngle = Math.random()*Math.PI*2;
+    this.orbitSpeed = (Math.random()-0.5)*0.0015;
+    this.orbitRadius = 1 + Math.random()*2;
+    this.ox = this.x;
+    this.oy = this.y;
+    // Warm/cool tint
+    const t = Math.random();
+    if(t<0.15) this.tint = [255,200,180];
+    else if(t<0.3) this.tint = [180,210,255];
+    else if(t<0.42) this.tint = [255,220,150];
+    else this.tint = [255,255,255];
+    this.cluster = (this.type==="cluster") ? this._genCluster() : null;
+  }
+
+  _genCluster() {
+    const n = 2+Math.floor(Math.random()*3);
+    return Array.from({length:n},()=>({
+      dx:(Math.random()-0.5)*6,
+      dy:(Math.random()-0.5)*6,
+      s:0.5+Math.random()*1.5
+    }));
   }
 
   update() {
     this.twinklePhase += this.twinkleSpeed;
-    this.pulsePhase += 0.003;
+    this.orbitAngle += this.orbitSpeed;
+    this.x = this.ox + Math.sin(this.orbitAngle)*this.orbitRadius;
+    this.y = this.oy + Math.cos(this.orbitAngle*0.7)*this.orbitRadius*0.5;
 
-    if (this.falling) {
-      this.fallSpeed += 0.15;
-      this.x += Math.sin(this.fallAngle) * this.fallSpeed * 0.3;
+    if(this.falling) {
+      this.fallSpeed += 0.12;
+      this.x += Math.sin(this.fallAngle)*this.fallSpeed*0.3;
       this.y += this.fallSpeed;
-      this.alpha -= 0.008;
-      this.size *= 0.998;
-      if (this.alpha <= 0 || this.y > H + 50) {
+      this.alpha -= 0.01;
+      this.size *= 0.997;
+      if(this.alpha<=0 || this.y>H+50) {
         this.falling = false;
-        // Schedule new star arrival
-        scheduleNewStar(this);
+        scheduleReplacement(this);
         return false;
       }
-    } else {
-      // Gentle orbital drift
-      this.orbitAngle += this.orbitSpeed;
-      this.x = this.orbitCenterX + Math.sin(this.orbitAngle) * this.orbitRadius;
-      this.y = this.orbitCenterY + Math.cos(this.orbitAngle * 0.7) * this.orbitRadius * 0.5;
     }
-
     return true;
   }
 
   draw() {
-    if (this.alpha <= 0) return;
-    const twinkle = 0.7 + 0.3 * Math.sin(this.twinklePhase);
-    const a = Math.min(this.alpha * twinkle, 1);
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    ctx.fillStyle = `${this.color},${a})`;
-    ctx.fill();
+    if(this.alpha<=0) return;
+    const tw = 0.6+0.4*Math.sin(this.twinklePhase);
+    const a = Math.min(this.alpha*tw,1);
+    const [r,g,b] = this.tint;
 
-    // Glow for brighter stars
-    if (this.size > 1.5 && a > 0.4) {
+    if(this.type==="circle") {
+      this._drawCircle(a,r,g,b);
+    } else if(this.type==="spark") {
+      this._drawSpark(a,r,g,b);
+    } else if(this.type==="diamond") {
+      this._drawDiamond(a,r,g,b);
+    } else if(this.type==="cluster" && this.cluster) {
+      this._drawCluster(a,r,g,b);
+    }
+  }
+
+  _drawCircle(a,r,g,b) {
+    // Core
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.size*0.5,0,Math.PI*2);
+    ctx.fillStyle = `rgba(${r},${g},${b},${a*0.9})`;
+    ctx.fill();
+    // Glow
+    if(this.size>2) {
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
-      ctx.fillStyle = `${this.color},${a * 0.06})`;
+      ctx.arc(this.x,this.y,this.size*1.2,0,Math.PI*2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${a*0.08})`;
       ctx.fill();
     }
   }
 
-  contains(px, py) {
-    const dx = this.x - px;
-    const dy = this.y - py;
-    return dx * dx + dy * dy < (this.size * 6) * (this.size * 6);
+  _drawSpark(a,r,g,b) {
+    // 4-point star
+    const s = this.size*0.7;
+    ctx.save();
+    ctx.translate(this.x,this.y);
+    ctx.rotate(this.twinklePhase*0.2);
+    ctx.beginPath();
+    for(let i=0;i<4;i++) {
+      const ang = (i/4)*Math.PI*2 - Math.PI/4;
+      const len = i%2===0 ? s : s*0.35;
+      ctx.lineTo(Math.cos(ang)*len,Math.sin(ang)*len);
+    }
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${r},${g},${b},${a*0.7})`;
+    ctx.fill();
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(0,0,this.size*0.2,0,Math.PI*2);
+    ctx.fillStyle = `rgba(${Math.min(r+30,255)},${Math.min(g+30,255)},${Math.min(b+30,255)},${a})`;
+    ctx.fill();
+    ctx.restore();
   }
 
-  startFall() {
-    if (this.falling) return;
-    this.falling = true;
-    this.fallSpeed = Math.random() * 0.5 + 0.3;
-    this.fallAngle = (Math.random() - 0.5) * 0.3;
+  _drawDiamond(a,r,g,b) {
+    const s = this.size*0.6;
+    ctx.save();
+    ctx.translate(this.x,this.y);
+    ctx.rotate(Math.PI/4 + this.twinklePhase*0.1);
+    ctx.beginPath();
+    ctx.rect(-s/2,-s/2,s,s);
+    ctx.fillStyle = `rgba(${r},${g},${b},${a*0.5})`;
+    ctx.fill();
+    // Inner glow
+    ctx.beginPath();
+    ctx.rect(-s/4,-s/4,s/2,s/2);
+    ctx.fillStyle = `rgba(${Math.min(r+50,255)},${Math.min(g+50,255)},${Math.min(b+50,255)},${a*0.3})`;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  _drawCluster(a,r,g,b) {
+    this.cluster.forEach((c,i)=> {
+      const ca = a*(0.6+0.4*(1-i/this.cluster.length));
+      ctx.beginPath();
+      ctx.arc(this.x+c.dx,this.y+c.dy,c.s,0,Math.PI*2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${ca*0.8})`;
+      ctx.fill();
+      // Tiny glow for each
+      ctx.beginPath();
+      ctx.arc(this.x+c.dx,this.y+c.dy,c.s*2,0,Math.PI*2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${ca*0.04})`;
+      ctx.fill();
+    });
+  }
+
+  contains(px,py) {
+    const hitR = this.type==="cluster" ? this.size*1.5 : this.size*1.2;
+    return dist(px,py,this.x,this.y) < hitR;
   }
 }
 
-// ===== Shooting Star (补星动画) =====
+// ===== Shooting Star =====
 class ShootingStar {
-  constructor(targetX, targetY, targetSize) {
-    this.startX = W + 80;
-    this.startY = -40;
-    this.targetX = targetX;
-    this.targetY = targetY;
-    this.targetSize = targetSize || 1;
+  constructor(tx,ty) {
+    this.sx = W+60; this.sy = -30;
+    this.tx = tx; this.ty = ty;
     this.progress = 0;
-    this.speed = 0.02 + Math.random() * 0.015;
+    this.speed = 0.018 + Math.random()*0.012;
     this.trail = [];
     this.alive = true;
   }
-
   update() {
-    if (!this.alive) return false;
+    if(!this.alive) return false;
     this.progress += this.speed;
-    this.trail.push({x: this.getX(), y: this.getY(), a: 1});
-
-    // Limit trail
-    if (this.trail.length > 20) this.trail.shift();
-
-    // Fade trail
-    this.trail.forEach(t => t.a -= 0.05);
-
-    if (this.progress >= 1) {
-      this.alive = false;
-      return false;
-    }
+    this.trail.push({x:this.getX(),y:this.getY(),a:1});
+    if(this.trail.length>30) this.trail.shift();
+    this.trail.forEach(t=>t.a-=0.04);
+    if(this.progress>=1) { this.alive=false; return false; }
     return true;
   }
-
-  getX() {
-    const t = this.progress;
-    // Arc from top-right to target
-    const x = this.startX + (this.targetX - this.startX) * t;
-    return x;
+  getX(){return this.sx+(this.tx-this.sx)*this.progress}
+  getY(){
+    const arc = -50*Math.sin(this.progress*Math.PI);
+    return this.sy+(this.ty-this.sy)*this.progress+arc;
   }
-
-  getY() {
-    const t = this.progress;
-    const y = this.startY + (this.targetY - this.startY) * t;
-    // Small arc: dip down then rise
-    const arc = -40 * Math.sin(t * Math.PI);
-    return y + arc;
-  }
-
-  draw() {
-    // Trail
-    this.trail.forEach((t, i) => {
-      if (t.a <= 0) return;
+  draw(){
+    this.trail.forEach((t,i)=>{
+      if(t.a<=0) return;
       ctx.beginPath();
-      ctx.arc(t.x, t.y, 1.5 * (i / this.trail.length), 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${t.a * 0.4})`;
+      ctx.arc(t.x,t.y,1.8*(i/this.trail.length),0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,235,200,${t.a*0.3})`;
       ctx.fill();
     });
-
-    // Head
-    const x = this.getX();
-    const y = this.getY();
-    ctx.beginPath();
-    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.fill();
-
-    // Glow
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(200,220,255,0.3)";
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(x, y, 15, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(200,220,255,0.08)";
-    ctx.fill();
+    const x=this.getX(), y=this.getY();
+    ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fillStyle="rgba(255,255,255,0.9)"; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2);
+    ctx.fillStyle="rgba(200,220,255,0.2)"; ctx.fill();
   }
 }
 
-// ===== Stars Initialization =====
-const STAR_COUNT = 120;
-let pendingStars = [];
+// ===== Init =====
+const STAR_COUNT = 90;
+let pendingReplacements = [];
 
-function initStars() {
+function initScene() {
   stars = [];
-  for (let i = 0; i < STAR_COUNT; i++) {
-    stars.push(new Star());
+  for(let i=0;i<STAR_COUNT;i++) stars.push(new Star());
+  planet = new Planet();
+  // Asteroids
+  asteroids = [];
+  for(let i=0;i<35;i++){
+    asteroids.push(new Asteroid(
+      Math.random()*Math.PI*2,
+      120+Math.random()*160,
+      1.5+Math.random()*2.5
+    ));
   }
 }
-initStars();
+initScene();
 
-function scheduleNewStar(oldStar) {
-  // Remember where to place the replacement
-  pendingStars.push({
-    x: (oldStar && !isNaN(oldStar.orbitCenterX)) ? oldStar.orbitCenterX : Math.random() * W,
-    y: (oldStar && !isNaN(oldStar.orbitCenterY)) ? oldStar.orbitCenterY : Math.random() * H,
-    size: oldStar ? oldStar.baseSize : (Math.random() * 2.2 + 0.4),
-    countdown: 30 + Math.floor(Math.random() * 40)
+function scheduleReplacement(oldStar) {
+  pendingReplacements.push({
+    x: oldStar ? oldStar.ox : Math.random()*W,
+    y: oldStar ? oldStar.oy : Math.random()*H,
+    cd: 20+Math.floor(Math.random()*30)
   });
 }
 
-// ===== Click Handler =====
-canvas.addEventListener("click", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const px = e.clientX - rect.left;
-  const py = e.clientY - rect.top;
+// ===== Click =====
+canvas.addEventListener("click",(e)=>{
+  const rect=canvas.getBoundingClientRect();
+  const px=e.clientX-rect.left, py=e.clientY-rect.top;
 
-  // Find closest star within range
-  let closest = null;
-  let closestDist = 30;
-  for (const star of stars) {
-    if (star.falling) continue;
-    const d = Math.abs(star.x - px) + Math.abs(star.y - py);
-    if (d < closestDist) {
-      closestDist = d;
-      closest = star;
-    }
+  // Planet click (hidden game entrance placeholder)
+  if(planet && planet.contains(px,py)){
+    // 🎮 Y老大：这里以后接入隐藏游戏
+    spawnClickParticles(planet.cx,planet.cy,"#58a6ff");
+    return;
   }
 
-  if (closest) {
+  let closest=null, closestDist=40;
+  for(const s of stars){
+    if(s.falling) continue;
+    const d=dist(px,py,s.x,s.y);
+    if(d<closestDist){closestDist=d;closest=s;}
+  }
+  if(closest){
     closest.startFall();
-    // Small meteor trail effect at click position
-    for (let i = 0; i < 8; i++) {
-      shootingStars.push({
-        x: closest.x + (Math.random() - 0.5) * 10,
-        y: closest.y + (Math.random() - 0.5) * 10,
-        vx: (Math.random() - 0.5) * 4,
-        vy: Math.random() * 3 + 2,
-        life: 20 + Math.random() * 10,
-        age: 0,
-        alive: true,
-        isParticle: true,
-      });
-    }
+    spawnClickParticles(closest.x,closest.y,"#ffffff");
   }
 });
 
+function spawnClickParticles(x,y,color){
+  for(let i=0;i<10;i++){
+    shootingStars.push({
+      x,y,
+      vx:(Math.random()-0.5)*5,
+      vy:Math.random()*3+2,
+      life:15+Math.random()*10,
+      age:0,alive:true,isParticle:true,
+      color
+    });
+  }
+}
+
 // ===== Render Loop =====
-function render() {
-  // Clear with slight trail fade
-  ctx.fillStyle = "rgba(5,8,15,0.35)";
-  ctx.fillRect(0, 0, W, H);
+function render(){
+  ctx.fillStyle="rgba(5,8,15,0.3)";
+  ctx.fillRect(0,0,W,H);
 
-  // Update pending stars
-  for (let i = pendingStars.length - 1; i >= 0; i--) {
-    const p = pendingStars[i];
-    p.countdown--;
-    if (p.countdown <= 0) {
-      // Create shooting star animation
-      const ss = new ShootingStar(p.x, p.y, p.size);
-      shootingStars.push(ss);
-      pendingStars.splice(i, 1);
+  // Pending replacements
+  for(let i=pendingReplacements.length-1;i>=0;i--){
+    const p=pendingReplacements[i];
+    p.cd--;
+    if(p.cd<=0){
+      shootingStars.push(new ShootingStar(p.x,p.y));
+      pendingReplacements.splice(i,1);
     }
   }
 
-  // Update shooting stars
-  for (let i = shootingStars.length - 1; i >= 0; i--) {
-    const ss = shootingStars[i];
-    if (ss.isParticle) {
-      ss.x += ss.vx;
-      ss.y += ss.vy;
-      ss.vy += 0.05;
-      ss.age++;
-      if (ss.age >= ss.life) {
-        shootingStars.splice(i, 1);
-        continue;
-      }
+  // Asteroids
+  if(planet) asteroids.forEach(a=>a.draw(planet.cx,planet.cy));
+
+  // Planet
+  if(planet) planet.draw();
+
+  // Shooting stars + particles
+  for(let i=shootingStars.length-1;i>=0;i--){
+    const ss=shootingStars[i];
+    if(ss.isParticle){
+      ss.x+=ss.vx; ss.y+=ss.vy; ss.vy+=0.05; ss.age++;
+      if(ss.age>=ss.life){shootingStars.splice(i,1);continue;}
+      const a=0.6*(1-ss.age/ss.life);
       ctx.beginPath();
-      ctx.arc(ss.x, ss.y, 1.5 * (1 - ss.age / ss.life), 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,200,180,${0.6 * (1 - ss.age / ss.life)})`;
+      ctx.arc(ss.x,ss.y,1.5*(1-ss.age/ss.life),0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,220,200,${a})`;
       ctx.fill();
-    } else if (ss.alive) {
-      const alive = ss.update();
-      ss.draw();
-      if (!alive) {
-        // Shooting star arrived - create the actual star
-        stars.splice(stars.findIndex(s => s.falling && s.alpha <= 0), 1);
-        stars.push(new Star(ss.targetX, ss.targetY));
-        shootingStars.splice(i, 1);
+    } else if(ss.alive){
+      ss.update(); ss.draw();
+      if(!ss.alive){
+        stars.push(new Star(ss.tx,ss.ty));
+        shootingStars.splice(i,1);
       }
     }
   }
 
-  // Update and draw stars
-  stars = stars.filter(s => s.update());
-  stars.forEach(s => s.draw());
+  // Stars
+  stars=stars.filter(s=>s.update());
+  stars.forEach(s=>s.draw());
+  while(stars.length<STAR_COUNT) stars.push(new Star());
 
-  // Ensure we always have enough stars
-  while (stars.length < STAR_COUNT) {
-    stars.push(new Star());
-  }
-
-  animId = requestAnimationFrame(render);
+  animId=requestAnimationFrame(render);
 }
 render();
 
-// Resize handler
-window.addEventListener("resize", () => {
+window.addEventListener("resize",()=>{
   resize();
-  // Recalculate star positions proportionally
-  stars.forEach(s => {
-    s.orbitCenterX = Math.min(s.orbitCenterX, W - 10);
-    s.orbitCenterY = Math.min(s.orbitCenterY, H - 10);
-  });
+  if(planet){
+    planet.cx=Math.min(180,W*0.12);
+    planet.cy=Math.min(H-160,H*0.82);
+  }
 });
 </script>
 </body>
