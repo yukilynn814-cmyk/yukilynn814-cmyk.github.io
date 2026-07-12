@@ -824,17 +824,17 @@ async function saveProjects(){
   if(!TOKEN){
     const t=prompt("🔑 需要 GitHub Token 才能保存项目：");
     if(!t)return;
-    TOKEN=***
+    TOKEN=t.trim();
     localStorage.setItem("sf_gh_token",TOKEN);
   }
   try{
     const content=btoa(unescape(encodeURIComponent(JSON.stringify(projects,null,2))));
-    const getR=await fetch(PROJ_API_URL,{headers:{"Authorization":"***"+TOKEN,"Accept":"application/vnd.github.v3+json"}});
+    const getR=await fetch(PROJ_API_URL,{headers:{"Authorization":"token "+TOKEN,"Accept":"application/vnd.github.v3+json"}});
     const getD=await getR.json();
     const sha=getD.sha||"";
     const r=await fetch(PROJ_API_URL,{
       method:"PUT",
-      headers:{"Authorization":"***"+TOKEN,"Content-Type":"application/json"},
+      headers:{"Authorization":"token "+TOKEN,"Content-Type":"application/json"},
       body:JSON.stringify({message:"📦 更新项目列表",content,sha})
     });
     if(!r.ok)throw new Error("save failed");
