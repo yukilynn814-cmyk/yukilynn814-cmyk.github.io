@@ -305,7 +305,7 @@
     <div class="modal-footer">
       <div class="post-name-row">
         <input type="text" id="postName" placeholder="你的名字" maxlength="12">
-        <span class="admin-badge-input" id="adminToggle" onclick="toggleAdminMode()">🔑 管理员</span>
+        <!-- 🔑 管理员入口：Ctrl+Shift+A -->
       </div>
       <div class="post-form">
         <input type="text" id="postInput" placeholder="说点什么…" maxlength="200" onkeydown="if(event.key==='Enter')postMessage()">
@@ -693,18 +693,29 @@ async function saveEdit(id){
   renderMessages();
 }
 
-// Admin
+// Admin — 隐藏入口：Ctrl+Shift+A
+let adminAttempts=0;
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey&&e.shiftKey&&e.key==="A"){
+    e.preventDefault();
+    toggleAdminMode();
+  }
+});
 function toggleAdminMode(){
-  const code=prompt("输入管理员暗号：");
+  const code=prompt("🔑 输入管理员暗号：");
   if(!code)return;
-  // Simple admin check - Y老大 can set this
-  if(code==="yukilynn"||code==="Y老大"||code==="yukilynn814"){
+  if(code==="yukiyuki"){
     isAdmin=!isAdmin;
-    document.getElementById("adminToggle").style.color=isAdmin?"#58a6ff":"rgba(255,255,255,0.2)";
-    document.getElementById("adminToggle").textContent=isAdmin?"🔑 管理员 ✔":"🔑 管理员";
     renderMessages();
+    alert(isAdmin?"✅ 管理员模式已开启":"已退出管理员模式");
   }else{
-    alert("暗号错误");
+    adminAttempts++;
+    if(adminAttempts>=3){
+      alert("暗号错误次数过多");
+      adminAttempts=0;
+    }else{
+      alert("暗号错误，请重试");
+    }
   }
 }
 
