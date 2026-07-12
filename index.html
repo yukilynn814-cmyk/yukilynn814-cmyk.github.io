@@ -610,43 +610,37 @@ canvas.addEventListener("click",e=>{
   if(crossStar&&!crossStar.falling&&crossStar.contains(px,py)){
     const cs=crossStar;
     const earth=planets[0];
-    cs.falling=true;
     const sx=cs.x,sy=cs.y;
     const tx=earth?earth.cx:sx,ty=earth?earth.cy:sy;
     let fp=0;
     const csHomeX=cs.homeX||(W*0.08),csHomeY=cs.homeY||(H*0.15);
+    // Remove from stars immediately to avoid update() conflict
+    const si=stars.indexOf(cs);
+    if(si>=0)stars.splice(si,1);
+    crossStar=null;
 
-    function fallAnim(){
-      if(!cs.falling)return;
+    function fa(){
       fp+=0.015;
       if(fp>=1){
-        cs.falling=false;cs.alpha=0;cs.size=0;
         if(earth){
-          // Impact ring wave
-          window._impactRing={cx:earth.cx,cy:earth.cy,radius:0,maxRadius:100,start:Date.now(),duration:1000};
-          // Big burst
-          for(let i=0;i<40;i++)particles.push({x:earth.cx+rnd(-25,25),y:earth.cy+rnd(-25,25),color:"100,200,255",vx:rnd(-5,5),vy:rnd(-6,2),life:25+rnd(0,15),age:0});
-          for(let i=0;i<20;i++)particles.push({x:earth.cx+rnd(-15,15),y:earth.cy+rnd(-15,15),color:"255,255,255",vx:rnd(-4,4),vy:rnd(-5,1),life:15+rnd(0,10),age:0});
-          // Earth flash
+          window._impactRing={cx:earth.cx,cy:earth.cy,radius:0,maxRadius:120,start:Date.now(),duration:1200};
+          for(let i=0;i<50;i++)particles.push({x:earth.cx+rnd(-30,30),y:earth.cy+rnd(-25,25),color:"100,200,255",vx:rnd(-6,6),vy:rnd(-7,3),life:30+rnd(0,15),age:0});
+          for(let i=0;i<25;i++)particles.push({x:earth.cx+rnd(-15,15),y:earth.cy+rnd(-15,15),color:"255,255,255",vx:rnd(-5,5),vy:rnd(-6,2),life:20+rnd(0,10),age:0});
           earth.hoverPulse=true;
           setTimeout(()=>{if(earth)earth.hoverPulse=false;},2000);
         }
-        const idx=stars.indexOf(cs);
-        if(idx>=0)stars.splice(idx,1);
-        crossStar=null;
-        // Use global state for replacement sequence (render loop handles it)
         window._csReplace={phase:"flash",start:Date.now(),homeX:csHomeX,homeY:csHomeY,cometLaunched:false};
         return;
       }
       cs.x=sx+(tx-sx)*fp;cs.y=sy+(ty-sy)*fp-80*Math.sin(fp*Math.PI);
-      if(fp>0.2)particles.push({x:cs.x+rnd(-3,3),y:cs.y,color:"255,255,255",vx:rnd(-0.5,0.5),vy:0.5,life:15+rnd(0,8),age:0});
-      requestAnimationFrame(fallAnim);
+      for(let i=0;i<2;i++)particles.push({x:cs.x+rnd(-2,2),y:cs.y,color:"255,255,255",vx:rnd(-0.3,0.3),vy:0.3,life:12+rnd(0,6),age:0});
+      requestAnimationFrame(fa);
     }
-    fallAnim();
+    fa();
     return;
   }
   let best=null,bestD=50;
-  for(const s of stars){if(s.falling||s.isCross)continue;const d=dist(px,py,s.x,s.y);if(d<bestD){bestD=d;best=s}}
+  for(const s of stars){if(s.falling)continue;const d=dist(px,py,s.x,s.y);if(d<bestD){bestD=d;best=s}}
   if(best){best.startFall();spawnBurst(best.x,best.y,"255,255,255")}
 });
 
