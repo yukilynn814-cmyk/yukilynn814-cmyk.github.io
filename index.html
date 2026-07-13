@@ -569,16 +569,16 @@ let rocketSpaceClickCooldown=0; // 防止空格连续触发点击
 
 // 火箭方向 → 角度映射 (0=向上, 顺时针)
 const DIR_ANGLES={
-  w:-Math.PI/2, s:Math.PI/2, a:Math.PI, d:0,
-  wa:-3*Math.PI/4, wd:-Math.PI/4, sa:3*Math.PI/4, sd:Math.PI/4
+  w:0, s:Math.PI, a:-Math.PI/2, d:Math.PI/2,
+  wa:-Math.PI/4, wd:Math.PI/4, sa:-3*Math.PI/4, sd:3*Math.PI/4
 };
 
 class RocketShip{
   constructor(x,y){
     this.x=x;this.y=y;
     this.vx=0;this.vy=0;
-    this.angle=-Math.PI/2; // facing up
-    this.targetAngle=-Math.PI/2;
+    this.angle=0; // facing up
+    this.targetAngle=0;
     this.maxSpeed=5;
     this.accel=0.15;
     this.friction=0.92; // inertia: speed drops to near 0 in ~1s
@@ -659,7 +659,7 @@ class RocketShip{
     if(this.alpha<=0.01)return;
     ctx.save();
     ctx.translate(this.x,this.y);
-    ctx.rotate(this.angle-Math.PI/2); // rotate so 0=right matches ship pointing right
+    ctx.rotate(this.angle); // angle 0=up, +clockwise
     ctx.globalAlpha=this.alpha;
 
     const s=this.size;
@@ -936,31 +936,24 @@ document.getElementById('rocketLaunchBtn').addEventListener('click',e=>{
 
 // ===== 🎮 火箭键盘控制 =====
 document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   const k=e.key.toLowerCase();
   if(k==='w'||k==='a'||k==='s'||k==='d'){
-    if(!rocketMode)return; // only in rocket mode
+    if(!rocketMode||rocketPaused)return;
     e.preventDefault();
     keys[k]=true;
   }
   if(e.key===' '){
-    // Space always tracked for hold detection
-    if(!rocketMode)return;
+    if(!rocketMode||rocketPaused)return;
     e.preventDefault();
-    if(!keys.space){
-      keys.space=true;
-      spaceHoldStart=Date.now();
-      spaceHoldedFor=0;
-    }
+    if(!keys.space){keys.space=true;spaceHoldStart=Date.now()}
   }
-  // Admin shortcut still works
-  if(e.ctrlKey&&e.shiftKey&&e.key==='A'&&!rocketMode){
-    e.preventDefault();
-    toggleAdminMode();
-  }
+  if(e.ctrlKey&&e.shiftKey&&e.key==='A'&&!rocketMode){e.preventDefault();toggleAdminMode()}
   if(e.key==='Escape'&&!rocketMode)closeMsgModal();
 });
 
 document.addEventListener('keyup',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   const k=e.key.toLowerCase();
   if(k==='w'||k==='a'||k==='s'||k==='d'){
     if(!rocketMode)return;
@@ -970,16 +963,14 @@ document.addEventListener('keyup',e=>{
     if(!rocketMode)return;
     const holdDuration=Date.now()-spaceHoldStart;
     keys.space=false;
-    // If held less than 3s, treat as click
-    if(holdDuration<2800&&rocket&&!rocketExploding&&!rocketBuilding){
-      // Simulate click at rocket position
-      const clickEvent=new PointerEvent('click',{
-        clientX:rocket.x,clientY:rocket.y,bubbles:true,cancelable:true
-      });
-      canvas.dispatchEvent(clickEvent);
+    if(holdDuration<2800&&rocket&&!rocketExploding&&!rocketBuilding&&!rocketPaused){
+      const cRect=canvas.getBoundingClientRect();
+      canvas.dispatchEvent(new MouseEvent('click',{
+        clientX:rocket.x+cRect.left,clientY:rocket.y+cRect.top,
+        bubbles:true,cancelable:true
+      }));
     }
     spaceHoldStart=0;
-    spaceHoldedFor=0;
   }
 });
 
@@ -1102,7 +1093,7 @@ document.addEventListener("keydown",e=>{if(e.ctrlKey&&e.shiftKey&&e.key==="A"&&!
 function toggleAdminMode(){if(isAdmin){isAdmin=false;updateAdminUI();renderMessages();return}const code=prompt("🔑 输入管理员密码：");if(!code)return;if(code==="yukiyuki"){isAdmin=true;updateAdminUI();renderMessages()}else{adminAttempts++;if(adminAttempts>=3){alert("密码错误次数过多");adminAttempts=0}else{alert("密码错误")}}}
 function updateAdminUI(){const badge=document.getElementById("adminBadge");const key=document.getElementById("adminKeyTab");if(badge)badge.style.display=isAdmin?"inline":"none";if(key){key.style.color=isAdmin?"#58a6ff":"rgba(255,255,255,0.15)";key.style.background=isAdmin?"rgba(88,166,255,0.08)":"rgba(255,255,255,0.03)";key.style.borderColor=isAdmin?"rgba(88,166,255,0.2)":"rgba(255,255,255,0.04)";key.title=isAdmin?"点击退出管理员":"管理员登录"}}
 function openMsgModal(){document.getElementById("msgModal").classList.add("show");document.body.style.overflow="hidden";loadMessages()}
-function closeMsgModal(){document.getElementById("msgModal").classList.remove("show");document.body.style.overflow=""}
+function closeMsgModal(){document.getElementById("msgModal").classList.remove("show");document.body.style.overflow="";if(rocketMode)rocketPaused=false}
 document.getElementById("msgModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeMsgModal()});
 
 // ===== Render Loop =====
@@ -1140,14 +1131,18 @@ function render(){
 
     planets.forEach(p=>{try{p.draw()}catch(e){}});
 
-    // 🚀 Rocket update & draw (highest priority - drawn after planets but before stars are filtered)
-    if(rocketMode&&rocket&&!rocketExploding&&!rocketBuilding){
-      try{rocket.update()}catch(e){}
-      try{rocket.draw()}catch(e){}
-      // Check planet collision
-      if(rocket){
+    // 🚀 Rocket update & draw
+    if(rocketMode&&!rocketExploding&&!rocketBuilding){
+      if(rocket&&!rocketPaused){try{rocket.update()}catch(e){}}
+      if(rocket){try{rocket.draw()}catch(e){}}
+      // Planet interaction (not explosion)
+      if(rocket&&!rocketPaused){
         const hit=rocket.collisionPlanet();
-        if(hit){rocketExplode('碰撞行星：'+hit.name);return}
+        if(hit){
+          if(hit.isEarth){openMsgModal();rocketPaused=true}
+          else if(hit.name==="Mars"){showChangelog();rocketPaused=true}
+          else{for(let i=0;i<20;i++)particles.push({x:hit.cx+rnd(-10,10),y:hit.cy+rnd(-10,10),color:hit.baseColor,vx:rnd(-3,3),vy:rnd(-3,3),life:25+rnd(0,10),age:0})}
+        }
       }
       // Update HUD
       try{
@@ -1160,6 +1155,8 @@ function render(){
         document.getElementById('hudFuel').style.width=fuelPct+'%';
       }catch(e){}
     }
+    // Draw rocket when paused (no update)
+    if(rocketMode&&rocketPaused&&rocket){try{rocket.draw()}catch(e){}}
 
     // 🚀 Rocket building animation
     if(window._buildingRocket){
@@ -1209,8 +1206,7 @@ function render(){
         ctx.fillText(pct<1?'⏳ 松开=点击 继续按住=爆炸':'💥 即将爆炸',W/2,H-24);
       }
       // Auto-explode at 3s
-      if(holdElapsed>=3000&&rocketMode){
-        // Trigger explosion
+      if(holdElapsed>=3000&&rocketMode&&!rocketPaused){
         rocketExplode('长按空格退出');
       }
     }
@@ -1264,7 +1260,7 @@ const CHANGELOG=[
 ];
 
 function showChangelog(){const body=document.getElementById("changelogBody");body.innerHTML=CHANGELOG.map(v=>`<div style="margin-bottom:18px"><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px"><span style="font-weight:600;font-size:0.95rem;color:#58a6ff">${v.ver}</span><span style="font-size:0.7rem;color:rgba(255,255,255,0.25)">${v.date}</span></div><ul style="list-style:none;padding:0">${v.items.map(i=>`<li style="padding:3px 0;font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.5">${i}</li>`).join("")}</ul></div>`).join("");document.getElementById("changelogModal").classList.add("show");document.body.style.overflow="hidden"}
-function closeChangelog(){document.getElementById("changelogModal").classList.remove("show");document.body.style.overflow=""}
+function closeChangelog(){document.getElementById("changelogModal").classList.remove("show");document.body.style.overflow="";if(rocketMode)rocketPaused=false}
 document.getElementById("changelogModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeChangelog()});
 loadMessages();
 </script>
