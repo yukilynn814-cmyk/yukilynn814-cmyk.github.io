@@ -23,10 +23,7 @@
     font-size:36px;margin:0 auto 20px;
     box-shadow:0 0 40px rgba(88,166,255,0.15),0 4px 30px rgba(88,166,255,0.2);
     animation:glow 3s ease-in-out infinite;
-    cursor:pointer;transition:transform 0.2s;position:relative;
   }
-  header .avatar:hover{transform:scale(1.05)}
-  header .avatar:active{transform:scale(0.95)}
   @keyframes glow{0%,100%{box-shadow:0 0 40px rgba(88,166,255,0.15),0 4px 30px rgba(88,166,255,0.2)}50%{box-shadow:0 0 60px rgba(88,166,255,0.25),0 4px 30px rgba(88,166,255,0.3)}}
   header h1{font-size:2rem;font-weight:700;margin-bottom:8px}
   header h1 span{background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -121,119 +118,112 @@
   .modal-body::-webkit-scrollbar{width:4px}
   .modal-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
 
+  /* ===== Messages ===== */
   .msg-list{display:flex;flex-direction:column;gap:14px}
-  .msg-item{display:flex;gap:10px;animation:fadeIn 0.3s ease;position:relative}
-  .msg-item .avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;margin-top:2px}
+  .msg-item{
+    display:flex;gap:10px;animation:fadeIn 0.3s ease;
+    position:relative;
+  }
+  .msg-item .avatar{
+    width:36px;height:36px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:600;margin-top:2px;
+  }
   .msg-item .body{flex:1;min-width:0}
   .msg-item .body .meta{display:flex;align-items:center;gap:6px;margin-bottom:3px}
   .msg-item .body .meta .name{font-size:0.78rem;font-weight:600;color:rgba(255,255,255,0.6)}
   .msg-item .body .meta .time{font-size:0.65rem;color:rgba(255,255,255,0.2)}
-  .msg-item .body .text{font-size:0.88rem;line-height:1.55;color:#e6edf3;background:rgba(255,255,255,0.04);border-radius:4px 12px 12px 12px;padding:8px 12px;word-break:break-word}
-  .msg-item .body .text.admin-badge{border-left:2px solid #58a6ff}
-  .msg-item .body .actions{display:none;gap:6px;margin-top:4px;padding-left:4px}
+  .msg-item .body .text{
+    font-size:0.88rem;line-height:1.55;color:#e6edf3;
+    background:rgba(255,255,255,0.04);border-radius:4px 12px 12px 12px;
+    padding:8px 12px;word-break:break-word;
+  }
+  .msg-item .body .text.admin-badge{
+    border-left:2px solid #58a6ff;
+  }
+  .msg-item .body .actions{
+    display:none;gap:6px;margin-top:4px;padding-left:4px;
+  }
   .msg-item:hover .body .actions{display:flex}
-  .msg-item .body .actions button{background:none;border:none;color:rgba(255,255,255,0.25);font-size:0.68rem;cursor:pointer;padding:2px 6px;border-radius:4px;font-family:inherit}
+  .msg-item .body .actions button{
+    background:none;border:none;color:rgba(255,255,255,0.25);
+    font-size:0.68rem;cursor:pointer;padding:2px 6px;
+    border-radius:4px;font-family:inherit;
+  }
   .msg-item .body .actions button:hover{background:rgba(255,255,255,0.06);color:#58a6ff}
   .msg-item .body .actions .del:hover{color:#f85149}
+
   .empty-msg{padding:40px 20px;text-align:center;color:rgba(255,255,255,0.15);font-size:0.85rem;line-height:1.7}
-  .modal-footer{padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,0.06)}
+
+  /* ===== Post Form ===== */
+  .modal-footer{
+    padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,0.06);
+  }
   .post-form{display:flex;gap:8px}
-  .post-form input[type="text"]{flex:1;padding:10px 14px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#e6edf3;font-size:0.85rem;font-family:inherit;outline:none;transition:border-color 0.2s}
+  .post-form input[type="text"]{
+    flex:1;padding:10px 14px;border-radius:20px;
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+    color:#e6edf3;font-size:0.85rem;font-family:inherit;
+    outline:none;transition:border-color 0.2s;
+  }
   .post-form input:focus{border-color:#58a6ff}
-  .post-form button{width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(135deg,#58a6ff,#bc8cff);color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;flex-shrink:0}
+  .post-form button{
+    width:40px;height:40px;border-radius:50%;border:none;
+    background:linear-gradient(135deg,#58a6ff,#bc8cff);
+    color:#fff;cursor:pointer;font-size:18px;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform 0.15s;flex-shrink:0;
+  }
   .post-form button:hover{transform:scale(1.05)}
   .post-form button:active{transform:scale(0.95)}
   .post-form button:disabled{opacity:0.3;cursor:default;transform:none}
+
   .post-name-row{display:flex;gap:8px;margin-bottom:8px}
   .post-name-row input{flex:1;padding:8px 12px;border-radius:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:#e6edf3;font-size:0.8rem;font-family:inherit;outline:none}
   .post-name-row input:focus{border-color:#58a6ff}
-  .edit-input{width:100%;padding:8px 10px;border-radius:8px;background:rgba(88,166,255,0.08);border:1px solid #58a6ff;color:#e6edf3;font-size:0.88rem;font-family:inherit;outline:none;margin-bottom:4px}
+  .post-name-row .admin-badge-input{
+    font-size:0.68rem;color:rgba(255,255,255,0.2);display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;
+  }
+  .post-name-row .admin-badge-input:hover{color:rgba(255,255,255,0.4)}
+
+  /* ===== Edit mode ===== */
+  .edit-input{
+    width:100%;padding:8px 10px;border-radius:8px;
+    background:rgba(88,166,255,0.08);border:1px solid #58a6ff;
+    color:#e6edf3;font-size:0.88rem;font-family:inherit;
+    outline:none;margin-bottom:4px;
+  }
   .edit-actions{display:flex;gap:6px}
-  .edit-actions button{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:2px 12px;border-radius:8px;cursor:pointer;font-size:0.7rem;font-family:inherit}
+  .edit-actions button{
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.6);padding:2px 12px;border-radius:8px;
+    cursor:pointer;font-size:0.7rem;font-family:inherit;
+  }
   .edit-actions button:hover{background:rgba(255,255,255,0.12)}
 
-  .hover-preview{position:fixed;z-index:500;pointer-events:none;background:rgba(13,17,23,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 16px;max-width:280px;backdrop-filter:blur(12px);animation:fadeIn 0.3s ease;display:none;box-shadow:0 8px 30px rgba(0,0,0,0.4)}
+  /* ===== Hover Preview ===== */
+  .hover-preview{
+    position:fixed;z-index:500;pointer-events:none;
+    background:rgba(13,17,23,0.95);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px;padding:12px 16px;max-width:280px;
+    backdrop-filter:blur(12px);
+    animation:fadeIn 0.3s ease;display:none;
+    box-shadow:0 8px 30px rgba(0,0,0,0.4);
+  }
   .hover-preview.show{display:block}
-  .hover-preview .hp-title{font-size:0.72rem;color:rgba(255,255,255,0.3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-  .hover-preview .hp-msg{font-size:0.78rem;color:rgba(255,255,255,0.6);padding:4px 0;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .hover-preview .hp-more{font-size:0.7rem;color:rgba(88,166,255,0.4);margin-top:6px}
-
-  /* ===== 🚀 火箭发射弹窗 ===== */
-  .rocket-modal-overlay{
-    position:fixed;inset:0;background:rgba(0,0,0,0.75);
-    backdrop-filter:blur(8px);z-index:2000;
-    display:none;align-items:center;justify-content:center;
-    animation:fadeIn 0.3s ease;padding:20px;
+  .hover-preview .hp-title{
+    font-size:0.72rem;color:rgba(255,255,255,0.3);margin-bottom:8px;
+    display:flex;align-items:center;gap:6px;
   }
-  .rocket-modal-overlay.show{display:flex}
-  .rocket-modal-box{
-    background:linear-gradient(145deg,#0a0e1a,#111827);
-    border:1px solid rgba(100,180,255,0.15);
-    border-radius:20px;width:100%;max-width:420px;
-    box-shadow:0 0 60px rgba(80,160,255,0.08),0 20px 60px rgba(0,0,0,0.6);
-    animation:slideUp 0.35s ease;overflow:hidden;
-    position:relative;
+  .hover-preview .hp-msg{
+    font-size:0.78rem;color:rgba(255,255,255,0.6);
+    padding:4px 0;line-height:1.4;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  .rocket-modal-box::before{
-    content:'';position:absolute;inset:0;border-radius:20px;
-    background:radial-gradient(ellipse at 30% 20%,rgba(80,160,255,0.03),transparent 60%);
-    pointer-events:none;
+  .hover-preview .hp-more{
+    font-size:0.7rem;color:rgba(88,166,255,0.4);margin-top:6px;
   }
-  .rocket-modal-stars{
-    position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:20px;
-  }
-  .rocket-modal-stars span{
-    position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;
-    animation:twinkle 2s ease-in-out infinite;
-  }
-  @keyframes twinkle{0%,100%{opacity:0.2}50%{opacity:0.8}}
-  .rocket-modal-header{
-    text-align:center;padding:32px 24px 12px;position:relative;z-index:1;
-  }
-  .rocket-modal-header .rocket-icon{font-size:48px;display:block;margin-bottom:8px;animation:rocketFloat 2s ease-in-out infinite}
-  @keyframes rocketFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-  .rocket-modal-header h2{font-size:1.3rem;font-weight:700;color:#e6edf3;letter-spacing:2px}
-  .rocket-modal-header h2 span{background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-  .rocket-modal-body{padding:16px 28px 8px;text-align:center;position:relative;z-index:1}
-  .rocket-modal-body .question{font-size:1.05rem;color:#e6edf3;margin-bottom:14px;font-weight:500}
-  .rocket-modal-body .hint{font-size:0.78rem;color:rgba(255,255,255,0.3);line-height:1.8;letter-spacing:0.5px}
-  .rocket-modal-body .hint kbd{
-    display:inline-block;padding:0 6px;font-size:0.72rem;font-family:inherit;
-    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
-    border-radius:4px;color:rgba(255,255,255,0.5);
-  }
-  .rocket-modal-footer{display:flex;gap:12px;padding:18px 28px 28px;justify-content:center;position:relative;z-index:1}
-  .rocket-btn{
-    padding:10px 32px;border-radius:30px;border:1px solid;font-size:0.9rem;
-    font-family:inherit;font-weight:600;cursor:pointer;
-    transition:all 0.25s;letter-spacing:1px;
-  }
-  .rocket-btn.confirm{
-    background:linear-gradient(135deg,#58a6ff,#bc8cff);border-color:transparent;
-    color:#fff;box-shadow:0 0 20px rgba(88,166,255,0.2);
-  }
-  .rocket-btn.confirm:hover{transform:translateY(-2px);box-shadow:0 0 30px rgba(88,166,255,0.3)}
-  .rocket-btn.cancel{
-    background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.1);
-    color:rgba(255,255,255,0.5);
-  }
-  .rocket-btn.cancel:hover{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7)}
-
-  /* ===== 🚀 HUD ===== */
-  #rocketHud{
-    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;
-    background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);
-    border:1px solid rgba(100,180,255,0.1);border-radius:12px;
-    padding:8px 18px;display:none;align-items:center;gap:16px;
-    font-size:0.72rem;color:rgba(255,255,255,0.4);letter-spacing:1px;
-    animation:slideUp 0.3s ease;
-  }
-  #rocketHud.show{display:flex}
-  #rocketHud .hud-item{display:flex;align-items:center;gap:6px}
-  #rocketHud .hud-item .hud-label{color:rgba(255,255,255,0.25)}
-  #rocketHud .hud-item .hud-val{color:rgba(255,255,255,0.6);min-width:24px;text-align:center}
-  .hud-fuel-bar{width:60px;height:4px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden}
-  .hud-fuel-bar .hud-fuel-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#bc8cff);border-radius:4px;transition:width 0.1s}
 
   @media(max-width:600px){
     .container{padding:20px 16px}
@@ -245,9 +235,25 @@
     .project-card .info .desc{font-size:0.8rem}
     .modal-box{max-height:90vh;border-radius:14px}
     .hover-preview{max-width:220px}
-    #rocketHud{font-size:0.65rem;padding:6px 12px;gap:10px}
-    .rocket-modal-box{margin:12px}
   }
+
+.r-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+.r-modal.show{display:flex}
+.r-box{background:linear-gradient(145deg,#0a0e1a,#111827);border:1px solid rgba(100,180,255,0.15);border-radius:20px;width:100%;max-width:420px;padding:32px 28px 28px;text-align:center;animation:slideUp .35s ease}
+.r-box .icon{font-size:48px;display:block;margin-bottom:8px;animation:rocketFloat 2s ease-in-out infinite}
+@keyframes rocketFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.r-box h2{font-size:1.3rem;font-weight:700}
+.r-box h2 span{background:linear-gradient(135deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.r-box .hint{font-size:.78rem;color:rgba(255,255,255,0.3);line-height:1.8;margin:14px 0 18px}
+.r-box .hint kbd{display:inline-block;padding:0 6px;font-size:.72rem;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:rgba(255,255,255,0.5);font-family:inherit}
+.r-btns{display:flex;gap:12px;justify-content:center}
+.r-btn{padding:10px 32px;border-radius:30px;border:1px solid;font-size:.9rem;font-family:inherit;font-weight:600;cursor:pointer;letter-spacing:1px}
+.r-btn.go{background:linear-gradient(135deg,#58a6ff,#bc8cff);border-color:transparent;color:#fff;box-shadow:0 0 20px rgba(88,166,255,0.2)}
+.r-btn.go:hover{transform:translateY(-2px)}
+.r-btn.no{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.5)}
+#hud{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);border:1px solid rgba(100,180,255,0.1);border-radius:12px;padding:8px 18px;display:none;gap:16px;font-size:.72rem;color:rgba(255,255,255,0.4);animation:slideUp .3s ease}
+#hud.show{display:flex}
+
 </style>
 </head>
 <body>
@@ -255,7 +261,7 @@
 
 <div class="container">
   <header>
-    <div class="avatar" id="rocketLaunchBtn" title="点击发射火箭 🚀">🚀</div>
+    <div class="avatar" id="launchBtn">🚀</div>
     <h1><span>Y老大</span> 的项目</h1>
     <p>钢铁侠负责拍脑袋，小虾虾负责落地。<br>
       点击左下角的 🌍 地球，留下你的话 ✨</p>
@@ -294,15 +300,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>🦐 小虾虾 · Stark Industries 出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.4</span></footer>
-</div>
-
-<!-- HUD -->
-<div id="rocketHud">
-  <div class="hud-item"><span class="hud-label">🔥</span><span class="hud-val" id="hudThrust">0</span></div>
-  <div class="hud-item"><span class="hud-label">📐</span><span class="hud-val" id="hudAngle">0°</span></div>
-  <div class="hud-item"><span class="hud-label">⚡</span><span class="hud-val" id="hudSpeed">0</span></div>
-  <div class="hud-item"><span class="hud-label">⛽</span><div class="hud-fuel-bar"><div class="hud-fuel-fill" id="hudFuel" style="width:100%"></div></div></div>
+  <footer>🦐 小虾虾 · Stark Industries 出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.3.5</span></footer>
 </div>
 
 <!-- Hover Preview -->
@@ -323,34 +321,31 @@
       </div>
     </div>
     <div style="position:relative;flex:1;display:flex;min-height:0">
-      <div id="adminKeyTab" onclick="toggleAdminMode()" style="position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:10;writing-mode:vertical-lr;cursor:pointer;user-select:none;padding:10px 5px;border-radius:0 8px 8px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);border-left:none;transition:all 0.2s;font-size:16px;line-height:1.2;color:rgba(255,255,255,0.15);" title="管理员" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color=isAdmin?'#58a6ff':'rgba(255,255,255,0.15)'">🔑</div>
-      <div class="modal-body" id="msgBody" style="padding-left:32px"><div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div></div>
-    </div>
-    <div class="modal-footer">
-      <div class="post-name-row"><input type="text" id="postName" placeholder="你的名字" maxlength="12"></div>
-      <div class="post-form"><input type="text" id="postInput" placeholder="说点什么…" maxlength="200" onkeydown="if(event.key==='Enter')postMessage()"><button id="postBtn" onclick="postMessage()">➤</button></div>
-    </div>
-  </div>
-</div>
-
-<!-- 🚀 火箭发射弹窗 -->
-<div class="rocket-modal-overlay" id="rocketModal">
-  <div class="rocket-modal-box">
-    <div class="rocket-modal-stars" id="rmStars"></div>
-    <div class="rocket-modal-header">
-      <span class="rocket-icon">🚀</span>
-      <h2><span>火箭发射</span></h2>
-    </div>
-    <div class="rocket-modal-body">
-      <div class="question">是否发射火箭？</div>
-      <div class="hint">
-        使用 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 操控火箭 · <kbd>空格</kbd> 点击确认<br>
-        ｜长按 <kbd>空格</kbd> 3 秒退出｜
+      <div id="adminKeyTab" onclick="toggleAdminMode()" style="
+        position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:10;
+        writing-mode:vertical-lr;cursor:pointer;user-select:none;
+        padding:10px 5px;border-radius:0 8px 8px 0;
+        background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.04);
+        border-left:none;transition:all 0.2s;font-size:16px;line-height:1.2;
+        color:rgba(255,255,255,0.15);" 
+        title="管理员"
+        onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.3)'"
+        onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color=isAdmin?'#58a6ff':'rgba(255,255,255,0.15)'">
+        🔑
+      </div>
+      <div class="modal-body" id="msgBody" style="padding-left:32px">
+        <div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>
       </div>
     </div>
-    <div class="rocket-modal-footer">
-      <button class="rocket-btn confirm" onclick="launchRocket()">🚀 发射</button>
-      <button class="rocket-btn cancel" onclick="closeRocketModal()">取消</button>
+    <div class="modal-footer">
+      <div class="post-name-row">
+        <input type="text" id="postName" placeholder="你的名字" maxlength="12">
+        <!-- 🔑 管理员入口：Ctrl+Shift+A -->
+      </div>
+      <div class="post-form">
+        <input type="text" id="postInput" placeholder="说点什么…" maxlength="200" onkeydown="if(event.key==='Enter')postMessage()">
+        <button id="postBtn" onclick="postMessage()">➤</button>
+      </div>
     </div>
   </div>
 </div>
@@ -358,28 +353,30 @@
 <!-- Changelog Modal -->
 <div class="modal-overlay" id="changelogModal">
   <div class="modal-box" style="max-width:420px">
-    <div class="modal-header"><h3>📋 更新日志</h3><button class="close-btn" onclick="closeChangelog()">✕</button></div>
-    <div class="modal-body" id="changelogBody"></div>
+    <div class="modal-header">
+      <h3>📋 更新日志</h3>
+      <button class="close-btn" onclick="closeChangelog()">✕</button>
+    </div>
+    <div class="modal-body" id="changelogBody">
+    </div>
   </div>
 </div>
 
 <script>
 // ============================================================
-// 🌌 深空星域引擎 v4 — 火箭纪元
+// 🌌 深空星域引擎 v3.5 — 陨石纪元
 // ============================================================
 const canvas=document.getElementById("starfield");
 const ctx=canvas.getContext("2d");
-let W,H,stars=[],shootingStars=[],particles=[],debris=[];
+let W,H,stars=[],shootingStars=[],particles=[],debris=[];window._pt=particles;
 let planets=[],pendingReplacements=[];
 const STAR_COUNT=150;
-const containerEl=document.querySelector('.container');
 
 function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
 window.addEventListener("resize",resize); resize();
 function dist(x1,y1,x2,y2){return Math.hypot(x2-x1,y2-y1)}
 function rnd(a,b){return a+Math.random()*(b-a)}
 function lerp(a,b,t){return a+(b-a)*t}
-function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 
 // ===== Celestial Body =====
 class Celestial{
@@ -387,8 +384,9 @@ class Celestial{
     this.cx=cx;this.cy=cy;this.r=r;this.name=name;this.baseColor=color;
     this.hasRing=hasRing;this.rot=0;this.rotSpeed=rnd(0.0005,0.002);
     this.moons=moons||[];this.pulse=0;this.isEarth=name==="Earth";
-    this.impactIntensity=0;
+    this.impactIntensity=0; // 0-1, for red impact overlay
     this.impactAngle=0;
+    // Store original continent colors as raw numbers
     this.continentColors=[
       {r:60,g:180,b:90,a:0.5},{r:70,g:190,b:100,a:0.4},
       {r:60,g:175,b:85,a:0.45},{r:65,g:185,b:95,a:0.4},
@@ -398,6 +396,7 @@ class Celestial{
   draw(){
     this.rot+=this.rotSpeed;this.pulse+=0.005;
     const cx=this.cx,cy=this.cy,r=this.r;
+    // Impact red glow overlay
     if(this.impactIntensity>0.001){
       const iA=this.impactIntensity;
       const impactGlow=ctx.createRadialGradient(cx+r*0.3,cy+r*0.2,0,cx,cy,r*1.4);
@@ -405,16 +404,19 @@ class Celestial{
       impactGlow.addColorStop(0.5,`rgba(255,60,20,${iA*0.15})`);
       impactGlow.addColorStop(1,"rgba(255,50,10,0)");
       ctx.fillStyle=impactGlow;ctx.beginPath();ctx.arc(cx,cy,r*1.4,0,Math.PI*2);ctx.fill();
+      // Impact heat ring
       ctx.beginPath();ctx.arc(cx,cy,r*1.05,0,Math.PI*2);
       ctx.strokeStyle=`rgba(255,120,50,${iA*0.4})`;
       ctx.lineWidth=4*iA+1;ctx.stroke();
-      this.impactIntensity*=0.985;
+      this.impactIntensity*=0.985; // gradual decay
       if(this.impactIntensity<0.001)this.impactIntensity=0;
     }
+    // Normal glow
     const grd=ctx.createRadialGradient(cx,cy,r,cx,cy,r*3);
     grd.addColorStop(0,`rgba(${this.baseColor},0.06)`);
     grd.addColorStop(1,`rgba(${this.baseColor},0)`);
-    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(cx,cy,r*3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=grd; ctx.beginPath();ctx.arc(cx,cy,r*3,0,Math.PI*2);ctx.fill();
+
     if(this.hasRing){
       ctx.save();ctx.translate(cx,cy);ctx.rotate(this.rot*0.5);
       ctx.beginPath();ctx.ellipse(0,0,r*1.8,r*0.4,0,0,Math.PI*2);
@@ -422,30 +424,37 @@ class Celestial{
       ctx.lineWidth=1.5;ctx.stroke();
       ctx.restore();
     }
+    // Earth hover atmosphere
     if(this.isEarth && this.hoverPulse){
       const atmo=ctx.createRadialGradient(cx,cy,r*0.8,cx,cy,r*1.3);
       atmo.addColorStop(0,`rgba(80,180,255,${0.04+0.03*Math.sin(this.pulse*2)})`);
       atmo.addColorStop(1,"rgba(80,180,255,0)");
-      ctx.fillStyle=atmo;ctx.beginPath();ctx.arc(cx,cy,r*1.3,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=atmo; ctx.beginPath();ctx.arc(cx,cy,r*1.3,0,Math.PI*2);ctx.fill();
     }
+    // Body
     const bGrd=ctx.createRadialGradient(cx-r*0.3,cy-r*0.3,r*0.1,cx,cy,r);
     bGrd.addColorStop(0,`rgba(${this.baseColor},1)`);
     bGrd.addColorStop(0.5,`rgba(${this.baseColor},0.8)`);
     bGrd.addColorStop(1,`rgba(${this.baseColor},0.4)`);
+    // Blend with impact red if active
     if(this.impactIntensity>0.01){
       const ir=this.impactIntensity;
       bGrd.addColorStop(0,`rgba(${lerp(80,255,ir)},${lerp(160,60,ir)},${lerp(255,30,ir)},1)`);
       bGrd.addColorStop(0.5,`rgba(${lerp(80,230,ir)},${lerp(160,50,ir)},${lerp(255,20,ir)},${0.8})`);
     }
     ctx.fillStyle=bGrd;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    // Continents for Earth
     if(this.isEarth){
       ctx.save();ctx.translate(cx,cy);ctx.rotate(this.rot*0.2);
+      // Continent positions (constant)
       const contPos=[
         {x:-15,y:-10,rx:16,ry:12},{x:12,y:-14,rx:14,ry:18},
         {x:-22,y:14,rx:12,ry:10},{x:18,y:12,rx:13,ry:11},
         {x:-4,y:-30,rx:10,ry:8}
       ];
-      const ir=this.impactIntensity,usesRed=ir>0.01;
+      // Compute continent colors from raw values each frame (immutable)
+      const ir=this.impactIntensity;
+      const usesRed=ir>0.01;
       contPos.forEach((cp,i)=>{
         const cc=this.continentColors[i];
         const r=usesRed?lerp(60,220,ir):cc.r;
@@ -457,24 +466,35 @@ class Celestial{
       });
       ctx.restore();
     }
+    // Highlight
     const hl=ctx.createRadialGradient(cx-r*0.2,cy-r*0.2,0,cx,cy,r);
     hl.addColorStop(0,"rgba(255,255,255,0.1)");
     hl.addColorStop(1,"rgba(0,0,0,0.15)");
     ctx.fillStyle=hl;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-    this.moons.forEach(m=>{m.angle+=m.speed;const mx=cx+Math.cos(m.angle)*m.dist,my=cy+Math.sin(m.angle)*m.dist;
-      ctx.beginPath();ctx.arc(mx,my,m.size,0,Math.PI*2);ctx.fillStyle="rgba(200,200,210,0.3)";ctx.fill()});
+    // Moons
+    this.moons.forEach(m=>{
+      m.angle+=m.speed;
+      const mx=cx+Math.cos(m.angle)*m.dist,my=cy+Math.sin(m.angle)*m.dist;
+      ctx.beginPath();ctx.arc(mx,my,m.size,0,Math.PI*2);
+      ctx.fillStyle="rgba(200,200,210,0.3)";ctx.fill();
+    });
   }
   contains(px,py){return dist(px,py,this.cx,this.cy)<this.r+10}
 }
 
 // ===== Nebula =====
 class Nebula{constructor(cx,cy,rx,ry,cols){this.cx=cx;this.cy=cy;this.rx=rx;this.ry=ry;this.cols=cols;this.rot=0}
-  draw(){this.rot+=0.0002;ctx.save();ctx.translate(this.cx,this.cy);ctx.rotate(this.rot);this.cols.forEach(c=>{const x=rnd(-this.rx*0.5,this.rx*0.5),y=rnd(-this.ry*0.5,this.ry*0.5),size=rnd(this.rx*0.2,this.rx*0.4);const grd=ctx.createRadialGradient(x,y,0,x,y,size);grd.addColorStop(0,c);grd.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.fill()});ctx.restore()}
+  draw(){this.rot+=0.0002;ctx.save();ctx.translate(this.cx,this.cy);ctx.rotate(this.rot);
+    this.cols.forEach(c=>{const x=rnd(-this.rx*0.5,this.rx*0.5),y=rnd(-this.ry*0.5,this.ry*0.5),size=rnd(this.rx*0.2,this.rx*0.4);
+      const grd=ctx.createRadialGradient(x,y,0,x,y,size);
+      grd.addColorStop(0,c);grd.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.fill()});
+    ctx.restore()}
 }
 
 // ===== Star / Meteor =====
 const STYPES=["circle","spark","diamond","cluster"];
-let meteor=null;
+let meteor=null; // single special meteor
 class Star{
   constructor(x,y){
     this.x=x!==undefined?x:rnd(0,W);this.y=y!==undefined?y:rnd(0,H);
@@ -489,12 +509,17 @@ class Star{
     const t=Math.random();this.tint=t<0.12?[255,200,180]:t<0.25?[180,210,255]:t<0.35?[255,225,160]:[255,255,255];
     this.cluster=this.type==="cluster"?Array.from({length:2+Math.floor(rnd(0,3))},()=>({dx:rnd(-5,5),dy:rnd(-5,5),s:rnd(0.5,1.8)})):null;
   }
-  startFall(){this.falling=true;this.fallSpeed=rnd(1,3)}
+  // Safe fallback for click handler — regular stars don't animate fall
+  startFall(){this.falling=true;this.fallSpeed=rnd(1,3);}
   update(){
     this.twinklePhase+=this.twinkleSpeed;this.fA+=this.fS;
     this.x=this.homeX+Math.sin(this.fA)*this.fR;this.y=this.homeY+Math.cos(this.fA*0.7)*this.fR*0.5;
-    if(this.type==="meteor"&&!this.falling)this.size=this.baseSize*(0.88+0.12*Math.sin(this.twinklePhase*2.5));
-    if(this.falling){this.fallSpeed+=0.1;this.x+=Math.sin(this.fallAngle)*this.fallSpeed*0.2;this.y+=this.fallSpeed;this.alpha-=0.008;this.size*=0.998;if(this.alpha<=0||this.y>H+60){this.falling=false;scheduleReplacement(this);return false}}
+    // Meteor breathing size
+    if(this.type==="meteor"&&!this.falling){
+      this.size=this.baseSize*(0.88+0.12*Math.sin(this.twinklePhase*2.5));
+    }
+    if(this.falling){this.fallSpeed+=0.1;this.x+=Math.sin(this.fallAngle)*this.fallSpeed*0.2;this.y+=this.fallSpeed;this.alpha-=0.008;this.size*=0.998;
+      if(this.alpha<=0||this.y>H+60){this.falling=false;scheduleReplacement(this);return false}}
     return true
   }
   draw(){if(this.alpha<=0)return;
@@ -505,12 +530,23 @@ class Star{
     else if(this.type==="diamond")this._d(a,r,g,b);
     else if(this.type==="cluster"&&this.cluster)this._cl(a,r,g,b);
     else if(this.type==="meteor")this._m(a)}
-  _c(a,r,g,b){ctx.beginPath();ctx.arc(this.x,this.y,this.size*0.5,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.9})`;ctx.fill();if(this.size>1.8){ctx.beginPath();ctx.arc(this.x,this.y,this.size*1.4,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.06})`;ctx.fill()}}
-  _s(a,r,g,b){const s=this.size*0.65;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.twinklePhase*0.15);ctx.beginPath();for(let i=0;i<4;i++){const ang=i/4*Math.PI*2-Math.PI/4,l=i%2===0?s:s*0.3;ctx.lineTo(Math.cos(ang)*l,Math.sin(ang)*l)}ctx.closePath();ctx.fillStyle=`rgba(${r},${g},${b},${a*0.65})`;ctx.fill();ctx.beginPath();ctx.arc(0,0,this.size*0.2,0,Math.PI*2);ctx.fillStyle=`rgba(${Math.min(r+40,255)},${Math.min(g+40,255)},${Math.min(b+40,255)},${a})`;ctx.fill();ctx.restore()}
-  _d(a,r,g,b){const s=this.size*0.55;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(Math.PI/4+this.twinklePhase*0.08);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.5})`;ctx.fillRect(-s/2,-s/2,s,s);ctx.fillStyle=`rgba(${Math.min(r+50,255)},${Math.min(g+50,255)},${Math.min(b+50,255)},${a*0.25})`;ctx.fillRect(-s/4,-s/4,s/2,s/2);ctx.restore()}
-  _cl(a,r,g,b){this.cluster.forEach((c,i)=>{const ca=a*(0.5+0.5*(1-i/this.cluster.length));ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.8})`;ctx.fill();ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s*2,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.03})`;ctx.fill()})}
+  _c(a,r,g,b){ctx.beginPath();ctx.arc(this.x,this.y,this.size*0.5,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.9})`;ctx.fill()
+    if(this.size>1.8){ctx.beginPath();ctx.arc(this.x,this.y,this.size*1.4,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${a*0.06})`;ctx.fill()}}
+  _s(a,r,g,b){const s=this.size*0.65;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.twinklePhase*0.15);ctx.beginPath();
+    for(let i=0;i<4;i++){const ang=i/4*Math.PI*2-Math.PI/4,l=i%2===0?s:s*0.3;ctx.lineTo(Math.cos(ang)*l,Math.sin(ang)*l)}
+    ctx.closePath();ctx.fillStyle=`rgba(${r},${g},${b},${a*0.65})`;ctx.fill()
+    ctx.beginPath();ctx.arc(0,0,this.size*0.2,0,Math.PI*2);ctx.fillStyle=`rgba(${Math.min(r+40,255)},${Math.min(g+40,255)},${Math.min(b+40,255)},${a})`;ctx.fill();ctx.restore()}
+  _d(a,r,g,b){const s=this.size*0.55;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(Math.PI/4+this.twinklePhase*0.08);
+    ctx.fillStyle=`rgba(${r},${g},${b},${a*0.5})`;ctx.fillRect(-s/2,-s/2,s,s)
+    ctx.fillStyle=`rgba(${Math.min(r+50,255)},${Math.min(g+50,255)},${Math.min(b+50,255)},${a*0.25})`;ctx.fillRect(-s/4,-s/4,s/2,s/2);ctx.restore()}
+  _cl(a,r,g,b){this.cluster.forEach((c,i)=>{const ca=a*(0.5+0.5*(1-i/this.cluster.length));
+    ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.8})`;ctx.fill()
+    ctx.beginPath();ctx.arc(this.x+c.dx,this.y+c.dy,c.s*2,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${ca*0.03})`;ctx.fill()})}
+  // ===== ☄️ 陨石绘制 =====
   _m(a){
-    const s=this.size,x=this.x,y=this.y;
+    const s=this.size;
+    const x=this.x,y=this.y;
+    // Breathing glow ring
     const breathe=0.7+0.3*Math.sin(this.twinklePhase*2.5);
     const glowR=s*(1.8+breathe*1.2);
     const gGrd=ctx.createRadialGradient(x,y,s*0.3,x,y,glowR);
@@ -518,390 +554,130 @@ class Star{
     gGrd.addColorStop(0.5,`rgba(220,120,60,${a*0.08*breathe})`);
     gGrd.addColorStop(1,"rgba(200,100,50,0)");
     ctx.fillStyle=gGrd;ctx.beginPath();ctx.arc(x,y,glowR,0,Math.PI*2);ctx.fill();
+    // Outer hint ring (pulsing, guides click)
     ctx.beginPath();ctx.arc(x,y,glowR*1.6,0,Math.PI*2);
     ctx.strokeStyle=`rgba(255,200,150,${a*0.08*breathe})`;
     ctx.lineWidth=1.5;ctx.setLineDash([4,8]);ctx.stroke();ctx.setLineDash([]);
+
+    // Meteorite body
     ctx.save();ctx.translate(x,y);ctx.rotate(this.twinklePhase*0.04);
-    const pts=9;ctx.beginPath();
-    for(let i=0;i<=pts;i++){const ang=(i/pts)*Math.PI*2;const rV=1+0.18*Math.sin(i*3.7+this.twinklePhase*0.3)+0.12*Math.sin(i*5.1)+0.06*Math.sin(i*2.3);const rr=s*0.45*rV;const px=Math.cos(ang)*rr,py=Math.sin(ang)*rr;i===0?ctx.moveTo(px,py):ctx.lineTo(px,py)}
-    ctx.closePath();const mGrd=ctx.createLinearGradient(-s*0.4,-s*0.4,s*0.4,s*0.4);
-    mGrd.addColorStop(0,`rgba(140,115,95,${a})`);mGrd.addColorStop(0.3,`rgba(110,90,75,${a*0.95})`);mGrd.addColorStop(0.7,`rgba(80,65,55,${a*0.9})`);mGrd.addColorStop(1,`rgba(55,45,40,${a*0.85})`);
+    // Rugged irregular shape
+    const pts=9;
+    ctx.beginPath();
+    for(let i=0;i<=pts;i++){
+      const ang=(i/pts)*Math.PI*2;
+      const rV=1+0.18*Math.sin(i*3.7+this.twinklePhase*0.3)+0.12*Math.sin(i*5.1)+0.06*Math.sin(i*2.3);
+      const rr=s*0.45*rV;
+      const px=Math.cos(ang)*rr,py=Math.sin(ang)*rr;
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    // Surface gradient
+    const mGrd=ctx.createLinearGradient(-s*0.4,-s*0.4,s*0.4,s*0.4);
+    mGrd.addColorStop(0,`rgba(140,115,95,${a})`);
+    mGrd.addColorStop(0.3,`rgba(110,90,75,${a*0.95})`);
+    mGrd.addColorStop(0.7,`rgba(80,65,55,${a*0.9})`);
+    mGrd.addColorStop(1,`rgba(55,45,40,${a*0.85})`);
     ctx.fillStyle=mGrd;ctx.fill();
-    ctx.strokeStyle=`rgba(200,165,130,${a*0.35})`;ctx.lineWidth=1.5;ctx.stroke();
-    const craters=[{x:-s*0.16,y:-s*0.14,r:s*0.13},{x:s*0.2,y:s*0.1,r:s*0.09},{x:-s*0.04,y:s*0.22,r:s*0.07},{x:s*0.12,y:-s*0.2,r:s*0.08},{x:-s*0.2,y:s*0.05,r:s*0.05}];
-    craters.forEach(ct=>{ctx.beginPath();ctx.arc(ct.x,ct.y,ct.r,0,Math.PI*2);ctx.fillStyle=`rgba(40,35,30,${a*0.5})`;ctx.fill();ctx.beginPath();ctx.arc(ct.x-ct.r*0.25,ct.y-ct.r*0.25,ct.r*0.35,0,Math.PI*2);ctx.fillStyle=`rgba(160,135,115,${a*0.2})`;ctx.fill()});
-    const hl=ctx.createRadialGradient(-s*0.2,-s*0.3,0,0,0,s*0.45);hl.addColorStop(0,`rgba(255,220,180,${a*0.18})`);hl.addColorStop(1,"rgba(255,220,180,0)");ctx.fillStyle=hl;ctx.beginPath();ctx.arc(0,0,s*0.45,0,Math.PI*2);ctx.fill();ctx.restore()}
+    // Edge rim light
+    ctx.strokeStyle=`rgba(200,165,130,${a*0.35})`;
+    ctx.lineWidth=1.5;ctx.stroke();
+    // Craters
+    const craters=[
+      {x:-s*0.16,y:-s*0.14,r:s*0.13},{x:s*0.2,y:s*0.1,r:s*0.09},
+      {x:-s*0.04,y:s*0.22,r:s*0.07},{x:s*0.12,y:-s*0.2,r:s*0.08},
+      {x:-s*0.2,y:s*0.05,r:s*0.05}
+    ];
+    craters.forEach(ct=>{
+      ctx.beginPath();ctx.arc(ct.x,ct.y,ct.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(40,35,30,${a*0.5})`;ctx.fill();
+      ctx.beginPath();ctx.arc(ct.x-ct.r*0.25,ct.y-ct.r*0.25,ct.r*0.35,0,Math.PI*2);
+      ctx.fillStyle=`rgba(160,135,115,${a*0.2})`;ctx.fill();
+    });
+    // Highlight
+    const hl=ctx.createRadialGradient(-s*0.2,-s*0.3,0,0,0,s*0.45);
+    hl.addColorStop(0,`rgba(255,220,180,${a*0.18})`);
+    hl.addColorStop(1,"rgba(255,220,180,0)");
+    ctx.fillStyle=hl;ctx.beginPath();ctx.arc(0,0,s*0.45,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
   contains(px,py){return dist(px,py,this.x,this.y)<(this.type==="meteor"?this.size*1.6:Math.max(this.size*1.8,12))}
 }
 
 // ===== Shooting Star =====
 class SS{constructor(tx,ty,isWhite,isCrossReplacement){this.sx=isCrossReplacement?W+80:W+80;this.sy=isCrossReplacement?H*0.05:-30;this.tx=tx;this.ty=ty;this.prog=0;this.speed=isCrossReplacement?0.025:rnd(0.015,0.025);this.trail=[];this.alive=true;this.isWhite=isWhite||false}
-  update(){if(!this.alive)return false;this.prog+=this.speed;this.trail.push({x:this.getX(),y:this.getY(),a:1});if(this.trail.length>35)this.trail.shift();this.trail.forEach(t=>t.a-=0.035);if(this.prog>=1){this.alive=false;return false}return true}
+  update(){if(!this.alive)return false;this.prog+=this.speed;this.trail.push({x:this.getX(),y:this.getY(),a:1});
+    if(this.trail.length>35)this.trail.shift();this.trail.forEach(t=>t.a-=0.035);if(this.prog>=1){this.alive=false;return false}return true}
   getX(){return this.sx+(this.tx-this.sx)*this.prog}
   getY(){return this.sy+(this.ty-this.sy)*this.prog-45*Math.sin(this.prog*Math.PI)}
-  draw(){this.trail.forEach((t,i)=>{if(t.a<=0)return;ctx.beginPath();ctx.arc(t.x,t.y,this.isWhite?2.5*(i/this.trail.length):1.5*(i/this.trail.length),0,Math.PI*2);const tc=this.isWhite?`rgba(255,255,255,${t.a*0.5})`:`rgba(255,240,210,${t.a*0.25})`;ctx.fillStyle=tc;ctx.fill()});const x=this.getX(),y=this.getY();if(this.isWhite){const flsh=ctx.createRadialGradient(x,y,0,x,y,25);flsh.addColorStop(0,"rgba(255,255,255,0.3)");flsh.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=flsh;ctx.beginPath();ctx.arc(x,y,25,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,1)";ctx.fill()}else{ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,0.85)";ctx.fill()}ctx.beginPath();ctx.arc(x,y,this.isWhite?20:10,0,Math.PI*2);ctx.fillStyle=this.isWhite?"rgba(255,255,255,0.1)":"rgba(200,220,255,0.15)";ctx.fill()}
+  draw(){this.trail.forEach((t,i)=>{if(t.a<=0)return;ctx.beginPath();ctx.arc(t.x,t.y,this.isWhite?2.5*(i/this.trail.length):1.5*(i/this.trail.length),0,Math.PI*2);
+    const tc=this.isWhite?`rgba(255,255,255,${t.a*0.5})`:`rgba(255,240,210,${t.a*0.25})`;
+    ctx.fillStyle=tc;ctx.fill()});
+    const x=this.getX(),y=this.getY();
+    if(this.isWhite){
+      const flsh=ctx.createRadialGradient(x,y,0,x,y,25);
+      flsh.addColorStop(0,"rgba(255,255,255,0.3)");flsh.addColorStop(1,"rgba(255,255,255,0)");
+      ctx.fillStyle=flsh;ctx.beginPath();ctx.arc(x,y,25,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,1)";ctx.fill();
+    }else{
+      ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,0.85)";ctx.fill();
+    }
+    ctx.beginPath();ctx.arc(x,y,this.isWhite?20:10,0,Math.PI*2);ctx.fillStyle=this.isWhite?"rgba(255,255,255,0.1)":"rgba(200,220,255,0.15)";ctx.fill()}
 }
 
-// ===== Comet =====
-class Comet{constructor(tx,ty){this.sx=W+60;this.sy=H*0.08;this.tx=tx;this.ty=ty;this.prog=0;this.speed=0.005;this.tail=[];this.alive=true;this.age=0;this.arrived=false}
-  update(){this.age++;if(!this.alive)return false;this.prog+=this.speed;const x=this.getX(),y=this.getY();this.tail.push({x,y,a:1});if(this.tail.length>60)this.tail.shift();this.tail.forEach(t=>t.a-=0.016);if(this.prog>=1){this.alive=false;this.arrived=true;return false}return true}
-  getX(){return this.sx+(this.tx-this.sx)*this.prog}
-  getY(){return this.sy+(this.ty-this.sy)*this.prog-30*Math.sin(this.prog*Math.PI)}
-  draw(){for(let i=0;i<this.tail.length;i++){const t=this.tail[i];if(t.a<=0)continue;const idx=i/this.tail.length;const w=2+idx*6;ctx.beginPath();ctx.arc(t.x,t.y,w,0,Math.PI*2);ctx.fillStyle=`rgba(200,220,255,${t.a*idx*0.4})`;ctx.fill();ctx.beginPath();ctx.arc(t.x,t.y,w*0.4,0,Math.PI*2);ctx.fillStyle=`rgba(230,240,255,${t.a*idx*0.3})`;ctx.fill()}if(!this.alive)return;const x=this.getX(),y=this.getY();const g=ctx.createRadialGradient(x,y,0,x,y,35);g.addColorStop(0,"rgba(255,255,255,0.5)");g.addColorStop(1,"rgba(255,255,255,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,35,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x,y,8,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,1)";ctx.fill();ctx.beginPath();ctx.arc(x,y,14,0,Math.PI*2);ctx.fillStyle="rgba(200,220,255,0.2)";ctx.fill()}
-}
-
-// ============================================================
-// 🚀 火箭系统 v1
-// ============================================================
-let rocketMode=false;       // 火箭操控模式
-let rocket=null;           // RocketShip 实例
-let rocketExploding=false; // 爆炸动画中
-let rocketBuilding=false;  // 建造动画中
-let rocketBuildingTimer=null;
-let rocketExplosionTimer=null;
-let rocketHudEl=null;
-
-// 按键状态
-const keys={w:false,a:false,s:false,d:false,space:false};
-let spaceHoldStart=0;      // 空格按下时间戳
-let spaceHoldedFor=0;      // 已按住时长
-let rocketSpaceClickCooldown=0; // 防止空格连续触发点击
-
-// 火箭方向 → 角度映射 (0=向上, 顺时针)
-const DIR_ANGLES={
-  w:0, s:Math.PI, a:-Math.PI/2, d:Math.PI/2,
-  wa:-Math.PI/4, wd:Math.PI/4, sa:-3*Math.PI/4, sd:3*Math.PI/4
-};
-
-class RocketShip{
-  constructor(x,y){
-    this.x=x;this.y=y;
-    this.vx=0;this.vy=0;
-    this.angle=0; // facing up
-    this.targetAngle=0;
-    this.maxSpeed=5;
-    this.accel=0.15;
-    this.friction=0.92; // inertia: speed drops to near 0 in ~1s
-    this.size=24;       // rocket visual size
-    this.thrusting=false;
-    this.fuel=100;
-    this.alpha=1;
-    this.hoverOverText=false;
-    this.breath=0;
+// ===== Comet Class =====
+class Comet{
+  constructor(tx,ty){
+    this.sx=W+60;this.sy=H*0.08;this.tx=tx;this.ty=ty;
+    this.prog=0;this.speed=0.005; // 3 seconds at 60fps = 180 frames
+    this.tail=[];this.alive=true;this.age=0;
+    this.arrived=false;
   }
   update(){
-    this.breath+=0.03;
-    // Determine direction from keys
-    let dx=0,dy=0;
-    if(keys.d)dx+=1;if(keys.a)dx-=1;
-    if(keys.s)dy+=1;if(keys.w)dy-=1;
-
-    this.thrusting=(dx!==0||dy!==0);
-
-    if(this.thrusting){
-      // Compute target angle for 8-direction
-      const dirKey=(keys.w?'w':'')+(keys.a?'a':'')+(keys.s?'s':'')+(keys.d?'d':'');
-      if(dirKey&&DIR_ANGLES[dirKey]!==undefined){
-        this.targetAngle=DIR_ANGLES[dirKey];
-      }
-      // Accelerate with cap
-      const mag=Math.hypot(dx,dy);
-      if(mag>0){dx/=mag;dy/=mag}
-      const spd=Math.hypot(this.vx,this.vy);
-      if(spd<this.maxSpeed){
-        this.vx+=dx*this.accel;
-        this.vy+=dy*this.accel;
-      }
-      // Cap speed
-      const newSpd=Math.hypot(this.vx,this.vy);
-      if(newSpd>this.maxSpeed){
-        const scale=this.maxSpeed/newSpd;
-        this.vx*=scale;this.vy*=scale;
-      }
-    }else{
-      // Inertia: friction slow down
-      this.vx*=this.friction;
-      this.vy*=this.friction;
-      if(Math.abs(this.vx)<0.01)this.vx=0;
-      if(Math.abs(this.vy)<0.01)this.vy=0;
-    }
-    // Update position
-    this.x+=this.vx;
-    this.y+=this.vy;
-
-    // Smooth angle rotation
-    let diff=this.targetAngle-this.angle;
-    while(diff>Math.PI)diff-=Math.PI*2;
-    while(diff<-Math.PI)diff+=Math.PI*2;
-    this.angle+=diff*0.12;
-
-    // Check if over container text
-    this.checkTextOverlap();
-
-    // Boundary check (auto-explode)
-    if(this.x<-40||this.x>W+40||this.y<-40||this.y>H+40){
-      rocketExplode('边界突破');
+    this.age++;
+    if(!this.alive)return false;
+    this.prog+=this.speed;
+    const x=this.getX(),y=this.getY();
+    this.tail.push({x,y,a:1});
+    if(this.tail.length>60)this.tail.shift();
+    this.tail.forEach(t=>t.a-=0.016);
+    if(this.prog>=1){
+      this.alive=false;this.arrived=true;
       return false;
     }
     return true;
   }
-  checkTextOverlap(){
-    try{
-      const cr=containerEl?containerEl.getBoundingClientRect():null;
-      if(cr){
-        const cRect=canvas.getBoundingClientRect();
-        const rx=this.x+cRect.left,ry=this.y+cRect.top;
-        this.hoverOverText=rx>cr.left-15&&rx<cr.right+15&&ry>cr.top-15&&ry<cr.bottom+15;
-      }
-    }catch(e){}
-    this.alpha=this.hoverOverText?0.35:1;
-  }
+  getX(){return this.sx+(this.tx-this.sx)*this.prog}
+  getY(){return this.sy+(this.ty-this.sy)*this.prog-30*Math.sin(this.prog*Math.PI)}
   draw(){
-    if(this.alpha<=0.01)return;
-    ctx.save();
-    ctx.translate(this.x,this.y);
-    ctx.rotate(this.angle); // angle 0=up, +clockwise
-    ctx.globalAlpha=this.alpha;
-
-    const s=this.size;
-    // === Tail flame ===
-    if(this.thrusting){
-      const flicker=0.7+0.3*Math.sin(this.breath*8);
-      const flameLen=s*0.8*flicker;
-      const flameAlpha=0.6+0.3*Math.sin(this.breath*12);
-      // Outer flame
-      const fGrd=ctx.createRadialGradient(0,s*0.1,0,0,s*0.2,flameLen);
-      fGrd.addColorStop(0,`rgba(255,220,100,${flameAlpha})`);
-      fGrd.addColorStop(0.4,`rgba(255,150,50,${flameAlpha*0.7})`);
-      fGrd.addColorStop(0.7,`rgba(255,80,20,${flameAlpha*0.4})`);
-      fGrd.addColorStop(1,"rgba(255,50,10,0)");
-      ctx.fillStyle=fGrd;
-      ctx.beginPath();
-      ctx.moveTo(-s*0.12,s*0.25);
-      ctx.quadraticCurveTo(-s*0.25,s*0.25+flameLen*0.6,0,s*0.25+flameLen);
-      ctx.quadraticCurveTo(s*0.25,s*0.25+flameLen*0.6,s*0.12,s*0.25);
+    for(let i=0;i<this.tail.length;i++){
+      const t=this.tail[i];
+      if(t.a<=0)continue;
+      const idx=i/this.tail.length;
+      const w=2+idx*6;
+      ctx.beginPath();ctx.arc(t.x,t.y,w,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,220,255,${t.a*idx*0.4})`;
       ctx.fill();
-      // Inner hot core
-      ctx.beginPath();ctx.arc(0,s*0.35,s*0.08,0,Math.PI*2);
-      ctx.fillStyle=`rgba(255,255,200,${flameAlpha})`;
+      ctx.beginPath();ctx.arc(t.x,t.y,w*0.4,0,Math.PI*2);
+      ctx.fillStyle=`rgba(230,240,255,${t.a*idx*0.3})`;
       ctx.fill();
     }
-    // === Ship body ===
-    // Main body (pointed top)
-    ctx.beginPath();
-    ctx.moveTo(0,-s*0.55); // nose
-    ctx.quadraticCurveTo(s*0.2,-s*0.2,s*0.18,s*0.15);
-    ctx.lineTo(s*0.12,s*0.3);
-    ctx.lineTo(-s*0.12,s*0.3);
-    ctx.lineTo(-s*0.18,s*0.15);
-    ctx.quadraticCurveTo(-s*0.2,-s*0.2,0,-s*0.55);
-    ctx.closePath();
-    const bGrd=ctx.createLinearGradient(-s*0.2,-s*0.3,s*0.2,s*0.3);
-    bGrd.addColorStop(0,"rgba(220,230,240,0.95)");
-    bGrd.addColorStop(0.3,"rgba(180,200,220,0.9)");
-    bGrd.addColorStop(0.7,"rgba(140,170,200,0.85)");
-    bGrd.addColorStop(1,"rgba(100,130,160,0.8)");
-    ctx.fillStyle=bGrd;ctx.fill();
-    ctx.strokeStyle="rgba(200,220,240,0.3)";ctx.lineWidth=1;ctx.stroke();
-
-    // Nose cone (red tip)
-    ctx.beginPath();
-    ctx.moveTo(0,-s*0.55);
-    ctx.quadraticCurveTo(s*0.12,-s*0.35,0,-s*0.25);
-    ctx.quadraticCurveTo(-s*0.12,-s*0.35,0,-s*0.55);
-    ctx.fillStyle="rgba(220,80,60,0.9)";ctx.fill();
-
-    // Window
-    ctx.beginPath();ctx.arc(0,-s*0.05,s*0.12,0,Math.PI*2);
-    ctx.fillStyle="rgba(80,180,255,0.5)";ctx.fill();
-    ctx.strokeStyle="rgba(150,200,255,0.4)";ctx.lineWidth=1.5;ctx.stroke();
-    // Window shine
-    ctx.beginPath();ctx.arc(-s*0.04,-s*0.09,s*0.04,0,Math.PI*2);
-    ctx.fillStyle="rgba(255,255,255,0.3)";ctx.fill();
-
-    // Left wing
-    ctx.beginPath();
-    ctx.moveTo(-s*0.18,s*0.05);
-    ctx.lineTo(-s*0.4,s*0.2);
-    ctx.lineTo(-s*0.18,s*0.2);
-    ctx.closePath();
-    ctx.fillStyle="rgba(200,60,60,0.8)";ctx.fill();
-
-    // Right wing
-    ctx.beginPath();
-    ctx.moveTo(s*0.18,s*0.05);
-    ctx.lineTo(s*0.4,s*0.2);
-    ctx.lineTo(s*0.18,s*0.2);
-    ctx.closePath();
-    ctx.fillStyle="rgba(200,60,60,0.8)";ctx.fill();
-
-    // Bottom fins
-    ctx.beginPath();ctx.moveTo(-s*0.12,s*0.3);ctx.lineTo(-s*0.22,s*0.4);ctx.lineTo(-s*0.08,s*0.35);ctx.closePath();
-    ctx.fillStyle="rgba(180,50,50,0.7)";ctx.fill();
-    ctx.beginPath();ctx.moveTo(s*0.12,s*0.3);ctx.lineTo(s*0.22,s*0.4);ctx.lineTo(s*0.08,s*0.35);ctx.closePath();
-    ctx.fillStyle="rgba(180,50,50,0.7)";ctx.fill();
-
-    // Glow highlight
-    const hl=ctx.createRadialGradient(-s*0.1,-s*0.3,0,0,0,s*0.5);
-    hl.addColorStop(0,"rgba(255,255,255,0.12)");
-    hl.addColorStop(1,"rgba(255,255,255,0)");
-    ctx.fillStyle=hl;ctx.beginPath();ctx.arc(0,0,s*0.5,0,Math.PI*2);ctx.fill();
-
-    ctx.restore();
-    ctx.globalAlpha=1;
-  }
-  // Check if rocket collides with a celestial body
-  collisionPlanet(){
-    for(const p of planets){
-      const d=dist(this.x,this.y,p.cx,p.cy);
-      if(d<p.r+this.size*0.4)return p;
-    }
-    return null;
+    if(!this.alive)return;
+    const x=this.getX(),y=this.getY();
+    const g=ctx.createRadialGradient(x,y,0,x,y,35);
+    g.addColorStop(0,"rgba(255,255,255,0.5)");g.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,35,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,8,0,Math.PI*2);
+    ctx.fillStyle="rgba(255,255,255,1)";ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,14,0,Math.PI*2);
+    ctx.fillStyle="rgba(200,220,255,0.2)";ctx.fill();
   }
 }
 
-// ===== 🚀 火箭弹窗 =====
-function initRocketModal(){
-  const container=document.getElementById('rmStars');
-  for(let i=0;i<30;i++){
-    const span=document.createElement('span');
-    span.style.left=rnd(0,100)+'%';
-    span.style.top=rnd(0,100)+'%';
-    span.style.animationDelay=rnd(0,3)+'s';
-    span.style.width=span.style.height=rnd(1,2.5)+'px';
-    container.appendChild(span);
-  }
-}
-initRocketModal();
-
-function openRocketModal(){
-  document.getElementById('rocketModal').classList.add('show');
-}
-function closeRocketModal(){
-  document.getElementById('rocketModal').classList.remove('show');
-}
-document.getElementById('rocketModal').addEventListener('click',e=>{
-  if(e.target===e.currentTarget)closeRocketModal();
-});
-
-// 🚀 发射
-function launchRocket(){
-  closeRocketModal();
-  startRocketMode();
-}
-
-function startRocketMode(){
-  if(rocketMode)return;
-  try{
-    rocketMode=true;
-    const rect=document.querySelector('.avatar').getBoundingClientRect();
-    const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2+60;
-    rocket=new RocketShip(cx,cy);
-    const hud=document.getElementById('rocketHud');
-    hud.classList.add('show');
-    rocketHudEl=hud;
-  }catch(e){if(!rocketMode)return;rocketMode=false;rocket=null}
-
-  // Disable canvas click for star interactions (keep page links)
-  // The click handler is modified to check rocketMode
-}
-
-function stopRocketMode(){
-  rocketMode=false;
-  rocketExploding=false;
-  rocketBuilding=false;
-  rocket=null;
-  if(rocketHudEl){rocketHudEl.classList.remove('show');rocketHudEl=null}
-  // Reset keys
-  keys.w=false;keys.a=false;keys.s=false;keys.d=false;keys.space=false;
-  spaceHoldStart=0;spaceHoldedFor=0;
-  // Cancel any pending timers
-  if(rocketBuildingTimer){clearTimeout(rocketBuildingTimer);rocketBuildingTimer=null}
-  if(rocketExplosionTimer){clearTimeout(rocketExplosionTimer);rocketExplosionTimer=null}
-}
-
-// 💥 火箭爆炸
-function rocketExplode(reason){
-  if(!rocketMode||rocketExploding)return;
-  rocketExploding=true;
-  const rx=rocket.x,ry=rocket.y;
-  const r=rocket;
-
-  // Nuclear-level explosion
-  // Flash
-  window._nukeFlash={start:Date.now(),duration:800,x:rx,y:ry};
-
-  // Shockwaves (multiple rings)
-  window._nukeRings=[
-    {cx:rx,cy:ry,radius:0,maxRadius:300,start:Date.now(),duration:1800,color:"255,200,100"},
-    {cx:rx,cy:ry,radius:0,maxRadius:450,start:Date.now()+200,duration:2000,color:"255,150,50"},
-    {cx:rx,cy:ry,radius:0,maxRadius:200,start:Date.now()+100,duration:1200,color:"255,255,220"},
-  ];
-
-  // Fireball particles
-  for(let i=0;i<100;i++){
-    const ang=rnd(0,Math.PI*2),spd=rnd(2,12);
-    particles.push({
-      x:rx+rnd(-10,10),y:ry+rnd(-10,10),
-      color:["255,200,50","255,150,30","255,100,20","255,255,200","255,80,10"][Math.floor(rnd(0,5))],
-      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
-      life:40+rnd(0,30),age:0
-    });
-  }
-  // Smoke ring
-  for(let i=0;i<40;i++){
-    const ang=rnd(0,Math.PI*2),spd=rnd(1,6);
-    particles.push({
-      x:rx+rnd(-5,5),y:ry+rnd(-5,5),
-      color:"180,160,140",
-      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-1,
-      life:60+rnd(0,20),age:0
-    });
-  }
-  // Debris fragments (rocket parts)
-  for(let i=0;i<20;i++){
-    const ang=rnd(0,Math.PI*2),spd=rnd(3,10);
-    debris.push({
-      x:rx+rnd(-8,8),y:ry+rnd(-8,8),
-      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-2,
-      rot:rnd(0,Math.PI*2),rotSpeed:rnd(-0.15,0.15),
-      size:rnd(3,8),life:50,age:0,
-      color:["rgba(180,200,220","rgba(220,80,60","rgba(200,60,60","rgba(140,170,200","rgba(255,255,255"][Math.floor(rnd(0,5))]
-    });
-  }
-
-  rocket=null;
-
-  // After explosion animation, start building
-  rocketExplosionTimer=setTimeout(()=>{
-    rocketExploding=false;
-    startRocketBuilding();
-  },2200);
-}
-
-// 🏗️ 火箭建造动画
-function startRocketBuilding(){
-  if(rocketBuilding)return;
-  rocketBuilding=true;
-  const rect=document.querySelector('.avatar').getBoundingClientRect();
-  const bx=rect.left+rect.width/2;
-  const by=rect.top+rect.height/2+60;
-  window._buildingRocket={x:bx,y:by,progress:0,start:Date.now(),duration:4000};
-
-  rocketBuildingTimer=setTimeout(()=>{
-    // Build complete: create new rocket
-    rocketBuilding=false;
-    window._buildingRocket=null;
-    const nr=new RocketShip(bx,by);
-    rocket=nr;
-    // Don't restart rocketMode if we already exited
-    if(!rocketMode)return;
-  },4500);
-}
-
-// ===== Init Scene =====
+// ===== Init =====
 function initScene(){
   stars=[];
+  // Create meteor — top-left area
   const ms=new Star(W*0.08,H*0.15);
   ms.isMeteor=true;ms.type="meteor";ms.baseSize=20;ms.size=20;ms.homeX=W*0.08;ms.homeY=H*0.15;
   meteor=ms;stars.push(ms);
@@ -926,74 +702,16 @@ initScene();
 function scheduleReplacement(o){pendingReplacements.push({x:o?o.homeX:rnd(0,W),y:o?o.homeY:rnd(0,H),cd:15+Math.floor(rnd(0,25))})}
 function spawnBurst(x,y,c){for(let i=0;i<12;i++)particles.push({x,y,color:c,vx:rnd(-4,4),vy:rnd(1,5),life:15+rnd(0,10),age:0})}
 
-// ===== 🚀 发射按钮 =====
-document.getElementById('rocketLaunchBtn').addEventListener('click',e=>{
-  if(rocketMode)return; // already in rocket mode
-  openRocketModal();
-});
-
-// ===== 🎮 火箭键盘控制 =====
-document.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
-  const k=e.key.toLowerCase();
-  if(k==='w'||k==='a'||k==='s'||k==='d'){
-    if(!rocketMode||rocketPaused)return;
-    e.preventDefault();
-    keys[k]=true;
-  }
-  if(e.key===' '){
-    if(!rocketMode||rocketPaused)return;
-    e.preventDefault();
-    if(!keys.space){keys.space=true;spaceHoldStart=Date.now()}
-  }
-  if(e.ctrlKey&&e.shiftKey&&e.key==='A'&&!rocketMode){e.preventDefault();toggleAdminMode()}
-  if(e.key==='Escape'&&!rocketMode)closeMsgModal();
-});
-
-document.addEventListener('keyup',e=>{
-  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
-  const k=e.key.toLowerCase();
-  if(k==='w'||k==='a'||k==='s'||k==='d'){
-    if(!rocketMode)return;
-    keys[k]=false;
-  }
-  if(e.key===' '){
-    if(!rocketMode)return;
-    const holdDuration=Date.now()-spaceHoldStart;
-    keys.space=false;
-    if(holdDuration<2800&&rocket&&!rocketExploding&&!rocketBuilding&&!rocketPaused){
-      const cRect=canvas.getBoundingClientRect();
-      canvas.dispatchEvent(new MouseEvent('click',{
-        clientX:rocket.x+cRect.left,clientY:rocket.y+cRect.top,
-        bubbles:true,cancelable:true
-      }));
-    }
-    spaceHoldStart=0;
-  }
-});
-
-// ===== Click Handler (modified for rocket mode) =====
-canvas.addEventListener('click',e=>{
+// ===== Click Handler =====
+canvas.addEventListener("click",e=>{
   const rect=canvas.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
-
-  // In rocket mode, canvas clicks don't interact with stars/planets directly
-  // (space bar simulates clicks at rocket position)
-
   for(const p of planets){
     if(p.contains(px,py)){
-      if(rocketMode){
-        // In rocket mode, clicking planets with space triggers explosion
-        // (handled in space bar logic above - this is mouse click which is normal)
-        return;
-      }
       if(p.isEarth){openMsgModal();return}
       if(p.name==="Mars"){showChangelog();return}
       spawnBurst(p.cx,p.cy,p.baseColor);return
     }
   }
-
-  if(rocketMode)return; // no star interactions in rocket mode
-
   // Check meteor
   if(meteor&&!meteor.falling&&meteor.contains(px,py)){
     const ms=meteor;
@@ -1002,29 +720,75 @@ canvas.addEventListener('click',e=>{
     const tx=earth?earth.cx:sx,ty=earth?earth.cy:sy;
     let fp=0;
     const msHomeX=ms.homeX||(W*0.08),msHomeY=ms.homeY||(H*0.15);
+    // Remove from stars immediately
     const si=stars.indexOf(ms);
     if(si>=0)stars.splice(si,1);
     meteor=null;
+
     function fa(){
-      fp+=0.012;
+      fp+=0.012; // slightly slower for better arc
       if(fp>=1){
+        // ===== IMPACT =====
         if(earth){
+          // Earth red impact overlay
           earth.impactIntensity=1;
+          // Triple shockwave rings
           window._impactRings=[
             {cx:earth.cx,cy:earth.cy,radius:0,maxRadius:160,start:Date.now(),duration:1400,color:"255,120,60"},
             {cx:earth.cx,cy:earth.cy,radius:0,maxRadius:220,start:Date.now()+100,duration:1500,color:"255,200,150"},
             {cx:earth.cx,cy:earth.cy,radius:0,maxRadius:100,start:Date.now()+50,duration:1000,color:"255,255,255"},
           ];
-          for(let i=0;i<60;i++)particles.push({x:earth.cx+rnd(-35,35),y:earth.cy+rnd(-30,30),color:rnd(0,1)>0.4?"255,140,50":"255,80,20",vx:rnd(-8,8),vy:rnd(-9,4),life:35+rnd(0,20),age:0});
-          for(let i=0;i<30;i++)particles.push({x:earth.cx+rnd(-15,15),y:earth.cy+rnd(-15,15),color:"255,255,220",vx:rnd(-6,6),vy:rnd(-7,3),life:20+rnd(0,10),age:0});
-          for(let i=0;i<40;i++){const ang=rnd(0,Math.PI*2),speed=rnd(2,9);debris.push({x:earth.cx+rnd(-10,10),y:earth.cy+rnd(-10,10),vx:Math.cos(ang)*speed,vy:Math.sin(ang)*speed-2,rot:rnd(0,Math.PI*2),rotSpeed:rnd(-0.08,0.08),size:rnd(2,6),life:90,age:0,color:["rgba(140,110,90","rgba(110,90,75","rgba(80,65,55","rgba(200,160,120"][Math.floor(rnd(0,4))]})}
+          // Fire particles (explosion)
+          for(let i=0;i<60;i++)particles.push({
+            x:earth.cx+rnd(-35,35),y:earth.cy+rnd(-30,30),
+            color:rnd(0,1)>0.4?"255,140,50":"255,80,20",
+            vx:rnd(-8,8),vy:rnd(-9,4),life:35+rnd(0,20),age:0
+          });
+          // White-hot core
+          for(let i=0;i<30;i++)particles.push({
+            x:earth.cx+rnd(-15,15),y:earth.cy+rnd(-15,15),
+            color:"255,255,220",vx:rnd(-6,6),vy:rnd(-7,3),life:20+rnd(0,10),age:0
+          });
+          // ===== DEBRIS: meteor fragments (1.5s fade) =====
+          const fragmentCount=40;
+          for(let i=0;i<fragmentCount;i++){
+            const ang=rnd(0,Math.PI*2);
+            const speed=rnd(2,9);
+            debris.push({
+              x:earth.cx+rnd(-10,10),y:earth.cy+rnd(-10,10),
+              vx:Math.cos(ang)*speed,vy:Math.sin(ang)*speed-2,
+              rot:rnd(0,Math.PI*2),rotSpeed:rnd(-0.08,0.08),
+              size:rnd(2,6),life:90,age:0, // 1.5s = 90 frames at 60fps
+              color:["rgba(140,110,90","rgba(110,90,75","rgba(80,65,55","rgba(200,160,120"][Math.floor(rnd(0,4))]
+            });
+          }
+          // Store debris start time for closure
           window._debrisStart=Date.now();
-          setTimeout(()=>{window._meteorReplace={phase:"flash",start:Date.now(),homeX:msHomeX,homeY:msHomeY,cometLaunched:false}},1500);
+          // Start debris fade timer (1.5s)
+          window._debrisFadeTimer=setTimeout(()=>{
+            // All debris fading done naturally in render loop
+            // After all debris gone, trigger replacement sequence
+            window._meteorReplace={phase:"flash",start:Date.now(),homeX:msHomeX,homeY:msHomeY,cometLaunched:false};
+          },1500);
         }
         return;
       }
-      ms.x=sx+(tx-sx)*fp;ms.y=sy+(ty-sy)*fp-90*Math.sin(fp*Math.PI);
-      if(fp>0.15){for(let i=0;i<3;i++)particles.push({x:ms.x+rnd(-3,3),y:ms.y+rnd(-2,2),color:rnd(0,1)>0.5?"255,180,60":"255,100,30",vx:rnd(-0.5,0.5)+0.3,vy:rnd(0.2,0.8),life:14+rnd(0,8),age:0});if(fp>0.3)particles.push({x:ms.x+rnd(-2,2),y:ms.y-2,color:"180,160,140",vx:rnd(-0.2,0.2),vy:rnd(0.1,0.4),life:20+rnd(0,10),age:0})}
+      // Arc toward Earth with burning trail
+      ms.x=sx+(tx-sx)*fp;
+      ms.y=sy+(ty-sy)*fp-90*Math.sin(fp*Math.PI);
+      // Burning trail particles (orange/red)
+      if(fp>0.15){
+        for(let i=0;i<3;i++)particles.push({
+          x:ms.x+rnd(-3,3),y:ms.y+rnd(-2,2),
+          color:rnd(0,1)>0.5?"255,180,60":"255,100,30",
+          vx:rnd(-0.5,0.5)+0.3,vy:rnd(0.2,0.8),life:14+rnd(0,8),age:0
+        });
+        // Smoke trail
+        if(fp>0.3)particles.push({
+          x:ms.x+rnd(-2,2),y:ms.y-2,
+          color:"180,160,140",vx:rnd(-0.2,0.2),vy:rnd(0.1,0.4),life:20+rnd(0,10),age:0
+        });
+      }
       requestAnimationFrame(fa);
     }
     fa();
@@ -1042,7 +806,9 @@ canvas.addEventListener("mousemove",e=>{
   const earth=planets[0];
   if(earth&&earth.contains(px,py)){
     canvas.style.cursor="pointer";
-    if(!hoverTimer)hoverTimer=setTimeout(()=>{showHoverPreview(e.clientX,e.clientY);hoverTimer=null},2000);
+    if(!hoverTimer){
+      hoverTimer=setTimeout(()=>{showHoverPreview(e.clientX,e.clientY);hoverTimer=null},2000);
+    }
     earth.hoverPulse=true;
   }else{
     canvas.style.cursor="default";
@@ -1055,12 +821,21 @@ canvas.addEventListener("mouseleave",()=>{
   if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=null}
   hideHoverPreview();if(planets[0])planets[0].hoverPulse=false;
 });
+
+// ===== Hover Preview =====
 function showHoverPreview(mx,my){
   const el=document.getElementById("hoverPreview");
-  const msgs=getMessages();const recent=msgs.slice(-3).reverse();
+  const msgs=getMessages();
+  const recent=msgs.slice(-3).reverse();
   const hp=document.getElementById("hpMsgs");
-  hp.innerHTML=recent.length?recent.map(m=>`<div class="hp-msg"><strong>${esc(m.name)}</strong>：${esc(m.text.slice(0,40))}</div>`).join(""):'<div style="font-size:0.75rem;color:rgba(255,255,255,0.2)">还没有留言</div>';
-  el.style.left=Math.min(mx-140,W-300)+"px";el.style.top=Math.min(my+20,H-200)+"px";el.classList.add("show");
+  if(recent.length===0){
+    hp.innerHTML='<div style="font-size:0.75rem;color:rgba(255,255,255,0.2)">还没有留言</div>';
+  }else{
+    hp.innerHTML=recent.map(m=>`<div class="hp-msg"><strong>${esc(m.name)}</strong>：${esc(m.text.slice(0,40))}</div>`).join("");
+  }
+  el.style.left=Math.min(mx-140,W-300)+"px";
+  el.style.top=Math.min(my+20,H-200)+"px";
+  el.classList.add("show");
 }
 function hideHoverPreview(){document.getElementById("hoverPreview").classList.remove("show")}
 
@@ -1070,195 +845,440 @@ function hideHoverPreview(){document.getElementById("hoverPreview").classList.re
 const API_URL="https://api.github.com/repos/yukilynn814-cmyk/yukilynn814-cmyk.github.io/contents/data/messages.json";
 const RAW_URL="https://raw.githubusercontent.com/yukilynn814-cmyk/yukilynn814-cmyk.github.io/main/data/messages.json";
 let TOKEN=localStorage.getItem("sf_gh_token")||"";
-let msgData=[];let isAdmin=false;let adminToken="";let editingId=null;
+let msgData=[];
+let isAdmin=false;
+let adminToken="";
+let editingId=null;
 
-function getMessages(){try{return JSON.parse(localStorage.getItem("sf_msgCache"))||[]}catch(e){return []}}
+function getMessages(){
+  try{return JSON.parse(localStorage.getItem("sf_msgCache"))||[]}catch(e){return []}
+}
 function setMessages(msgs){localStorage.setItem("sf_msgCache",JSON.stringify(msgs))}
-async function loadMessages(){try{const r=await fetch(RAW_URL);if(!r.ok)throw Error();const raw=await r.text();msgData=JSON.parse(raw);if(!Array.isArray(msgData))msgData=[];setMessages(msgData)}catch(e){msgData=getMessages()}renderMessages()}
-async function saveMessages(){if(!TOKEN){const t=prompt("🔑 需要 GitHub Token 才能保存留言到云端：");if(!t)return false;TOKEN=t.trim();localStorage.setItem("sf_gh_token",TOKEN)}try{const content=btoa(unescape(encodeURIComponent(JSON.stringify(msgData,null,2))));const getR=await fetch(API_URL,{headers:{Authorization:"token "+TOKEN,"Accept":"application/vnd.github.v3+json"}});const getD=await getR.json();const sha=getD.sha||"";const r=await fetch(API_URL,{method:"PUT",headers:{"Authorization":"***"+TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"💬 更新留言",content,sha})});if(!r.ok)throw Error();setMessages(msgData);return true}catch(e){setMessages(msgData);return false}}
-function renderMessages(){const body=document.getElementById("msgBody");if(msgData.length===0){body.innerHTML='<div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>';return}body.innerHTML=`<div class="msg-list">${msgData.map((m,i)=>renderMsg(m,i)).join("")}</div>`;body.scrollTop=body.scrollHeight}
+
+async function loadMessages(){
+  try{
+    const r=await fetch(RAW_URL);
+    if(!r.ok)throw new Error("fetch failed");
+    const raw=await r.text();
+    msgData=JSON.parse(raw);
+    if(!Array.isArray(msgData))msgData=[];
+    setMessages(msgData);
+  }catch(e){
+    msgData=getMessages();
+  }
+  renderMessages();
+}
+
+async function saveMessages(){
+  if(!TOKEN){
+    const t=prompt("🔑 需要 GitHub Token 才能保存留言到云端：");
+    if(!t)return false;
+    TOKEN=t.trim();
+    localStorage.setItem("sf_gh_token",TOKEN);
+  }
+  try{
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(msgData,null,2))));
+    const getR=await fetch(API_URL,{headers:{Authorization:"token "+TOKEN,"Accept":"application/vnd.github.v3+json"}});
+    const getD=await getR.json();
+    const sha=getD.sha||"";
+    const r=await fetch(API_URL,{
+      method:"PUT",
+      headers:{"Authorization":"token "+TOKEN,"Content-Type":"application/json"},
+      body:JSON.stringify({message:"💬 更新留言",content,sha})
+    });
+    if(!r.ok)throw new Error("save failed");
+    setMessages(msgData);
+    return true;
+  }catch(e){
+    setMessages(msgData);
+    return false;
+  }
+}
+
+function renderMessages(){
+  const body=document.getElementById("msgBody");
+  if(msgData.length===0){
+    body.innerHTML='<div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>';
+    return;
+  }
+  body.innerHTML=`<div class="msg-list">${msgData.map((m,i)=>renderMsg(m,i)).join("")}</div>`;
+  body.scrollTop=body.scrollHeight;
+}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
-function timeAgo(ts){const d=Date.now()-ts;if(d<60000)return"刚刚";if(d<3600000)return Math.floor(d/60000)+"分钟前";if(d<86400000)return Math.floor(d/3600000)+"小时前";return Math.floor(d/86400000)+"天前"}
-function renderMsg(m,i){const isOwn=m.id===editingId;const nameCls=m.nameClass||["#58a6ff","#bc8cff","#f0883e","#3fb950","#f85149","#f0a0c0"][Math.abs(hashStr(m.name||""))%6];const canEdit=isAdmin||(localStorage.getItem("sf_userId")===m.userId);const isAdminMsg=m.isAdmin;if(isOwn){return `<div class="msg-item"><div class="avatar" style="background:${nameCls};color:#fff">${(m.name||"?")[0]}</div><div class="body"><div class="meta"><span class="name">${esc(m.name)}</span><span class="time">${timeAgo(m.ts)}</span></div><input class="edit-input" id="editInput" value="${esc(m.text)}" maxlength="200"><div class="edit-actions"><button onclick="saveEdit('${m.id}')">💾 保存</button><button onclick="cancelEdit()">取消</button></div></div></div>`}return `<div class="msg-item"><div class="avatar" style="background:${nameCls};color:#fff">${(m.name||"?")[0]}</div><div class="body"><div class="meta"><span class="name">${esc(m.name)}${isAdminMsg?' <span style="color:#58a6ff;font-size:0.65rem">✦</span>':''}</span><span class="time">${timeAgo(m.ts)}</span></div><div class="text${isAdminMsg?' admin-badge':''}">${esc(m.text)}</div><div class="actions">${canEdit?`<button onclick="startEdit('${m.id}')">✏️ 编辑</button>`:''}${canEdit?`<button class="del" onclick="deleteMsg('${m.id}')">🗑️ 删除</button>`:''}</div></div></div>`}
+function timeAgo(ts){
+  const d=Date.now()-ts;
+  if(d<60000)return"刚刚";
+  if(d<3600000)return Math.floor(d/60000)+"分钟前";
+  if(d<86400000)return Math.floor(d/3600000)+"小时前";
+  return Math.floor(d/86400000)+"天前";
+}
+
+function renderMsg(m,i){
+  const isOwn=m.id===editingId;
+  const nameCls=m.nameClass||["#58a6ff","#bc8cff","#f0883e","#3fb950","#f85149","#f0a0c0"][Math.abs(hashStr(m.name||""))%6];
+  const canEdit=isAdmin||(localStorage.getItem("sf_userId")===m.userId);
+  const isAdminMsg=m.isAdmin;
+
+  if(isOwn){
+    return `<div class="msg-item">
+      <div class="avatar" style="background:${nameCls};color:#fff">${(m.name||"?")[0]}</div>
+      <div class="body">
+        <div class="meta"><span class="name">${esc(m.name)}</span><span class="time">${timeAgo(m.ts)}</span></div>
+        <input class="edit-input" id="editInput" value="${esc(m.text)}" maxlength="200">
+        <div class="edit-actions">
+          <button onclick="saveEdit('${m.id}')">💾 保存</button>
+          <button onclick="cancelEdit()">取消</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="msg-item">
+    <div class="avatar" style="background:${nameCls};color:#fff">${(m.name||"?")[0]}</div>
+    <div class="body">
+      <div class="meta">
+        <span class="name">${esc(m.name)}${isAdminMsg?' <span style="color:#58a6ff;font-size:0.65rem">✦</span>':''}</span>
+        <span class="time">${timeAgo(m.ts)}</span>
+      </div>
+      <div class="text${isAdminMsg?' admin-badge':''}">${esc(m.text)}</div>
+      <div class="actions">
+        ${canEdit?`<button onclick="startEdit('${m.id}')">✏️ 编辑</button>`:''}
+        ${canEdit?`<button class="del" onclick="deleteMsg('${m.id}')">🗑️ 删除</button>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return h}
-async function postMessage(){const name=document.getElementById("postName").value.trim()||"匿名";const text=document.getElementById("postInput").value.trim();if(!text)return;let userId=localStorage.getItem("sf_userId");if(!userId){userId="u_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);localStorage.setItem("sf_userId",userId)}msgData.push({id:"m_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),name:isAdmin?name+" ✦":name,text,ts:Date.now(),userId,isAdmin});document.getElementById("postInput").value="";renderMessages();const ok=await saveMessages();if(!ok)renderMessages()}
-async function deleteMsg(id){if(!confirm("删除这条留言？"))return;msgData=msgData.filter(m=>m.id!==id);await saveMessages();renderMessages()}
-function startEdit(id){editingId=id;renderMessages();setTimeout(()=>{const el=document.getElementById("editInput");if(el){el.focus();el.select()}},50)}
+
+async function postMessage(){
+  const name=document.getElementById("postName").value.trim()||"匿名";
+  const text=document.getElementById("postInput").value.trim();
+  if(!text)return;
+  let userId=localStorage.getItem("sf_userId");
+  if(!userId){userId="u_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);localStorage.setItem("sf_userId",userId);}
+  msgData.push({
+    id:"m_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),
+    name:isAdmin?name+" ✦":name,
+    text,ts:Date.now(),userId,isAdmin
+  });
+  document.getElementById("postInput").value="";
+  renderMessages();
+  const ok=await saveMessages();
+  if(!ok)renderMessages();
+}
+
+async function deleteMsg(id){
+  if(!confirm("删除这条留言？"))return;
+  msgData=msgData.filter(m=>m.id!==id);
+  await saveMessages();
+  renderMessages();
+}
+
+function startEdit(id){editingId=id;renderMessages();
+  setTimeout(()=>{const el=document.getElementById("editInput");if(el){el.focus();el.select()}},50)}
 function cancelEdit(){editingId=null;renderMessages()}
-async function saveEdit(id){const el=document.getElementById("editInput");if(!el)return;const m=msgData.find(x=>x.id===id);if(m){m.text=el.value.trim()||m.text}editingId=null;await saveMessages();renderMessages()}
+async function saveEdit(id){
+  const el=document.getElementById("editInput");
+  if(!el)return;
+  const m=msgData.find(x=>x.id===id);
+  if(m){m.text=el.value.trim()||m.text}
+  editingId=null;
+  await saveMessages();
+  renderMessages();
+}
+
 let adminAttempts=0;
-document.addEventListener("keydown",e=>{if(e.ctrlKey&&e.shiftKey&&e.key==="A"&&!rocketMode){e.preventDefault();toggleAdminMode()}});
-function toggleAdminMode(){if(isAdmin){isAdmin=false;updateAdminUI();renderMessages();return}const code=prompt("🔑 输入管理员密码：");if(!code)return;if(code==="yukiyuki"){isAdmin=true;updateAdminUI();renderMessages()}else{adminAttempts++;if(adminAttempts>=3){alert("密码错误次数过多");adminAttempts=0}else{alert("密码错误")}}}
-function updateAdminUI(){const badge=document.getElementById("adminBadge");const key=document.getElementById("adminKeyTab");if(badge)badge.style.display=isAdmin?"inline":"none";if(key){key.style.color=isAdmin?"#58a6ff":"rgba(255,255,255,0.15)";key.style.background=isAdmin?"rgba(88,166,255,0.08)":"rgba(255,255,255,0.03)";key.style.borderColor=isAdmin?"rgba(88,166,255,0.2)":"rgba(255,255,255,0.04)";key.title=isAdmin?"点击退出管理员":"管理员登录"}}
-function openMsgModal(){document.getElementById("msgModal").classList.add("show");document.body.style.overflow="hidden";loadMessages()}
-function closeMsgModal(){document.getElementById("msgModal").classList.remove("show");document.body.style.overflow="";if(rocketMode)rocketPaused=false}
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey&&e.shiftKey&&e.key==="A"&&!rMode){
+    e.preventDefault();
+    toggleAdminMode();
+  }
+});
+function toggleAdminMode(){
+  if(isAdmin){
+    isAdmin=false;
+    updateAdminUI();
+    renderMessages();
+    return;
+  }
+  const code=prompt("🔑 输入管理员密码：");
+  if(!code)return;
+  if(code==="yukiyuki"){
+    isAdmin=true;
+    updateAdminUI();
+    renderMessages();
+  }else{
+    adminAttempts++;
+    if(adminAttempts>=3){
+      alert("密码错误次数过多");
+      adminAttempts=0;
+    }else{
+      alert("密码错误");
+    }
+  }
+}
+function updateAdminUI(){
+  const badge=document.getElementById("adminBadge");
+  const key=document.getElementById("adminKeyTab");
+  if(badge)badge.style.display=isAdmin?"inline":"none";
+  if(key){
+    key.style.color=isAdmin?"#58a6ff":"rgba(255,255,255,0.15)";
+    key.style.background=isAdmin?"rgba(88,166,255,0.08)":"rgba(255,255,255,0.03)";
+    key.style.borderColor=isAdmin?"rgba(88,166,255,0.2)":"rgba(255,255,255,0.04)";
+    key.title=isAdmin?"点击退出管理员" :"管理员登录";
+  }
+}
+
+function openMsgModal(){
+  document.getElementById("msgModal").classList.add("show");
+  document.body.style.overflow="hidden";
+  loadMessages();
+}
+function closeMsgModal(){
+  document.getElementById("msgModal").classList.remove("show");
+  document.body.style.overflow="";
+}
 document.getElementById("msgModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeMsgModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!rMode)closeMsgModal()});
 
 // ===== Render Loop =====
 let _renderCrashCount=0;
+
+// 🚀 Rocket
+let rMode=0,rShip=null,rExp=0,rBld=0,rPause=0,kW={w:0,a:0,s:0,d:0,sp:0},spStart=0;
+const DA={w:0,s:Math.PI,a:-3.14159/2,d:3.14159/2,wa:-3.14159/4,wd:3.14159/4,sa:-3*3.14159/4,sd:3*3.14159/4};
+document.getElementById('launchBtn').onclick=function(){if(!rMode)document.getElementById('rm').classList.add('show')};
+function closeRM(){document.getElementById('rm').classList.remove('show')}
+document.getElementById('rm').onclick=function(e){if(e.target===e.currentTarget)closeRM()};
+function launchR(){closeRM();if(rMode)return;rMode=1;try{var a=document.querySelector('.avatar').getBoundingClientRect();rShip={x:a.left+40,y:a.top+100,vx:0,vy:0,ang:0,tAng:0,br:0,sz:24,thr:0};document.getElementById('hud').classList.add('show')}catch(e){}}
+function rocketExplode(){if(!rMode||rExp)return;rExp=1;var rx=rShip.x,ry=rShip.y;rShip=null;for(var i=0;i<60;i++){var a=Math.random()*7,sp=2+Math.random()*8;window._pt.push({x:rx+r(-5,5),y:ry+r(-5,5),c:['255,200,50','255,150,30','255,100,20'][Math.floor(Math.random()*3)],vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,l:30+Math.random()*20,ag:0})}setTimeout(function(){rExp=0;rBld=1;var bp=0;var bi=setInterval(function(){bp+=.02;if(bp>=1){clearInterval(bi);rBld=0;if(rMode)rShip={x:rx,y:ry,vx:0,vy:0,ang:0,tAng:0,br:0,sz:24,thr:0}}},50)},1500)}
+
 function render(){
   try{
     ctx.clearRect(0,0,W,H);ctx.fillStyle="#03060b";ctx.fillRect(0,0,W,H);
     nebulae.forEach(n=>n.draw());
-    for(let i=pendingReplacements.length-1;i>=0;i--){const p=pendingReplacements[i];p.cd--;if(p.cd<=0){shootingStars.push(new SS(p.x,p.y));pendingReplacements.splice(i,1)}}
-    try{for(let i=0;i<30;i++){const a=performance.now()*0.0001+i*0.21,d=90+rnd(0,120);const x=planets[0].cx+Math.cos(a)*d,y=planets[0].cy+Math.sin(a)*d*0.35,s=rnd(1.5,3);ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fillStyle=`rgba(160,155,145,${rnd(0.12,0.25)})`;ctx.fill()}}catch(e){}
 
-    // Impact rings
-    if(window._impactRings){window._impactRings=window._impactRings.filter(ir=>{try{const pct=(Date.now()-ir.start)/ir.duration;if(pct>=1)return false;ir.radius=ir.maxRadius*pct;ctx.beginPath();ctx.arc(ir.cx,ir.cy,ir.radius,0,Math.PI*2);ctx.strokeStyle=`rgba(${ir.color},${0.35*(1-pct)})`;ctx.lineWidth=(5*(1-pct)+1);ctx.stroke()}catch(e){}return true})}
-
-    // 🚀 Nuke flash
-    if(window._nukeFlash){
-      const nf=window._nukeFlash;
-      const pct=(Date.now()-nf.start)/nf.duration;
-      if(pct<1){
-        const flashA=0.8*(1-pct);
-        const fgrd=ctx.createRadialGradient(nf.x,nf.y,0,nf.x,nf.y,200);
-        fgrd.addColorStop(0,`rgba(255,255,255,${flashA})`);
-        fgrd.addColorStop(0.3,`rgba(255,220,150,${flashA*0.5})`);
-        fgrd.addColorStop(1,"rgba(255,255,255,0)");
-        ctx.fillStyle=fgrd;ctx.beginPath();ctx.arc(nf.x,nf.y,200,0,Math.PI*2);ctx.fill();
-        // Full screen white wash (brief)
-        if(pct<0.3){
-          ctx.fillStyle=`rgba(255,255,255,${0.15*(1-pct*3)})`;
-          ctx.fillRect(0,0,W,H);
-        }
-      }else{window._nukeFlash=null}
+    for(let i=pendingReplacements.length-1;i>=0;i--){
+      const p=pendingReplacements[i];p.cd--;
+      if(p.cd<=0){shootingStars.push(new SS(p.x,p.y));pendingReplacements.splice(i,1)}
     }
-    // 🚀 Nuke shockwave rings
-    if(window._nukeRings){window._nukeRings=window._nukeRings.filter(ir=>{try{const pct=(Date.now()-ir.start)/ir.duration;if(pct>=1)return false;ir.radius=ir.maxRadius*pct;ctx.beginPath();ctx.arc(ir.cx,ir.cy,ir.radius,0,Math.PI*2);ctx.strokeStyle=`rgba(${ir.color},${0.4*(1-pct)})`;ctx.lineWidth=(6*(1-pct)+2);ctx.stroke();if(pct>0.4){ctx.beginPath();ctx.arc(ir.cx,ir.cy,ir.radius*0.6,0,Math.PI*2);ctx.strokeStyle=`rgba(${ir.color},${0.15*(1-pct)})`;ctx.lineWidth=3*(1-pct);ctx.stroke()}}catch(e){}return true})}
 
+    // Asteroids
+    try{
+      for(let i=0;i<30;i++){
+        const a=performance.now()*0.0001+i*0.21,d=90+rnd(0,120);
+        const x=planets[0].cx+Math.cos(a)*d,y=planets[0].cy+Math.sin(a)*d*0.35,s=rnd(1.5,3);
+        ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fillStyle=`rgba(160,155,145,${rnd(0.12,0.25)})`;ctx.fill();
+      }
+    }catch(e){}
+
+    // Impact rings (triple)
+    if(window._impactRings){
+      window._impactRings=window._impactRings.filter(ir=>{
+        try{
+          const pct=(Date.now()-ir.start)/ir.duration;
+          if(pct>=1)return false;
+          ir.radius=ir.maxRadius*pct;
+          ctx.beginPath();ctx.arc(ir.cx,ir.cy,ir.radius,0,Math.PI*2);
+          ctx.strokeStyle=`rgba(${ir.color},${0.35*(1-pct)})`;
+          ctx.lineWidth=(5*(1-pct)+1);ctx.stroke();
+        }catch(e){}
+        return true;
+      });
+    }
+
+    // Planets
     planets.forEach(p=>{try{p.draw()}catch(e){}});
 
-    // 🚀 Rocket update & draw
-    if(rocketMode&&!rocketExploding&&!rocketBuilding){
-      if(rocket&&!rocketPaused){try{rocket.update()}catch(e){}}
-      if(rocket){try{rocket.draw()}catch(e){}}
-      // Planet interaction (not explosion)
-      if(rocket&&!rocketPaused){
-        const hit=rocket.collisionPlanet();
-        if(hit){
-          if(hit.isEarth){openMsgModal();rocketPaused=true}
-          else if(hit.name==="Mars"){showChangelog();rocketPaused=true}
-          else{for(let i=0;i<20;i++)particles.push({x:hit.cx+rnd(-10,10),y:hit.cy+rnd(-10,10),color:hit.baseColor,vx:rnd(-3,3),vy:rnd(-3,3),life:25+rnd(0,10),age:0})}
+    // ===== Debris rendering =====
+    for(let i=debris.length-1;i>=0;i--){
+      try{
+        const d=debris[i];
+        d.x+=d.vx;d.y+=d.vy;d.vy+=0.05;
+        d.rot+=d.rotSpeed;
+        d.age++;
+        if(d.age>=d.life){debris.splice(i,1);continue}
+        const fade=1-d.age/d.life;
+        const s=d.size*fade;
+        if(s<0.3)continue;
+        ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.rot);
+        ctx.beginPath();
+        const fpts=5+Math.floor(d.age%3);
+        for(let j=0;j<=fpts;j++){
+          const ang=(j/fpts)*Math.PI*2;
+          const rV=1+0.25*Math.sin(j*3.1+d.rot);
+          const rr=s*0.5*rV;
+          const fx=Math.cos(ang)*rr,fy=Math.sin(ang)*rr;
+          j===0?ctx.moveTo(fx,fy):ctx.lineTo(fx,fy);
+        }
+        ctx.closePath();
+        ctx.fillStyle=`${d.color},${fade*0.8})`;
+        ctx.fill();
+        ctx.strokeStyle=`${d.color},${fade*0.3})`;
+        ctx.lineWidth=0.5;ctx.stroke();
+        ctx.restore();
+      }catch(e){}
+    }
+
+    // ===== Meteor replacement — debris gone → direct comet fly-in =====
+    if(window._meteorReplace){
+      const r=window._meteorReplace;
+      const elapsed=Date.now()-r.start;
+      // Flash ring at top-right corner — only before comet launched
+      if(!r.cometLaunched){
+        const fx=W-30,fy=25;
+        const flashR=14+3*Math.sin(elapsed*0.01);
+        ctx.beginPath();ctx.arc(fx,fy,flashR*2.5,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,220,150,${0.04+0.03*Math.sin(elapsed*0.008)})`;ctx.fill();
+        ctx.beginPath();ctx.arc(fx,fy,flashR*1.5,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,200,100,${0.08+0.06*Math.sin(elapsed*0.012)})`;ctx.fill();
+        ctx.beginPath();ctx.arc(fx,fy,flashR*0.6,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,255,220,${0.18+0.12*Math.sin(elapsed*0.015)})`;ctx.fill();
+        for(let i=0;i<2;i++)particles.push({
+          x:fx+rnd(-flashR,flashR),y:fy+rnd(-flashR,flashR),
+          color:"255,220,150",vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),life:8+rnd(0,5),age:0
+        });
+        if(elapsed>=2000){
+          r.cometLaunched=true;
+          const comet=new Comet(r.homeX,r.homeY);
+          comet.speed=1/180;
+          shootingStars.push(comet);
+          r.cometStart=Date.now();
         }
       }
-      if(rocket){try{
-        const spd=Math.hypot(rocket.vx,rocket.vy);
-        document.getElementById('hudThrust').textContent=rocket.thrusting?'🔥':'·';
-        const angleDeg=((rocket.angle/Math.PI*180)+360)%360;
-        document.getElementById('hudAngle').textContent=Math.round(angleDeg)+'°';
-        document.getElementById('hudSpeed').textContent=spd.toFixed(1);
-        const fuelPct=Math.max(0,rocket.fuel);
-        document.getElementById('hudFuel').style.width=fuelPct+'%';
-      }catch(e){}}
-    }
-    if(rocketMode&&rocketPaused&&rocket){try{rocket.draw()}catch(e){}}
-
-    // 🚀 Rocket building animation
-    if(window._buildingRocket){
-      const br=window._buildingRocket;
-      const pct=Math.min(1,(Date.now()-br.start)/br.duration);
-      // Construction particles flowing upward
-      for(let i=0;i<3;i++){
-        const ang=rnd(-0.8,0.8);
-        particles.push({
-          x:br.x+rnd(-30,30)*pct,y:br.y+50-rnd(0,40)*pct,
-          color:"100,200,255",vx:Math.cos(ang)*0.3,vy:-rnd(0.5,1.5),
-          life:25+rnd(0,10),age:0
-        });
-      }
-      // Scaffold effect: upward scanning line
-      const scanY=br.y+30-(pct*70);
-      ctx.beginPath();ctx.moveTo(br.x-40,scanY);ctx.lineTo(br.x+40,scanY);
-      ctx.strokeStyle=`rgba(100,200,255,${0.15*(1-pct)})`;
-      ctx.lineWidth=1;ctx.stroke();
-      // Glow at build site
-      const bgrd=ctx.createRadialGradient(br.x,br.y,0,br.x,br.y,40);
-      bgrd.addColorStop(0,`rgba(100,200,255,${0.08*(1-pct)})`);
-      bgrd.addColorStop(1,"rgba(100,200,255,0)");
-      ctx.fillStyle=bgrd;ctx.beginPath();ctx.arc(br.x,br.y,40,0,Math.PI*2);ctx.fill();
-    }
-
-    // Debris
-    for(let i=debris.length-1;i>=0;i--){try{const d=debris[i];d.x+=d.vx;d.y+=d.vy;d.vy+=0.05;d.rot+=d.rotSpeed;d.age++;if(d.age>=d.life){debris.splice(i,1);continue}const fade=1-d.age/d.life;const s=d.size*fade;if(s<0.3)continue;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.rot);ctx.beginPath();const fpts=5+Math.floor(d.age%3);for(let j=0;j<=fpts;j++){const ang=(j/fpts)*Math.PI*2;const rV=1+0.25*Math.sin(j*3.1+d.rot);const rr=s*0.5*rV;const fx=Math.cos(ang)*rr,fy=Math.sin(ang)*rr;j===0?ctx.moveTo(fx,fy):ctx.lineTo(fx,fy)}ctx.closePath();ctx.fillStyle=`${d.color},${fade*0.8})`;ctx.fill();ctx.strokeStyle=`${d.color},${fade*0.3})`;ctx.lineWidth=0.5;ctx.stroke();ctx.restore()}catch(e){}}
-
-    // Meteor replacement
-    if(window._meteorReplace){try{const r=window._meteorReplace;const elapsed=Date.now()-r.start;if(!r.cometLaunched){const fx=W-30,fy=25;const flashR=14+3*Math.sin(elapsed*0.01);ctx.beginPath();ctx.arc(fx,fy,flashR*2.5,0,Math.PI*2);ctx.fillStyle=`rgba(255,220,150,${0.04+0.03*Math.sin(elapsed*0.008)})`;ctx.fill();ctx.beginPath();ctx.arc(fx,fy,flashR*1.5,0,Math.PI*2);ctx.fillStyle=`rgba(255,200,100,${0.08+0.06*Math.sin(elapsed*0.012)})`;ctx.fill();ctx.beginPath();ctx.arc(fx,fy,flashR*0.6,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,220,${0.18+0.12*Math.sin(elapsed*0.015)})`;ctx.fill();for(let i=0;i<2;i++)particles.push({x:fx+rnd(-flashR,flashR),y:fy+rnd(-flashR,flashR),color:"255,220,150",vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),life:8+rnd(0,5),age:0});if(elapsed>=2000){r.cometLaunched=true;const comet=new Comet(r.homeX,r.homeY);comet.speed=1/180;shootingStars.push(comet);r.cometStart=Date.now()}}const cometAlive=shootingStars.some(obj=>obj instanceof Comet&&obj.alive);if(r.cometLaunched&&!cometAlive&&(Date.now()-r.cometStart>2500)){const ns=new Star(r.homeX,r.homeY);ns.isMeteor=true;ns.type="meteor";ns.baseSize=20;ns.size=20;ns.homeX=r.homeX;ns.homeY=r.homeY;meteor=ns;stars.push(ns);window._meteorReplace=null}}catch(e){}}
-
-    for(let i=shootingStars.length-1;i>=0;i--){try{const obj=shootingStars[i];if(obj instanceof Comet){if(obj.alive){obj.update();obj.draw()}else{shootingStars.splice(i,1)}}else if(obj.alive!==undefined){if(obj.alive){obj.update();obj.draw()}if(!obj.alive){shootingStars.splice(i,1)}}}catch(e){shootingStars.splice(i,1)}}
-    for(let i=particles.length-1;i>=0;i--){try{const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.age++;if(p.age>=p.life){particles.splice(i,1);continue}const a=0.7*(1-p.age/p.life);ctx.beginPath();ctx.arc(p.x,p.y,1.8*(1-p.age/p.life),0,Math.PI*2);ctx.fillStyle=`rgba(${p.color},${a})`;ctx.fill()}catch(e){particles.splice(i,1)}}
-
-    // 🚀 Space hold progress indicator (on HUD or canvas)
-    if(keys.space&&rocketMode&&spaceHoldStart>0){
-      const holdElapsed=Date.now()-spaceHoldStart;
-      if(holdElapsed>500){
-        // Show progress bar at bottom
-        const pct=Math.min(1,holdElapsed/3000);
-        ctx.fillStyle="rgba(255,255,255,0.05)";ctx.fillRect(W/2-60,H-18,120,6);
-        ctx.fillStyle=`rgba(255,80,50,${0.3+0.3*pct})`;
-        ctx.fillRect(W/2-60,H-18,120*pct,6);
-        ctx.fillStyle="rgba(255,255,255,0.2)";
-        ctx.font="10px sans-serif";ctx.textAlign="center";
-        ctx.fillText(pct<1?'⏳ 松开=点击 继续按住=爆炸':'💥 即将爆炸',W/2,H-24);
-      }
-      // Auto-explode at 3s
-      if(holdElapsed>=3000&&rocketMode&&!rocketPaused){
-        rocketExplode('长按空格退出');
+      // Comet arrived → recreate meteor
+      const cometAlive=shootingStars.some(obj=>obj instanceof Comet&&obj.alive);
+      if(r.cometLaunched&&!cometAlive&&(Date.now()-r.cometStart>2500)){
+        const ns=new Star(r.homeX,r.homeY);
+        ns.isMeteor=true;ns.type="meteor";ns.baseSize=20;ns.size=20;
+        ns.homeX=r.homeX;ns.homeY=r.homeY;
+        meteor=ns;stars.push(ns);
+        window._meteorReplace=null;
       }
     }
 
-    try{stars=stars.filter(s=>{try{return s.update()}catch(e){return false}})}catch(e){stars=stars.filter(s=>true)}
+    for(let i=shootingStars.length-1;i>=0;i--){
+      try{
+        const obj=shootingStars[i];
+        if(obj instanceof Comet){
+          if(obj.alive){obj.update();obj.draw()}else{shootingStars.splice(i,1)}
+        }else if(obj.alive!==undefined){
+          if(obj.alive){obj.update();obj.draw()}
+          if(!obj.alive){shootingStars.splice(i,1)}
+        }
+      }catch(e){shootingStars.splice(i,1)}
+    }
+    for(let i=particles.length-1;i>=0;i--){
+      try{
+        const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.age++;
+        if(p.age>=p.life){particles.splice(i,1);continue}
+        const a=0.7*(1-p.age/p.life);
+        ctx.beginPath();ctx.arc(p.x,p.y,1.8*(1-p.age/p.life),0,Math.PI*2);
+        ctx.fillStyle=`rgba(${p.color},${a})`;ctx.fill();
+      }catch(e){particles.splice(i,1)}
+    }
+    stars=stars.filter(s=>{try{return s.update()}catch(e){return false}});
     stars.forEach(s=>{try{s.draw()}catch(e){}});
-    while(stars.length<STAR_COUNT)try{stars.push(new Star())}catch(e){}
+    while(stars.length<STAR_COUNT)stars.push(new Star());
 
     _renderCrashCount=0;
   }catch(e){
     _renderCrashCount++;
-    if(_renderCrashCount>10){_renderCrashCount=0}
+    if(_renderCrashCount>10){console.error('Render loop keeps crashing, force restarting');_renderCrashCount=0}
   }
   requestAnimationFrame(render);
 }
 render();
 
-window.addEventListener("resize",()=>{resize();if(planets.length>=4){planets[0].cx=Math.min(160,W*0.1);planets[0].cy=Math.min(H-140,H*0.78);planets[1].cx=Math.max(W-160,W*0.82);planets[1].cy=Math.min(150,H*0.15);planets[2].cx=Math.max(W-200,W*0.78);planets[2].cy=Math.min(H*0.5,H*0.48);planets[3].cx=Math.max(W-130,W*0.85);planets[3].cy=Math.min(H-80,H*0.85)}});
+window.addEventListener("resize",()=>{
+  resize();
+  if(planets.length>=4){
+    planets[0].cx=Math.min(160,W*0.1);planets[0].cy=Math.min(H-140,H*0.78);
+    planets[1].cx=Math.max(W-160,W*0.82);planets[1].cy=Math.min(150,H*0.15);
+    planets[2].cx=Math.max(W-200,W*0.78);planets[2].cy=Math.min(H*0.5,H*0.48);
+    planets[3].cx=Math.max(W-130,W*0.85);planets[3].cy=Math.min(H-80,H*0.85);
+  }
+});
 
 // ============================================================
 // 📋 更新日志
 // ============================================================
 const CHANGELOG=[
-  {ver:"v1.4",date:"2026-07-13",items:[
-    "🚀 火箭操控系统：点击头像发射火箭，WASD操控8方向飞行",
-    "🎮 火箭交互：空格代替鼠标点击，长按空格3秒核爆退出",
-    "💥 核弹级爆炸：全屏闪光+三重冲击波+100粒子火球",
-    "🏗️ 建造动画：火箭爆炸后自动重建（4秒粒子+扫描线）",
-    "🪐 碰撞机制：火箭撞行星触发爆炸+碎片飞散",
-    "⬆️ 优先级渲染：火箭遮住星星，经过文字区半透明化",
-    "📊 实时HUD：推力/角度/速度/燃料状态显示",
-    "🔄 闭环设计：退出/爆炸→建造→新火箭重生",
-    "⛔ 边界保护：飞出屏幕自动触发爆炸",
-  ]},
-  {ver:"v1.3.5",date:"2026-07-13",items:[
-    "☄️ 十字星改陨石：不规则形状+坑洞纹理+增大尺寸",
-    "💫 呼吸发光：陨石周期性暖色光晕，引导点击",
-    "🔥 优化下落：弧线+燃烧尾迹（红橙粒子+烟尘）",
-    "🌍 地球撞击特效：撞击面发红+三重冲击波环",
-    "💥 碎片飞散：陨石碎成40块不规则碎片，1.5秒渐隐",
-    "🔄 碎片隐退完自动触发右上角预示→彗星补位闭环",
-  ]},
-  {ver:"v1.3",date:"2026-07-13",items:[
-    "⭐ 十字星重做：点击坠向地球（撞入动画）",
-    "☄️ 彗星入场：2秒闪烁预示→3秒长尾彗星补位",
-    "🧹 修复：清除残留光轨，背景纯净",
-    "📏 十字星尺寸与标题字号一致",
-  ]},
-  {ver:"v1.1",date:"2026-07-12",items:["🔑 新增：留言板左侧管理员钥匙图标","🔐 管理员密码：yukiyuki","➕ 底部显示版本号"]},
-  {ver:"v1.0",date:"2026-07-12",items:["🌌 星域背景+4颗行星","🌍 地球留言星（留言板）","💬 微信风格留言系统","📦 项目卡片导航"]},
+  {ver:"v1.4",date:"2026-07-13",items:["🚀 火箭操控：点击头像发射，WASD操控8方向","💥 核弹爆炸：长按空格3秒核爆+粒子特效","🪐 碰撞行星：触碰地球/火星弹窗，火箭暂停","📊 HUD实时显示：推力/角度/速度","🔄 闭环设计：爆炸后自动重建火箭","⛔ 边界保护：飞出屏幕自动爆炸"]},
+  {
+    ver:"v1.3.5",
+    date:"2026-07-13",
+    items:[
+      "☄️ 十字星改陨石：不规则形状 + 坑洞纹理 + 增大尺寸",
+      "💫 呼吸发光：陨石周期性暖色光晕，引导点击",
+      "🔥 优化下落：弧线 + 燃烧尾迹（红橙粒子 + 烟尘）",
+      "🌍 地球撞击特效：撞击面发红 + 三重冲击波环",
+      "💥 碎片飞散：陨石碎成40块不规则碎片，1.5秒渐隐",
+      "🔄 碎片隐退完自动触发右上角预示 → 彗星补位闭环",
+    ]
+  },
+  {
+    ver:"v1.3",
+    date:"2026-07-13",
+    items:[
+      "⭐ 十字星重做：点击坠向地球（撞入动画）",
+      "☄️ 彗星入场：2秒闪烁预示 → 3秒长尾彗星补位",
+      "🧹 修复：清除残留光轨，背景纯净",
+      "📏 十字星尺寸与标题字号一致",
+    ]
+  },
+  {
+    ver:"v1.1",
+    date:"2026-07-12",
+    items:[
+      "🔑 新增：留言板左侧管理员钥匙图标",
+      "🔐 管理员密码：yukiyuki",
+      "➕ 底部显示版本号",
+    ]
+  },
+  {
+    ver:"v1.0",
+    date:"2026-07-12",
+    items:[
+      "🌌 星域背景 + 4颗行星",
+      "🌍 地球留言星（留言板）",
+      "💬 微信风格留言系统",
+      "📦 项目卡片导航",
+    ]
+  },
 ];
 
-function showChangelog(){const body=document.getElementById("changelogBody");body.innerHTML=CHANGELOG.map(v=>`<div style="margin-bottom:18px"><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px"><span style="font-weight:600;font-size:0.95rem;color:#58a6ff">${v.ver}</span><span style="font-size:0.7rem;color:rgba(255,255,255,0.25)">${v.date}</span></div><ul style="list-style:none;padding:0">${v.items.map(i=>`<li style="padding:3px 0;font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.5">${i}</li>`).join("")}</ul></div>`).join("");document.getElementById("changelogModal").classList.add("show");document.body.style.overflow="hidden"}
-function closeChangelog(){document.getElementById("changelogModal").classList.remove("show");document.body.style.overflow="";if(rocketMode)rocketPaused=false}
-document.getElementById("changelogModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeChangelog()});
+function showChangelog(){
+  const body=document.getElementById("changelogBody");
+  body.innerHTML=CHANGELOG.map(v=>`
+    <div style="margin-bottom:18px">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+        <span style="font-weight:600;font-size:0.95rem;color:#58a6ff">${v.ver}</span>
+        <span style="font-size:0.7rem;color:rgba(255,255,255,0.25)">${v.date}</span>
+      </div>
+      <ul style="list-style:none;padding:0">
+        ${v.items.map(i=>`<li style="padding:3px 0;font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.5">${i}</li>`).join("")}
+      </ul>
+    </div>
+  `).join("");
+  document.getElementById("changelogModal").classList.add("show");
+  document.body.style.overflow="hidden";
+}
+
+function closeChangelog(){
+  document.getElementById("changelogModal").classList.remove("show");
+  document.body.style.overflow="";
+}
+document.getElementById("changelogModal").addEventListener("click",e=>{
+  if(e.target===e.currentTarget)closeChangelog();
+});
+
 loadMessages();
 </script>
+
+<div class="r-modal" id="rm"><div class="r-box"><span class="icon">🚀</span><h2><span>火箭发射</span></h2><div class="hint">使用 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> 操控 · <kbd>空格</kbd> 点击<br>长按 <kbd>空格</kbd> 3秒退出</div><div class="r-btns"><button class="r-btn go" onclick="launchR()">🚀 发射</button><button class="r-btn no" onclick="closeRM()">取消</button></div></div></div>
+<div id="hud"><span>🔥<span id="hT">·</span></span><span>📐<span id="hA">0°</span></span><span>⚡<span id="hS">0.0</span></span></div>
+
 </body>
 </html>
