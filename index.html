@@ -1097,29 +1097,31 @@ function render(){
     if(window._meteorReplace){
       const r=window._meteorReplace;
       const elapsed=Date.now()-r.start;
-      // Flash ring at top-right corner (预示)
-      const fx=W-30,fy=25;
-      const flashR=14+3*Math.sin(elapsed*0.01);
-      ctx.beginPath();ctx.arc(fx,fy,flashR*2.5,0,Math.PI*2);
-      ctx.fillStyle=`rgba(255,220,150,${0.04+0.03*Math.sin(elapsed*0.008)})`;ctx.fill();
-      ctx.beginPath();ctx.arc(fx,fy,flashR*1.5,0,Math.PI*2);
-      ctx.fillStyle=`rgba(255,200,100,${0.08+0.06*Math.sin(elapsed*0.012)})`;ctx.fill();
-      ctx.beginPath();ctx.arc(fx,fy,flashR*0.6,0,Math.PI*2);
-      ctx.fillStyle=`rgba(255,255,220,${0.18+0.12*Math.sin(elapsed*0.015)})`;ctx.fill();
-      for(let i=0;i<2;i++)particles.push({
-        x:fx+rnd(-flashR,flashR),y:fy+rnd(-flashR,flashR),
-        color:"255,220,150",vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),life:8+rnd(0,5),age:0
-      });
-      if(elapsed>=2000&&!r.cometLaunched){
-        r.cometLaunched=true;
-        const comet=new Comet(r.homeX,r.homeY);
-        comet.speed=1/180;
-        shootingStars.push(comet);
-        r.cometStart=Date.now();
+      // Flash ring at top-right corner — only before comet launched
+      if(!r.cometLaunched){
+        const fx=W-30,fy=25;
+        const flashR=14+3*Math.sin(elapsed*0.01);
+        ctx.beginPath();ctx.arc(fx,fy,flashR*2.5,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,220,150,${0.04+0.03*Math.sin(elapsed*0.008)})`;ctx.fill();
+        ctx.beginPath();ctx.arc(fx,fy,flashR*1.5,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,200,100,${0.08+0.06*Math.sin(elapsed*0.012)})`;ctx.fill();
+        ctx.beginPath();ctx.arc(fx,fy,flashR*0.6,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,255,220,${0.18+0.12*Math.sin(elapsed*0.015)})`;ctx.fill();
+        for(let i=0;i<2;i++)particles.push({
+          x:fx+rnd(-flashR,flashR),y:fy+rnd(-flashR,flashR),
+          color:"255,220,150",vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),life:8+rnd(0,5),age:0
+        });
+        if(elapsed>=2000){
+          r.cometLaunched=true;
+          const comet=new Comet(r.homeX,r.homeY);
+          comet.speed=1/180;
+          shootingStars.push(comet);
+          r.cometStart=Date.now();
+        }
       }
       // Comet arrived → recreate meteor
-      const cometDone=!shootingStars.some(obj=>obj instanceof Comet&&obj.alive);
-      if(r.cometLaunched&&cometDone&&elapsed>2800){
+      const cometAlive=shootingStars.some(obj=>obj instanceof Comet&&obj.alive);
+      if(r.cometLaunched&&!cometAlive&&(Date.now()-r.cometStart>2500)){
         const ns=new Star(r.homeX,r.homeY);
         ns.isMeteor=true;ns.type="meteor";ns.baseSize=20;ns.size=20;
         ns.homeX=r.homeX;ns.homeY=r.homeY;
