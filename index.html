@@ -646,13 +646,14 @@ class RocketShip{
     return true;
   }
   checkTextOverlap(){
-    // Simple check: if rocket is in container area
-    const cr=containerEl.getBoundingClientRect();
-    this.hoverOverText=(
-      this.x>cr.left-10&&this.x<cr.right+10&&
-      this.y>cr.top-10&&this.y<cr.bottom+10
-    );
-    // If over text, reduce alpha; else full
+    try{
+      const cr=containerEl?containerEl.getBoundingClientRect():null;
+      if(cr){
+        const cRect=canvas.getBoundingClientRect();
+        const rx=this.x+cRect.left,ry=this.y+cRect.top;
+        this.hoverOverText=rx>cr.left-15&&rx<cr.right+15&&ry>cr.top-15&&ry<cr.bottom+15;
+      }
+    }catch(e){}
     this.alpha=this.hoverOverText?0.35:1;
   }
   draw(){
@@ -791,18 +792,15 @@ function launchRocket(){
 
 function startRocketMode(){
   if(rocketMode)return;
-  rocketMode=true;
-
-  // Create rocket at approximate center of screen near header
-  const rect=document.querySelector('.avatar').getBoundingClientRect();
-  const cx=rect.left+rect.width/2;
-  const cy=rect.top+rect.height/2+60;
-  rocket=new RocketShip(cx,cy);
-
-  // Show HUD
-  const hud=document.getElementById('rocketHud');
-  hud.classList.add('show');
-  rocketHudEl=hud;
+  try{
+    rocketMode=true;
+    const rect=document.querySelector('.avatar').getBoundingClientRect();
+    const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2+60;
+    rocket=new RocketShip(cx,cy);
+    const hud=document.getElementById('rocketHud');
+    hud.classList.add('show');
+    rocketHudEl=hud;
+  }catch(e){if(!rocketMode)return;rocketMode=false;rocket=null}
 
   // Disable canvas click for star interactions (keep page links)
   // The click handler is modified to check rocketMode
@@ -1144,8 +1142,7 @@ function render(){
           else{for(let i=0;i<20;i++)particles.push({x:hit.cx+rnd(-10,10),y:hit.cy+rnd(-10,10),color:hit.baseColor,vx:rnd(-3,3),vy:rnd(-3,3),life:25+rnd(0,10),age:0})}
         }
       }
-      // Update HUD
-      try{
+      if(rocket){try{
         const spd=Math.hypot(rocket.vx,rocket.vy);
         document.getElementById('hudThrust').textContent=rocket.thrusting?'🔥':'·';
         const angleDeg=((rocket.angle/Math.PI*180)+360)%360;
@@ -1153,9 +1150,8 @@ function render(){
         document.getElementById('hudSpeed').textContent=spd.toFixed(1);
         const fuelPct=Math.max(0,rocket.fuel);
         document.getElementById('hudFuel').style.width=fuelPct+'%';
-      }catch(e){}
+      }catch(e){}}
     }
-    // Draw rocket when paused (no update)
     if(rocketMode&&rocketPaused&&rocket){try{rocket.draw()}catch(e){}}
 
     // 🚀 Rocket building animation
@@ -1211,9 +1207,9 @@ function render(){
       }
     }
 
-    stars=stars.filter(s=>{try{return s.update()}catch(e){return false}});
+    try{stars=stars.filter(s=>{try{return s.update()}catch(e){return false}})}catch(e){stars=stars.filter(s=>true)}
     stars.forEach(s=>{try{s.draw()}catch(e){}});
-    while(stars.length<STAR_COUNT)stars.push(new Star());
+    while(stars.length<STAR_COUNT)try{stars.push(new Star())}catch(e){}
 
     _renderCrashCount=0;
   }catch(e){
