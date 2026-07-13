@@ -368,6 +368,12 @@ class Celestial{
     this.moons=moons||[];this.pulse=0;this.isEarth=name==="Earth";
     this.impactIntensity=0; // 0-1, for red impact overlay
     this.impactAngle=0;
+    // Store original continent colors as raw numbers
+    this.continentColors=[
+      {r:60,g:180,b:90,a:0.5},{r:70,g:190,b:100,a:0.4},
+      {r:60,g:175,b:85,a:0.45},{r:65,g:185,b:95,a:0.4},
+      {r:75,g:195,b:105,a:0.35}
+    ];
   }
   draw(){
     this.rot+=this.rotSpeed;this.pulse+=0.005;
@@ -422,26 +428,24 @@ class Celestial{
     // Continents for Earth
     if(this.isEarth){
       ctx.save();ctx.translate(cx,cy);ctx.rotate(this.rot*0.2);
-      const continents=[
-        {x:-15,y:-10,rx:16,ry:12,c:"rgba(60,180,90,0.5)"},
-        {x:12,y:-14,rx:14,ry:18,c:"rgba(70,190,100,0.4)"},
-        {x:-22,y:14,rx:12,ry:10,c:"rgba(60,175,85,0.45)"},
-        {x:18,y:12,rx:13,ry:11,c:"rgba(65,185,95,0.4)"},
-        {x:-4,y:-30,rx:10,ry:8,c:"rgba(75,195,105,0.35)"},
+      // Continent positions (constant)
+      const contPos=[
+        {x:-15,y:-10,rx:16,ry:12},{x:12,y:-14,rx:14,ry:18},
+        {x:-22,y:14,rx:12,ry:10},{x:18,y:12,rx:13,ry:11},
+        {x:-4,y:-30,rx:10,ry:8}
       ];
-      // Tint continents red on impact
+      // Compute continent colors from raw values each frame (immutable)
       const ir=this.impactIntensity;
-      if(ir>0.01){
-        continents.forEach(c=>{
-          const orig=c.c.match(/[\d.]+/g);
-          if(orig){
-            const g=parseInt(orig[1]),b=parseInt(orig[2]);
-            c.c=`rgba(${lerp(60,220,ir)},${lerp(g,Math.max(40,g-ir*120),ir)},${Math.max(30,b-ir*80)},${parseFloat(orig[3])})`;
-          }
-        });
-      }
-      continents.forEach(c=>{ctx.beginPath();ctx.ellipse(c.x,c.y,c.rx,c.ry,0,0,Math.PI*2);
-        ctx.fillStyle=c.c;ctx.fill()});
+      const usesRed=ir>0.01;
+      contPos.forEach((cp,i)=>{
+        const cc=this.continentColors[i];
+        const r=usesRed?lerp(60,220,ir):cc.r;
+        const g=usesRed?lerp(cc.g,Math.max(40,cc.g-ir*120),ir):cc.g;
+        const b=usesRed?Math.max(30,cc.b-ir*80):cc.b;
+        ctx.beginPath();ctx.ellipse(cp.x,cp.y,cp.rx,cp.ry,0,0,Math.PI*2);
+        ctx.fillStyle=`rgba(${r|0},${g|0},${b|0},${cc.a})`;
+        ctx.fill();
+      });
       ctx.restore();
     }
     // Highlight
@@ -487,6 +491,8 @@ class Star{
     const t=Math.random();this.tint=t<0.12?[255,200,180]:t<0.25?[180,210,255]:t<0.35?[255,225,160]:[255,255,255];
     this.cluster=this.type==="cluster"?Array.from({length:2+Math.floor(rnd(0,3))},()=>({dx:rnd(-5,5),dy:rnd(-5,5),s:rnd(0.5,1.8)})):null;
   }
+  // Safe fallback for click handler — regular stars don't animate fall
+  startFall(){this.falling=true;this.fallSpeed=rnd(1,3);}
   update(){
     this.twinklePhase+=this.twinkleSpeed;this.fA+=this.fS;
     this.x=this.homeX+Math.sin(this.fA)*this.fR;this.y=this.homeY+Math.cos(this.fA*0.7)*this.fR*0.5;
@@ -772,7 +778,7 @@ canvas.addEventListener("click",e=>{
   }
   let best=null,bestD=50;
   for(const s of stars){if(s.falling)continue;const d=dist(px,py,s.x,s.y);if(d<bestD){bestD=d;best=s}}
-  if(best){best.startFall();spawnBurst(best.x,best.y,"255,255,255")}
+  if(best&&typeof best.startFall==='function'){best.startFall();spawnBurst(best.x,best.y,"255,255,255")}
 });
 
 // ===== Earth Hover =====
@@ -1019,94 +1025,101 @@ document.getElementById("msgModal").addEventListener("click",e=>{if(e.target===e
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMsgModal()});
 
 // ===== Render Loop =====
+let _renderCrashCount=0;
 function render(){
-  ctx.clearRect(0,0,W,H);ctx.fillStyle="#03060b";ctx.fillRect(0,0,W,H);
-  nebulae.forEach(n=>n.draw());
+  try{
+    ctx.clearRect(0,0,W,H);ctx.fillStyle="#03060b";ctx.fillRect(0,0,W,H);
+    nebulae.forEach(n=>n.draw());
 
-  for(let i=pendingReplacements.length-1;i>=0;i--){
-    const p=pendingReplacements[i];p.cd--;
-    if(p.cd<=0){shootingStars.push(new SS(p.x,p.y));pendingReplacements.splice(i,1)}
-  }
-
-  // Asteroids
-  for(let i=0;i<30;i++){
-    const a=performance.now()*0.0001+i*0.21,d=90+rnd(0,120);
-    const x=planets[0].cx+Math.cos(a)*d,y=planets[0].cy+Math.sin(a)*d*0.35,s=rnd(1.5,3);
-    ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fillStyle=`rgba(160,155,145,${rnd(0.12,0.25)})`;ctx.fill();
-  }
-
-  // Impact rings (triple)
-  if(window._impactRings){
-    window._impactRings=window._impactRings.filter(ir=>{
-      const pct=(Date.now()-ir.start)/ir.duration;
-      if(pct>=1)return false;
-      ir.radius=ir.maxRadius*pct;
-      ctx.beginPath();ctx.arc(ir.cx,ir.cy,ir.radius,0,Math.PI*2);
-      ctx.strokeStyle=`rgba(${ir.color},${0.35*(1-pct)})`;
-      ctx.lineWidth=(5*(1-pct)+1);ctx.stroke();
-      return true;
-    });
-  }
-
-  planets.forEach(p=>p.draw());
-
-  // ===== Debris rendering =====
-  for(let i=debris.length-1;i>=0;i--){
-    const d=debris[i];
-    d.x+=d.vx;d.y+=d.vy;d.vy+=0.05;
-    d.rot+=d.rotSpeed;
-    d.age++;
-    if(d.age>=d.life){debris.splice(i,1);continue}
-    const fade=1-d.age/d.life;
-    const s=d.size*fade;
-    if(s<0.3)continue;
-    ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.rot);
-    // Draw irregular fragment
-    ctx.beginPath();
-    const fpts=5+Math.floor(d.age%3);
-    for(let j=0;j<=fpts;j++){
-      const ang=(j/fpts)*Math.PI*2;
-      const rV=1+0.25*Math.sin(j*3.1+d.rot);
-      const rr=s*0.5*rV;
-      const fx=Math.cos(ang)*rr,fy=Math.sin(ang)*rr;
-      j===0?ctx.moveTo(fx,fy):ctx.lineTo(fx,fy);
+    for(let i=pendingReplacements.length-1;i>=0;i--){
+      const p=pendingReplacements[i];p.cd--;
+      if(p.cd<=0){shootingStars.push(new SS(p.x,p.y));pendingReplacements.splice(i,1)}
     }
-    ctx.closePath();
-    ctx.fillStyle=`${d.color},${fade*0.8})`;
-    ctx.fill();
-    ctx.strokeStyle=`${d.color},${fade*0.3})`;
-    ctx.lineWidth=0.5;ctx.stroke();
-    ctx.restore();
-  }
 
-  // ===== Meteor replacement sequence =====
-  if(window._meteorReplace){
-    const r=window._meteorReplace;
-    const elapsed=Date.now()-r.start;
-    // Flash ring at top-right corner (预示)
-    const fx=W-30,fy=25;
-    const flashR=14+3*Math.sin(elapsed*0.01);
-    ctx.beginPath();ctx.arc(fx,fy,flashR*2.5,0,Math.PI*2);
-    ctx.fillStyle=`rgba(255,220,150,${0.04+0.03*Math.sin(elapsed*0.008)})`;ctx.fill();
-    ctx.beginPath();ctx.arc(fx,fy,flashR*1.5,0,Math.PI*2);
-    ctx.fillStyle=`rgba(255,200,100,${0.08+0.06*Math.sin(elapsed*0.012)})`;ctx.fill();
-    ctx.beginPath();ctx.arc(fx,fy,flashR*0.6,0,Math.PI*2);
-    ctx.fillStyle=`rgba(255,255,220,${0.18+0.12*Math.sin(elapsed*0.015)})`;ctx.fill();
-    // Sparkle particles for flash
-    for(let i=0;i<2;i++)particles.push({
-      x:fx+rnd(-flashR,flashR),y:fy+rnd(-flashR,flashR),
-      color:"255,220,150",vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),life:8+rnd(0,5),age:0
-    });
-    if(elapsed>=2000&&!r.cometLaunched){
-      r.phase="comet";r.cometLaunched=true;
-      const comet=new Comet(r.homeX,r.homeY);
-      comet.speed=1/180;
-      shootingStars.push(comet);
-      r.cometStart=Date.now();
+    // Asteroids
+    try{
+      for(let i=0;i<30;i++){
+        const a=performance.now()*0.0001+i*0.21,d=90+rnd(0,120);
+        const x=planets[0].cx+Math.cos(a)*d,y=planets[0].cy+Math.sin(a)*d*0.35,s=rnd(1.5,3);
+        ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fillStyle=`rgba(160,155,145,${rnd(0.12,0.25)})`;ctx.fill();
+      }
+    }catch(e){}
+
+    // Impact rings (triple)
+    if(window._impactRings){
+      window._impactRings=window._impactRings.filter(ir=>{
+        try{
+          const pct=(Date.now()-ir.start)/ir.duration;
+          if(pct>=1)return false;
+          ir.radius=ir.maxRadius*pct;
+          ctx.beginPath();ctx.arc(ir.cx,ir.cy,ir.radius,0,Math.PI*2);
+          ctx.strokeStyle=`rgba(${ir.color},${0.35*(1-pct)})`;
+          ctx.lineWidth=(5*(1-pct)+1);ctx.stroke();
+        }catch(e){}
+        return true;
+      });
     }
-    if(r.phase==="comet"){
-      const cometStillAlive=shootingStars.some(obj=>obj instanceof Comet&&obj.alive);
-      if(!cometStillAlive&&elapsed>2800){
+
+    // Planets
+    planets.forEach(p=>{try{p.draw()}catch(e){}});
+
+    // ===== Debris rendering =====
+    for(let i=debris.length-1;i>=0;i--){
+      try{
+        const d=debris[i];
+        d.x+=d.vx;d.y+=d.vy;d.vy+=0.05;
+        d.rot+=d.rotSpeed;
+        d.age++;
+        if(d.age>=d.life){debris.splice(i,1);continue}
+        const fade=1-d.age/d.life;
+        const s=d.size*fade;
+        if(s<0.3)continue;
+        ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.rot);
+        ctx.beginPath();
+        const fpts=5+Math.floor(d.age%3);
+        for(let j=0;j<=fpts;j++){
+          const ang=(j/fpts)*Math.PI*2;
+          const rV=1+0.25*Math.sin(j*3.1+d.rot);
+          const rr=s*0.5*rV;
+          const fx=Math.cos(ang)*rr,fy=Math.sin(ang)*rr;
+          j===0?ctx.moveTo(fx,fy):ctx.lineTo(fx,fy);
+        }
+        ctx.closePath();
+        ctx.fillStyle=`${d.color},${fade*0.8})`;
+        ctx.fill();
+        ctx.strokeStyle=`${d.color},${fade*0.3})`;
+        ctx.lineWidth=0.5;ctx.stroke();
+        ctx.restore();
+      }catch(e){}
+    }
+
+    // ===== Meteor replacement — debris gone → direct comet fly-in =====
+    if(window._meteorReplace){
+      const r=window._meteorReplace;
+      const elapsed=Date.now()-r.start;
+      // Flash ring at top-right corner (预示)
+      const fx=W-30,fy=25;
+      const flashR=14+3*Math.sin(elapsed*0.01);
+      ctx.beginPath();ctx.arc(fx,fy,flashR*2.5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,220,150,${0.04+0.03*Math.sin(elapsed*0.008)})`;ctx.fill();
+      ctx.beginPath();ctx.arc(fx,fy,flashR*1.5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,200,100,${0.08+0.06*Math.sin(elapsed*0.012)})`;ctx.fill();
+      ctx.beginPath();ctx.arc(fx,fy,flashR*0.6,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,220,${0.18+0.12*Math.sin(elapsed*0.015)})`;ctx.fill();
+      for(let i=0;i<2;i++)particles.push({
+        x:fx+rnd(-flashR,flashR),y:fy+rnd(-flashR,flashR),
+        color:"255,220,150",vx:rnd(-1.5,1.5),vy:rnd(-1.5,1.5),life:8+rnd(0,5),age:0
+      });
+      if(elapsed>=2000&&!r.cometLaunched){
+        r.cometLaunched=true;
+        const comet=new Comet(r.homeX,r.homeY);
+        comet.speed=1/180;
+        shootingStars.push(comet);
+        r.cometStart=Date.now();
+      }
+      // Comet arrived → recreate meteor
+      const cometDone=!shootingStars.some(obj=>obj instanceof Comet&&obj.alive);
+      if(r.cometLaunched&&cometDone&&elapsed>2800){
         const ns=new Star(r.homeX,r.homeY);
         ns.isMeteor=true;ns.type="meteor";ns.baseSize=20;ns.size=20;
         ns.homeX=r.homeX;ns.homeY=r.homeY;
@@ -1114,27 +1127,36 @@ function render(){
         window._meteorReplace=null;
       }
     }
-  }
 
-  for(let i=shootingStars.length-1;i>=0;i--){
-    const obj=shootingStars[i];
-    if(obj instanceof Comet){
-      if(obj.alive){obj.update();obj.draw()}else{shootingStars.splice(i,1)}
-    }else if(obj.alive!==undefined){
-      if(obj.alive){obj.update();obj.draw()}
-      if(!obj.alive){shootingStars.splice(i,1)}
+    for(let i=shootingStars.length-1;i>=0;i--){
+      try{
+        const obj=shootingStars[i];
+        if(obj instanceof Comet){
+          if(obj.alive){obj.update();obj.draw()}else{shootingStars.splice(i,1)}
+        }else if(obj.alive!==undefined){
+          if(obj.alive){obj.update();obj.draw()}
+          if(!obj.alive){shootingStars.splice(i,1)}
+        }
+      }catch(e){shootingStars.splice(i,1)}
     }
-  }
-  for(let i=particles.length-1;i>=0;i--){
-    const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.age++;
-    if(p.age>=p.life){particles.splice(i,1);continue}
-    const a=0.7*(1-p.age/p.life);
-    ctx.beginPath();ctx.arc(p.x,p.y,1.8*(1-p.age/p.life),0,Math.PI*2);
-    ctx.fillStyle=`rgba(${p.color},${a})`;ctx.fill();
-  }
-  stars=stars.filter(s=>s.update());stars.forEach(s=>s.draw());
-  while(stars.length<STAR_COUNT)stars.push(new Star());
+    for(let i=particles.length-1;i>=0;i--){
+      try{
+        const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.04;p.age++;
+        if(p.age>=p.life){particles.splice(i,1);continue}
+        const a=0.7*(1-p.age/p.life);
+        ctx.beginPath();ctx.arc(p.x,p.y,1.8*(1-p.age/p.life),0,Math.PI*2);
+        ctx.fillStyle=`rgba(${p.color},${a})`;ctx.fill();
+      }catch(e){particles.splice(i,1)}
+    }
+    stars=stars.filter(s=>{try{return s.update()}catch(e){return false}});
+    stars.forEach(s=>{try{s.draw()}catch(e){}});
+    while(stars.length<STAR_COUNT)stars.push(new Star());
 
+    _renderCrashCount=0;
+  }catch(e){
+    _renderCrashCount++;
+    if(_renderCrashCount>10){console.error('Render loop keeps crashing, force restarting');_renderCrashCount=0}
+  }
   requestAnimationFrame(render);
 }
 render();
