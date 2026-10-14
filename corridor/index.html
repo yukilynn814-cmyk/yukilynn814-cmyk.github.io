@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>走廊 · 程序化生成的恐怖场景</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;
+            font-family:system-ui,"Microsoft YaHei",sans-serif}
+  canvas{display:block}
+  #ui{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+      cursor:pointer;background:radial-gradient(circle at 50% 45%,#0a0c11 0%,#000 72%)}
+  #ui.hide{display:none}
+  .box{text-align:center;padding:0 24px}
+  h1{font-size:19px;letter-spacing:.42em;font-weight:500;color:#e4e8ef;margin:0 0 6px}
+  .sub{font-size:12px;color:#4e5563;letter-spacing:.1em;margin:0 0 26px}
+  p{font-size:13px;line-height:2.1;color:#79808f;margin:4px 0}
+  .k{display:inline-block;border:1px solid #343a45;border-radius:4px;padding:1px 7px;
+     margin:0 2px;font-size:11px;color:#98a0ae}
+  .go{margin-top:26px;font-size:13px;color:#8d94a2;animation:bl 2.6s infinite}
+  @keyframes bl{0%,100%{opacity:.3}50%{opacity:1}}
+  #hud{position:fixed;left:14px;bottom:12px;z-index:5;font-size:11px;color:#3f4553;
+       letter-spacing:.05em;pointer-events:none}
+  #stam{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);width:186px;height:5px;
+        background:rgba(255,255,255,.09);border-radius:3px;overflow:hidden;z-index:6;
+        opacity:0;transition:opacity .45s}
+  #stam.on{opacity:1}
+  #stam i{display:block;height:100%;width:100%;background:#cfd8e4;border-radius:3px}
+  #stam i.low{background:#c7573f}
+  #fps{position:fixed;right:12px;bottom:12px;z-index:5;font-size:12px;color:#79808f;
+       letter-spacing:.05em;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="hud">WASD 移动 · 鼠标 转向 · Shift 冲刺（按一次切换）· Esc 退出</div>
+<div id="stam"><i></i></div>
+<div id="fps"></div>
+<div id="ui"><div class="box">
+  <h1>走 廊</h1>
+  <p class="sub">程序化生成 · 零外部素材</p>
+  <p><span class="k">W</span><span class="k">A</span><span class="k">S</span><span class="k">D</span> 移动　
+     鼠标 转向　<span class="k">Shift</span> 冲刺（按一次切换，体力约 8 秒）</p>
+  <p class="go">点击进入</p>
+</div></div>
+<script src="three.global.js"></script>
+<script>
+/* ============================================================
+   程序化恐怖走廊
+   —— 所有几何体与贴图都由代码按参数生成，不使用任何外部素材
+   ============================================================ */
+
+/* ---------- 0. 基础工具：可复现的随机数 ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296}}
+const R = mulberry32(20261011);          // 固定种子，每次打开走廊长得一样
+const rr = (a,b)=>a+R()*(b-a);
+
+function canvasOf(size){const c=document.createElement('canvas');c.width=c.height=size;return c;}
+
+/* ---------- 1. 程序化贴图 ---------- */
+// 通用脏污：底色 + 逐像素噪点 + 霉斑 + 水渍挂流
+function grime(opts){
+  const {size=512,base=[140,140,132],seed=1,stains=26,drips=44,dark=[22,20,16],noise=44}=opts||{};
+  const r=mulberry32(seed), c=canvasOf(size), x=c.getContext('2d');
+  x.fillStyle=`rgb(${base[0]},${base[1]},${base[2]})`; x.fillRect(0,0,size,size);
+
+  const img=x.getImageData(0,0,size,size), d=img.data;
+  for(let i=0;i<d.length;i+=4){const n=(r()-.5)*noise; d[i]+=n; d[i+1]+=n; d[i+2]+=n;}
+  x.putImageData(img,0,0);
+
+  for(let i=0;i<stains;i++){                            // 霉斑
+    const px=r()*size, py=r()*size, rad=8+r()*88;
+    const g=x.createRadialGradient(px,py,0,px,py,rad);
+    g.addColorStop(0,`rgba(${dark[0]},${dark[1]},${dark[2]},${.06+r()*.20})`);
+    g.addColorStop(1,`rgba(${dark[0]},${dark[1]},${dark[2]},0)`);
+    x.fillStyle=g; x.beginPath(); x.arc(px,py,rad,0,7); x.fill();
+  }
+  for(let i=0;i<drips;i++){                             // 水渍往下流
+    const px=r()*size, py=r()*size, w=1+r()*3, h=24+r()*200;
+    const g=x.createLinearGradient(0,py,0,py+h);
+    g.addColorStop(0,`rgba(${dark[0]},${dark[1]},${dark[2]},${.09+r()*.17})`);
+    g.addColorStop(1,`rgba(${dark[0]},${dark[1]},${dark[2]},0)`);
+    x.fillStyle=g; x.fillRect(px,py,w,h);
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4;
+  return t;
+}
+
+// 地板砖：格子里带污渍，缝隙发黑
+function tiles(seed=7,size=512,n=4){
+  const r=mulberry32(seed), c=canvasOf(size), x=c.getContext('2d');
+  x.fillStyle='#2b2c28'; x.fillRect(0,0,size,size);
+  const pad=7, cell=size/n;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+    const g=88+r()*34;
+    x.fillStyle=`rgb(${g+5},${g+2},${g-5})`;
+    x.fillRect(i*cell+pad,j*cell+pad,cell-pad*2,cell-pad*2);
+    for(let k=0;k<150;k++){                              // 砖面颗粒
+      x.fillStyle=`rgba(${18+r()*54},${18+r()*54},${16+r()*46},${.05+r()*.13})`;
+      x.fillRect(i*cell+pad+r()*(cell-pad*2), j*cell+pad+r()*(cell-pad*2), 1+r()*3,1+r()*3);
+    }
+  }
+  for(let i=0;i<22;i++){                                 // 大块脏斑
+    const px=r()*size, py=r()*size, rad=10+r()*70;
+    const g=x.createRadialGradient(px,py,0,px,py,rad);
+    g.addColorStop(0,`rgba(16,14,10,${.08+r()*.22})`); g.addColorStop(1,'rgba(16,14,10,0)');
+    x.fillStyle=g; x.beginPath(); x.arc(px,py,rad,0,7); x.fill();
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4;
+  return t;
+}
+
+// 天花板：吸音板网格（发霉、发黄）
+function ceilingTex(seed=13,size=512){
+  const r=mulberry32(seed), c=canvasOf(size), x=c.getContext('2d');
+  x.fillStyle='#3a3a35'; x.fillRect(0,0,size,size);
+  const n=4, cell=size/n, pad=3;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+    const g=64+r()*22;
+    x.fillStyle=`rgb(${g+8},${g+6},${g-6})`;
+    x.fillRect(i*cell+pad,j*cell+pad,cell-pad*2,cell-pad*2);
+    for(let k=0;k<220;k++){                              // 吸音板孔洞
+      x.fillStyle=`rgba(20,18,14,${.10+r()*.24})`;
+      x.fillRect(i*cell+pad+r()*(cell-pad*2), j*cell+pad+r()*(cell-pad*2), 1,1);
+    }
+  }
+  for(let i=0;i<8;i++){                                  // 漏水痕
+    const px=r()*size, py=r()*size, rad=20+r()*90;
+    const g=x.createRadialGradient(px,py,0,px,py,rad);
+    g.addColorStop(0,`rgba(52,40,18,${.12+r()*.24})`); g.addColorStop(1,'rgba(52,40,18,0)');
+    x.fillStyle=g; x.beginPath(); x.arc(px,py,rad,0,7); x.fill();
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4;
+  return t;
+}
+
+/* ---------- 2. 尺寸参数（改这里就能改走廊） ---------- */
+const W = 3.1;          // 走廊宽度
+const H = 2.85;         // 层高
+const CELL = 3.0;       // 每格 3 米
+const CELLS = 22;       // 22 格 = 66 米长
+const LEN = CELLS*CELL;
+
+/* ---------- 3. 场景 / 相机 / 渲染器 ---------- */
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x04060a, 0.058);         // 浓雾：看不见尽头
+
+const camera = new THREE.PerspectiveCamera(66, innerWidth/innerHeight, 0.05, 120);
+camera.rotation.order = 'YXZ';
+scene.add(camera);
+
+const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+let DPR_CAP = 1.5;                                   // 渲染倍率，实测发卡会自动往下降
+renderer.setPixelRatio(Math.min(devicePixelRatio, DPR_CAP));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+/* ---------- 4. 搭走廊：墙 / 地 / 顶 ---------- */
+const wallMat = new THREE.MeshStandardMaterial({
+  map: grime({base:[132,132,124], seed:3, noise:38}), roughness:.94, metalness:0
+});
+wallMat.map.repeat.set(LEN/2.6, 1.28);
+
+const upperMat = new THREE.MeshStandardMaterial({          // 上半截墙刷的是脏绿色（医院感）
+  map: grime({base:[86,102,88], seed:9, noise:34}), roughness:.92
+});
+upperMat.map.repeat.set(LEN/2.6, 1.0);
+
+const floorMat = new THREE.MeshStandardMaterial({map:tiles(), roughness:.72, metalness:.04});
+floorMat.map.repeat.set(W/1.5, LEN/1.5);
+
+const ceilMat = new THREE.MeshStandardMaterial({map:ceilingTex(), roughness:.98});
+ceilMat.map.repeat.set(W/1.5, LEN/1.5);
+
+function addPlane(w,h,mat,rot,pos){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
+  m.rotation.set(...rot); m.position.set(...pos); m.receiveShadow=true; scene.add(m); return m;
+}
+addPlane(W, LEN, floorMat, [-Math.PI/2,0,0], [0,0,-LEN/2+1.5]);        // 地板
+addPlane(W, LEN, ceilMat,  [ Math.PI/2,0,0], [0,H,-LEN/2+1.5]);        // 天花板
+addPlane(LEN, H*.62, wallMat, [0, Math.PI/2,0], [-W/2, H*.31, -LEN/2+1.5]);   // 左墙下半
+addPlane(LEN, H*.38, upperMat,[0, Math.PI/2,0], [-W/2, H*.81, -LEN/2+1.5]);   // 左墙上半
+addPlane(LEN, H*.62, wallMat, [0,-Math.PI/2,0], [ W/2, H*.31, -LEN/2+1.5]);   // 右墙下半
+addPlane(LEN, H*.38, upperMat,[0,-Math.PI/2,0], [ W/2, H*.81, -LEN/2+1.5]);   // 右墙上半
+
+const metalMat  = new THREE.MeshStandardMaterial({color:0x6d7178, roughness:.42, metalness:.85});
+const darkMat   = new THREE.MeshStandardMaterial({color:0x14161a, roughness:.9});
+const paintMat  = new THREE.MeshStandardMaterial({color:0x9aa0a6, roughness:.55, metalness:.25});
+
+function box(w,h,d,mat,pos,rot){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(...pos); if(rot)m.rotation.set(...rot);
+  m.castShadow=true; m.receiveShadow=true; scene.add(m); return m;
+}
+function cyl(r1,r2,h,mat,pos,rot){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,12,1,true),mat);
+  m.position.set(...pos); if(rot)m.rotation.set(...rot);
+  m.castShadow=true; m.receiveShadow=true; scene.add(m); return m;
+}
+
+// 墙上的竖向接缝板 —— 44 块合并成 1 次绘制调用
+{
+  const seam=new THREE.InstancedMesh(new THREE.BoxGeometry(.07,H,.10), darkMat, (CELLS+1)*2);
+  const m4=new THREE.Matrix4(); let k=0;
+  for(let i=0;i<=CELLS;i++){
+    const z=-i*CELL+1.5;
+    for(const sx of [-1,1]){ m4.makeTranslation(sx*(W/2-.035), H/2, z); seam.setMatrixAt(k++, m4); }
+  }
+  seam.instanceMatrix.needsUpdate=true; seam.receiveShadow=true;
+  scene.add(seam);
+}
+
+/* ---------- 5. 门（每 3 格一扇，左右交替） ---------- */
+const doorMat = new THREE.MeshStandardMaterial({
+  map: grime({base:[96,92,84], seed:21, noise:30, drips:60}), roughness:.8
+});
+function addDoor(side, z, openAngle){
+  const dw=1.02, dh=2.06, fw=.09;
+
+  box(fw, dh+fw, .20, darkMat, [side*(W/2-.09), (dh+fw)/2, z]);       // 侧框（贴在墙面）
+  box(dw+fw*2, fw, .20, darkMat, [side*(W/2-.09), dh+fw/2, z]);       // 门楣
+  box(dw+fw*2, fw, .20, darkMat, [side*(W/2-.09), fw/2, z]);          // 门槛
+
+  // 门后是纯黑：看起来就是个洞
+  const dark=new THREE.Mesh(new THREE.PlaneGeometry(dw,dh),
+              new THREE.MeshBasicMaterial({color:0x000000}));
+  dark.position.set(side*(W/2-.055), dh/2, z);
+  dark.rotation.y = side<0 ? Math.PI/2 : -Math.PI/2;
+  scene.add(dark);
+
+  // 门板：一整块挂在合页上，绕合页转
+  const hinge=new THREE.Group();
+  hinge.position.set(side*(W/2-.115), dh/2, z+dw/2);
+  hinge.rotation.y = (side>0 ? 1 : -1) * openAngle;
+  scene.add(hinge);
+
+  const slab=new THREE.Mesh(new THREE.BoxGeometry(.05, dh-.04, dw-.06), doorMat);
+  slab.position.set(0, 0, -dw/2 + .03);       // 从合页往 -z 展开
+  slab.castShadow=true; slab.receiveShadow=true;
+  hinge.add(slab);
+
+  const knob=new THREE.Mesh(new THREE.SphereGeometry(.035,10,8), metalMat);
+  knob.position.set(side>0 ? -.05 : .05, 0, -dw + .14);
+  hinge.add(knob);
+}
+
+for(let i=2;i<CELLS;i+=3){
+  const side = (Math.floor(i/3)%2===0) ? -1 : 1;
+  const openAngle = R()<0.42 ? rr(0.5,1.25) : 0;   // 四成门半开
+  addDoor(side, -i*CELL+1.5, openAngle);
+}
+
+/* ---------- 6. 天花板：灯 + 管道 + 线缆 ---------- */
+const lightPts=[];
+for(let i=1;i<CELLS;i+=3){
+  const z=-i*CELL+1.5;
+  box(1.18,.07,.34, darkMat, [0,H-.04,z]);                     // 灯槽
+  const lit = R()<0.55;                                        // 一部分灯是坏的
+  const panelMat=new THREE.MeshStandardMaterial({
+    color: lit?0xdfe6ee:0x30343c, emissive: lit?0xf2f6ff:0x000000,
+    emissiveIntensity: lit?1.15:0, roughness:.5
+  });
+  const panel=new THREE.Mesh(new THREE.PlaneGeometry(1.0,.26), panelMat);
+  panel.rotation.x=Math.PI/2; panel.position.set(0,H-.085,z);
+  scene.add(panel);
+  if(lit){
+    const pl=new THREE.PointLight(0xdde8ff, 70, 11, 2.0);
+    pl.position.set(0,H-.22,z);
+    pl.userData.base=70;
+    scene.add(pl); lightPts.push(pl);
+  }
+}
+// 顶部两根管道 + 管箍（管箍合并成 1 次绘制调用）
+for(const px of [-0.95, 0.95]) cyl(.075,.075,LEN, metalMat, [px, H-.30, -LEN/2+1.5], [Math.PI/2,0,0]);
+{
+  const cl=new THREE.InstancedMesh(new THREE.TorusGeometry(.088,.016,6,12), metalMat, 22);
+  const m4=new THREE.Matrix4(); let k=0;
+  for(const px of [-0.95,0.95]) for(let i=0;i<CELLS;i+=2){
+    m4.makeTranslation(px, H-.30, -i*CELL+1.5); cl.setMatrixAt(k++, m4);
+  }
+  cl.instanceMatrix.needsUpdate=true; cl.castShadow=true;
+  scene.add(cl);
+}
+// 垂下来的断线缆
+for(let i=0;i<9;i++){
+  const z=-rr(3,LEN-3), x=rr(-1.1,1.1), h=rr(.18,.62);
+  cyl(.012,.012,h, darkMat, [x,H-.06-h/2,z]);
+}
+
+/* ---------- 7. 杂物：轮椅 / 推床 / 墙箱 / 垃圾 ---------- */
+function wheelchair(x,z,ry){
+  const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry; scene.add(g);
+  const add=(m,px,py,pz,rx,rz)=>{m.position.set(px,py,pz);
+    if(rx)m.rotation.x=rx; if(rz)m.rotation.z=rz; m.castShadow=true; g.add(m); return m;};
+  const big=new THREE.TorusGeometry(.30,.032,8,20);
+  add(new THREE.Mesh(big,metalMat), -.30,.32,0, 0, 0);
+  add(new THREE.Mesh(big,metalMat),  .30,.32,0, 0, 0);
+  const small=new THREE.TorusGeometry(.10,.022,6,14);
+  add(new THREE.Mesh(small,metalMat), -.26,.11,.34, Math.PI/2, 0);
+  add(new THREE.Mesh(small,metalMat),  .26,.11,.34, Math.PI/2, 0);
+  add(new THREE.Mesh(new THREE.BoxGeometry(.52,.05,.48),paintMat), 0,.52,0);
+  add(new THREE.Mesh(new THREE.BoxGeometry(.52,.46,.05),paintMat), 0,.76,-.22);
+  add(new THREE.Mesh(new THREE.BoxGeometry(.05,.42,.05),metalMat), -.26,.68,-.10);
+  add(new THREE.Mesh(new THREE.BoxGeometry(.05,.42,.05),metalMat),  .26,.68,-.10);
+  return g;
+}
+function gurney(x,z,ry){
+  const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry; scene.add(g);
+  const add=(m,px,py,pz)=>{m.position.set(px,py,pz); m.castShadow=true; g.add(m); return m;};
+  add(new THREE.Mesh(new THREE.BoxGeometry(.86,.09,1.9),paintMat),0,.66,0);
+  add(new THREE.Mesh(new THREE.BoxGeometry(.80,.14,1.84),new THREE.MeshStandardMaterial({color:0x6f7480,roughness:.92})),0,.76,0);
+  for(const dx of [-.36,.36]) for(const dz of [-.8,.8])
+    add(new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.62,8),metalMat),dx,.33,dz);
+  for(const dz of [-.55,.55]) add(new THREE.Mesh(new THREE.BoxGeometry(.90,.05,.05),metalMat),0,.98,dz);
+  return g;
+}
+function wallBox(x,z,side){
+  box(.26,.36,.14, darkMat, [side*(W/2-.09), 1.35, z]);
+  box(.30,.02,.18, metalMat,[side*(W/2-.07), 1.18, z]);
+  // 警示标语（自制小贴图）
+  const c=canvasOf(128), cx=c.getContext('2d');
+  cx.fillStyle='#c9c2a6'; cx.fillRect(0,0,128,128);
+  cx.fillStyle='#7d1b16'; cx.font='bold 58px sans-serif'; cx.textAlign='center';
+  cx.fillText('危',64,62); cx.fillText('险',64,116);
+  const tx=new THREE.CanvasTexture(c); tx.colorSpace=THREE.SRGBColorSpace;
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(.2,.2),
+    new THREE.MeshStandardMaterial({map:tx, emissive:0x331008, emissiveIntensity:.35, roughness:.9}));
+  sign.position.set(side*(W/2-.03), 1.72, z);
+  sign.rotation.y = side<0 ? Math.PI/2 : -Math.PI/2;
+  scene.add(sign);
+}
+for(let i=0;i<10;i++) wallBox(0, -rr(4,LEN-4), R()<.5?-1:1);
+
+// 地上的杂物（脏材质；58 件合并成 2 次绘制调用）
+const debrisMats=[
+  new THREE.MeshStandardMaterial({map:grime({base:[118,113,101],seed:31,noise:26,drips:16}), roughness:.95}),
+  new THREE.MeshStandardMaterial({map:grime({base:[96,93,86],  seed:33,noise:22,drips:14}), roughness:.95})
+];
+{
+  const per=29;
+  const geo=new THREE.BoxGeometry(1,1,1);
+  const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), eu=new THREE.Euler(),
+        pv=new THREE.Vector3(), sv=new THREE.Vector3();
+  for(let g=0; g<2; g++){
+    const im=new THREE.InstancedMesh(geo, debrisMats[g], per);
+    for(let i=0;i<per;i++){
+      const sz=rr(.05,.20);
+      pv.set(rr(-W/2+.28, W/2-.28), sz*.4, -rr(3,LEN-2));
+      sv.set(sz*rr(1,2.6), sz*rr(.6,1.6), sz*rr(1,2.6));
+      eu.set(rr(-.4,.4), rr(0,3.14), rr(-.4,.4)); q.setFromEuler(eu);
+      m4.compose(pv,q,sv); im.setMatrixAt(i,m4);
+    }
+    im.instanceMatrix.needsUpdate=true; im.receiveShadow=true;
+    scene.add(im);
+  }
+}
+// 几处地上的污渍
+for(let i=0;i<12;i++){
+  const p=new THREE.Mesh(new THREE.CircleGeometry(rr(.25,.85),18),
+    new THREE.MeshStandardMaterial({color:0x0a0a0c, roughness:.35, transparent:true, opacity:.72}));
+  p.rotation.x=-Math.PI/2; p.position.set(rr(-1.1,1.1), .012, -rr(4,LEN-2));
+  scene.add(p);
+}
+
+/* ---------- 8. 手电筒 + 极弱环境光 ---------- */
+scene.add(new THREE.AmbientLight(0x223047, 0.55));
+scene.add(new THREE.HemisphereLight(0x2f3a52, 0x0a0d12, 0.35));
+
+const FLASH_I = 220;                    // 新版 three.js 灯光是物理单位，数值要大
+const flash = new THREE.SpotLight(0xfff0d8, FLASH_I, 30, 0.50, 0.62, 1.45);
+flash.position.set(0.16,-0.14,0.06);
+flash.castShadow = true;
+flash.shadow.mapSize.set(512,512);
+flash.shadow.camera.near = 0.2; flash.shadow.camera.far = 24;
+flash.shadow.bias = -0.0016;
+camera.add(flash);
+flash.target.position.set(0,0,-1);
+camera.add(flash.target);
+
+/* ---------- 9. 尘埃 ---------- */
+{
+  const N=420, pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    pos[i*3]  = rr(-W/2, W/2);
+    pos[i*3+1]= rr(.1, H-.1);
+    pos[i*3+2]= -rr(0,LEN);
+  }
+  const gm=new THREE.BufferGeometry();
+  gm.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const dust=new THREE.Points(gm, new THREE.PointsMaterial({
+    color:0x8d949e, size:.016, transparent:true, opacity:.5, depthWrite:false}));
+  dust.name='dust'; scene.add(dust);
+}
+
+/* ---------- 10. 远处的人影（走近就消失） ---------- */
+const figure = new THREE.Group();
+{
+  const fm=new THREE.MeshBasicMaterial({color:0x000000, fog:true});
+  const parts=[[.34,.95,.20, 0,1.12,0],[.26,.46,.24, 0,1.94,0],
+               [.11,.62,.13, -.22,.52,0],[.11,.62,.13, .22,.52,0]];
+  for(const [w,h,d,x,y,z] of parts){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),fm);
+    m.position.set(x,y,z); figure.add(m);
+  }
+  figure.visible=false; scene.add(figure);
+}
+let figureTimer=0, figureCool=14;
+
+/* ---------- 11. 后期：暗角 + 胶片颗粒 ---------- */
+const ovScene=new THREE.Scene();
+const ovCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const ovUni={uTime:{value:0}, uStress:{value:0}, uRes:{value:new THREE.Vector2(innerWidth,innerHeight)}};
+ovScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({
+  uniforms:ovUni, transparent:true, depthTest:false, depthWrite:false,
+  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`,
+  fragmentShader:`
+    precision highp float; varying vec2 vUv; uniform float uTime; uniform float uStress; uniform vec2 uRes;
+    float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    void main(){
+      vec2 c=vUv-0.5;
+      float vig=smoothstep(0.95,0.22-uStress*0.30,length(c*vec2(1.12,1.0)));
+      float g=hash(vUv*uRes+fract(uTime)*97.0);
+      float a=(1.0-vig)*0.90 + (g-0.5)*0.06 + uStress*0.055*sin(uTime*6.5);
+      gl_FragColor=vec4(vec3(0.0,0.004,0.010), clamp(a,0.0,1.0));
+    }`
+})));
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  ovUni.uRes.value.set(innerWidth,innerHeight);
+});
+
+/* ---------- 12. 行走控制 ---------- */
+const player={x:0,z:2.0,yaw:0,pitch:-0.02,bob:0};
+const keys=Object.create(null);
+addEventListener('keydown',e=>{keys[e.code]=true;});
+addEventListener('keyup',  e=>{keys[e.code]=false;});
+
+/* —— 体力 + 冲刺开关 —— */
+const STAM_MAX=8.0, STAM_REGEN=12.0, STAM_DELAY=0.9, WALK_SPD=1.45, RUN_SPD=3.2;
+let stamina=1, sprint=false, idleTime=0, lastStamPct=-1;
+const stamEl=document.getElementById('stam'), stamFill=stamEl.firstElementChild;
+const fpsEl=document.getElementById('fps');
+
+addEventListener('keydown',e=>{
+  if((e.code==='ShiftLeft'||e.code==='ShiftRight') && !e.repeat){
+    if(!sprint && stamina>0.08) sprint=true;      // 按一次 → 切到冲刺
+    else sprint=false;                            // 再按一次 → 切回走路
+    stamEl.classList.toggle('on', sprint||stamina<0.995);
+  }
+});
+
+const ui=document.getElementById('ui');
+ui.addEventListener('click',()=>{
+  const p=renderer.domElement.requestPointerLock();
+  if(p&&p.catch)p.catch(()=>{});     // 新版浏览器返回 Promise，被拒时不刷错误
+});
+document.addEventListener('pointerlockchange',()=>{
+  const locked = document.pointerLockElement===renderer.domElement;
+  ui.classList.toggle('hide', locked);
+});
+addEventListener('mousemove',e=>{
+  if(document.pointerLockElement!==renderer.domElement)return;
+  player.yaw   -= e.movementX*0.0021;
+  player.pitch -= e.movementY*0.0021;
+  player.pitch = Math.max(-1.15, Math.min(1.15, player.pitch));
+});
+
+const clock=new THREE.Clock();
+let fpsAcc=0, fpsN=0, qualityStep=0;
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),0.05), t=clock.elapsedTime;
+
+  // —— 移动 ——
+  let fw=0, sd=0;
+  if(keys.KeyW||keys.ArrowUp)   fw+=1;
+  if(keys.KeyS||keys.ArrowDown) fw-=1;
+  if(keys.KeyA||keys.ArrowLeft) sd-=1;
+  if(keys.KeyD||keys.ArrowRight)sd+=1;
+  const moving=(fw||sd);
+  const running = sprint && moving && stamina>0;      // 冲刺开关开着、且在动、还有体力
+  if(moving){
+    const len=Math.hypot(fw,sd); fw/=len; sd/=len;
+    const spd=(running?RUN_SPD:WALK_SPD)*dt;
+    const sin=Math.sin(player.yaw), cos=Math.cos(player.yaw);
+    player.x += (fw*-sin + sd*cos)*spd;
+    player.z += (fw*-cos + sd*-sin)*spd;
+    player.bob += dt*(running?13.5:8.5);
+  }else{
+    player.bob += dt*1.6;
+  }
+
+  // —— 体力：冲刺 8 秒见底，停下约 1 秒后开始回复（满血约 12 秒）——
+  if(running){ stamina=Math.max(0, stamina-dt/STAM_MAX); idleTime=0; if(stamina<=0) sprint=false; }
+  else       { idleTime+=dt; if(idleTime>STAM_DELAY) stamina=Math.min(1, stamina+dt/STAM_REGEN); }
+  // 碰撞：只允许在走廊内
+  player.x=Math.max(-(W/2-.34), Math.min(W/2-.34, player.x));
+  player.z=Math.max(-LEN+2.2, Math.min(3.2, player.z));
+
+  const bobY = moving ? Math.sin(player.bob)*0.022 : Math.sin(player.bob)*0.006;
+  camera.position.set(player.x, 1.62+bobY, player.z);
+  camera.rotation.y=player.yaw;
+  camera.rotation.x=player.pitch + (moving?Math.sin(player.bob*0.5)*0.004:0);
+
+  // —— 灯管闪烁 ——
+  for(const pl of lightPts){
+    if(R()<0.035) pl.userData.drop = rr(.06,.35);
+    if(pl.userData.drop>0){
+      pl.userData.drop-=dt*2.2;
+      pl.intensity = pl.userData.drop>0 ? pl.userData.base*pl.userData.drop : pl.userData.base;
+    }else{
+      pl.intensity = pl.userData.base*(0.9+Math.sin(t*7+pl.position.z)*0.05);
+    }
+  }
+  // 手电筒轻微呼吸
+  flash.intensity = FLASH_I + Math.sin(t*2.1)*12;
+
+  // —— 远处人影 ——
+  figureCool-=dt;
+  if(figureTimer>0){
+    figureTimer-=dt;
+    figure.visible=true;
+    // 玩家走近就消失
+    const d=Math.abs(figure.position.z-player.z);
+    if(d<9) figureTimer=0;
+    if(figureTimer<=0){ figure.visible=false; figureCool=rr(18,42); }
+  }else if(figureCool<=0){
+    const z=player.z - rr(14,Math.min(38,LEN-6));
+    if(z>-LEN+3){
+      figure.position.set(rr(-.5,.5),0,z);
+      figure.rotation.y = Math.atan2(player.x-figure.position.x, player.z-figure.position.z)+Math.PI;
+      figureTimer=rr(1.6,4.2);
+    }else figureCool=rr(8,18);
+  }
+
+  // —— 尘埃缓慢飘 ——
+  const dust=scene.getObjectByName('dust');
+  if(dust){ dust.rotation.y = t*0.012; dust.position.z = ((t*0.10)%CELL)*-1; }
+
+  // —— 体力条 + 缺氧感 ——
+  const pct=Math.round(stamina*100);
+  if(pct!==lastStamPct){
+    stamFill.style.width=pct+'%';
+    stamFill.classList.toggle('low', stamina<0.28);
+    stamEl.classList.toggle('on', sprint||stamina<0.995);
+    lastStamPct=pct;
+  }
+  ovUni.uStress.value = stamina<0.3 ? (0.3-stamina)/0.3 : 0;
+
+  // —— 自适应画质：实测不够流畅就自动往下调 ——
+  fpsAcc+=dt; fpsN++;
+  if(fpsAcc>=1.0){
+    const fps=fpsN/fpsAcc; fpsAcc=0; fpsN=0;
+    fpsEl.textContent=fps.toFixed(0)+' fps';
+    if(fps<46 && qualityStep<2){
+      qualityStep++;
+      if(qualityStep===1){ DPR_CAP=1.0; }
+      else{
+        renderer.shadowMap.enabled=false; flash.castShadow=false;
+        scene.traverse(o=>{
+          const ms=o.material&&(Array.isArray(o.material)?o.material:[o.material]);
+          if(ms) ms.forEach(mm=>{mm.needsUpdate=true;});
+        });
+      }
+      renderer.setPixelRatio(Math.min(devicePixelRatio,DPR_CAP));
+      renderer.setSize(innerWidth,innerHeight);
+    }
+  }
+
+  ovUni.uTime.value=t;
+  renderer.render(scene,camera);
+  renderer.autoClear=false;
+  renderer.render(ovScene,ovCam);
+  renderer.autoClear=true;
+}
+loop();
+</script>
+</body>
+</html>
