@@ -1,3 +1,13 @@
+// ===== 固定 8 张地图：每局随机选一张（maps.js 由关卡编辑器导出）=====
+(function(){
+  try{
+    if(window.GAME_MAPS && window.GAME_MAPS.length){
+      const i = (Math.random()*window.GAME_MAPS.length)|0;
+      window.LEVEL_DATA = window.GAME_MAPS[i];
+      window.__MAP_INDEX = i;
+    }
+  }catch(e){}
+})();
 /* ===== 数值表：来自 config.js（编辑器生成），没有就用默认值 ===== */
 const CFG = Object.assign({
   "地图":{走廊宽:4.2, 层高:2.85, 总长:40, 总宽:32},
@@ -184,6 +194,9 @@ const RING_LEN = 4*(CX+CZ);     // 绕外围一圈的长度
 const LEN = RING_LEN;           // 兼容旧引用
 
 const WALL_T = 0.30;            // 墙厚（碰撞和模型一致）
+// 迷宫模式：level.js 里有「墙体」就完全按编辑器数据建图，老环廊逻辑全部跳过
+const MAZE = !!(window.LEVEL_DATA && Array.isArray(window.LEVEL_DATA.墙体) && window.LEVEL_DATA.墙体.length > 0);
+window.MAZE = MAZE;
 const DOOR_W = 1.10, DOOR_H = 2.06;   // 门洞尺寸
 const PR = 0.30;                // 玩家碰撞半径
 const WALLS = [];               // 碰撞用的墙 AABB 列表
@@ -225,7 +238,21 @@ const CORR_RECTS = [
 ];
 // 房间门：随机挑一面「贴着走廊」的墙，开在这面墙的正中
 const ROOM_DOORS = [];
-for(const r of ROOMS){
+function faceFromRot(rot){
+  const r = ((rot % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+  if(Math.abs(r - Math.PI/2) < 0.35) return 'x1';
+  if(Math.abs(r - Math.PI*1.5) < 0.35) return 'x0';
+  if(r < 0.35 || r > Math.PI*2-0.35) return 'z0';
+  return 'z1';
+}
+if(MAZE){
+  (window.LEVEL_DATA.房间门 || []).forEach(function(d){
+    const face = faceFromRot(d.rot);
+    ROOM_DOORS.push({ room:null, face:face, x:d.x, z:d.z, rotY:d.rot,
+                      open:false, t:0, target:0, hinge:null });
+  });
+}
+for(const r of (MAZE ? [] : ROOMS)){
   const faces=[];
   if(r.x0 > -IX+1e-3) faces.push('x0');
   if(r.x1 <  IX-1e-3) faces.push('x1');
@@ -488,6 +515,8 @@ const MAP = (function(){
   }
   return { faceX, faceZ, doors };
 })();
+if(MAZE && MAP && MAP.doors) MAP.doors.length = 0;   // 迷宫模式不要环廊随机假门
+
 window.MAP = MAP;
 
 // —— 外墙：由 MAP.doors 决定在哪里开洞 ——
@@ -508,6 +537,82 @@ function outerWall(alongX, fixed, a0, a1){
   }
   if(a1>cur) mk(cur,a1);
 }
+
+// ================= 迷宫模式：按 level.js 的「墙体 / 房间门」建图 =================
+function buildMazeWalls(){
+  const segs  = (window.LEVEL_DATA && window.LEVEL_DATA.墙体) || [];
+  const doors = (window.LEVEL_DATA && window.LEVEL_DATA.房间门) || [];
+  if(!segs.length) return;
+
+  // 地图包围盒
+  let mnx=1e9, mxx=-1e9, mnz=1e9, mxz=-1e9;
+  for(const s of segs){
+    mnx=Math.min(mnx,s.x0,s.x1); mxx=Math.max(mxx,s.x0,s.x1);
+    mnz=Math.min(mnz,s.z0,s.z1); mxz=Math.max(mxz,s.z0,s.z1);
+  }
+  window.MAZE_BOUNDS = { x0:mnx, x1:mxx, z0:mnz, z1:mxz };
+
+  const pad = 0.12;
+  // 四面外墙
+  wallRun(mnx-pad, mnz-pad, mxx+pad, mnz-pad);
+  wallRun(mnx-pad, mxz+pad, mxx+pad, mxz+pad);
+  wallRun(mnx-pad, mnz-pad, mnx-pad, mxz+pad);
+  wallRun(mxx+pad, mnz-pad, mxx+pad, mxz+pad);
+
+  const mk = function(x0,z0,x1,z1){
+    const alongX = Math.abs(x1-x0) >= Math.abs(z1-z0);
+    if(alongX) wallBox(Math.min(x0,x1), z0, Math.max(x0,x1), z0, 0, H, true);
+    else       wallBox(x0, Math.min(z0,z1), x0, Math.max(z0,z1), 0, H, true);
+  };
+
+  for(const s of segs){
+    // 斜墙（编辑器里可以 360° 画）：碰撞用小方块沿线段铺，视觉用旋转盒子
+    const adx = s.x1 - s.x0, adz = s.z1 - s.z0;
+    if(Math.abs(adx) > 0.06 && Math.abs(adz) > 0.06){
+      const L = Math.hypot(adx, adz);
+      const n = Math.max(1, Math.ceil(L/0.30));
+      for(let k=0;k<n;k++){
+        const t = (k+0.5)/n;
+        const x = s.x0 + adx*t, z = s.z0 + adz*t;
+        WALLS.push({ x0:x-0.17, x1:x+0.17, z0:z-0.17, z1:z+0.17 });
+      }
+      try{
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(L, H, WALL_T), wallMat);
+        mesh.position.set((s.x0+s.x1)/2, H/2, (s.z0+s.z1)/2);
+        mesh.rotation.y = -Math.atan2(adz, adx);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        scene.add(mesh);
+      }catch(e){}
+      continue;
+    }
+    const alongX = Math.abs(s.x1-s.x0) >= Math.abs(s.z1-s.z0);
+    const a0 = alongX ? Math.min(s.x0,s.x1) : Math.min(s.z0,s.z1);
+    const a1 = alongX ? Math.max(s.x0,s.x1) : Math.max(s.z0,s.z1);
+    const f  = alongX ? s.z0 : s.x0;
+
+    // 这堵墙上有没有门要开洞
+    const gaps = doors.filter(function(d){
+      return alongX
+        ? (Math.abs(d.z - f) < 0.32 && d.x > a0-0.25 && d.x < a1+0.25)
+        : (Math.abs(d.x - f) < 0.32 && d.z > a0-0.25 && d.z < a1+0.25);
+    }).map(function(d){
+      return { c: alongX ? d.x : d.z, w: HOLE_W };
+    }).sort(function(p,q){ return p.c-q.c; });
+
+    let cur = a0;
+    for(const g of gaps){
+      const g0 = g.c - g.w/2, g1 = g.c + g.w/2;
+      if(g0 > cur + 1e-3) mk(alongX?cur:f, alongX?f:cur, alongX?g0:f, alongX?f:g0);
+      // 门楣（不挡路）
+      if(alongX) wallBox(g0, f, g1, f, DOOR_H, H, false);
+      else       wallBox(f, g0, f, g1, DOOR_H, H, false);
+      cur = Math.max(cur, g1);
+    }
+    if(a1 > cur + 1e-3) mk(alongX?cur:f, alongX?f:cur, alongX?a1:f, alongX?f:a1);
+  }
+}
+
+if(!MAZE){
 outerWall(true,  -HZ, -HX, HX);
 outerWall(true,   HZ, -HX, HX);
 outerWall(false, -HX, -HZ, HZ);
@@ -537,9 +642,12 @@ for(const r of ROOMS){
   if(r.z0 > -IZ+1e-3) wallRun(r.x0,r.z0,r.x1,r.z0, d.face==='z0'?{c:r.cx,w:DOOR_W}:null);
   if(r.z1 <  IZ-1e-3) wallRun(r.x0,r.z1,r.x1,r.z1, d.face==='z1'?{c:r.cx,w:DOOR_W}:null);
 }
+}
+if(MAZE) buildMazeWalls();
+
 
 // 墙脚的踢脚线（一圈，加深轮廓）
-for(const s of PATH.segs){
+if(!MAZE) for(const s of PATH.segs){
   const mx=s.x+s.dx*s.len/2, mz=s.z+s.dz*s.len/2;
   for(const sgn of [-1,1]){
     const ox=s.dz*(W/2-.055)*sgn, oz=-s.dx*(W/2-.055)*sgn;
@@ -552,7 +660,7 @@ for(const s of PATH.segs){
 }
 
 /* ---------- 4c. 墙上的竖向接缝板 ---------- */
-{
+if(!MAZE){
   const n=Math.floor(RING_LEN/CELL);
   const im=new THREE.InstancedMesh(new THREE.BoxGeometry(.07,H,.10), darkMat, n*2);
   const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(),
@@ -661,6 +769,19 @@ function addDoorAt(px,pz,rotY,openAngle){
   for(const md of MAP.doors){
     const p = atPath(md.d);
     addDoorAt(md.x, md.z, Math.atan2(-p.nx,-p.nz), 0);
+  }
+  // 迷宫模式：假门/躲藏门只认编辑器数据（25 扇）
+  if(MAZE){
+    for(const hd of (window.LEVEL_DATA.躲藏门 || [])){
+      let nx = hd.nx, nz = hd.nz;
+      if(nx === undefined || nz === undefined){
+        const r = hd.rot || 0;
+        nx = Math.sin(r); nz = Math.cos(r);
+      }
+      const L = Math.hypot(nx, nz) || 1;
+      nx /= L; nz /= L;
+      addDoorAt(hd.x, hd.z, Math.atan2(-nx, -nz), 0);
+    }
   }
 }
 
@@ -830,18 +951,40 @@ function updateGlass(dt){
   }
 }
 
+// 两点之间有没有墙挡着（只查真正的墙，不查家具和门自己）
+function hasLineOfSight(x1, z1, x2, z2, skipBox){
+  const dx = x2-x1, dz = z2-z1;
+  const len = Math.hypot(dx, dz);
+  if(len < 1e-3) return true;
+  const steps = Math.max(2, Math.ceil(len/0.18));
+  for(let i=1;i<steps;i++){
+    const t = i/steps;
+    const px = x1 + dx*t, pz = z1 + dz*t;
+    for(const w of WALLS){
+      if(w.top != null) continue;                  // 家具不算遮挡
+      if(skipBox && w === skipBox) continue;       // 门自己不算
+      if(px > w.x0 && px < w.x1 && pz > w.z0 && pz < w.z1) return false;
+    }
+  }
+  return true;
+}
 function nearestGlass(){
   camera.getWorldDirection(_aimDir);
   // 只看水平朝向：抬头/低头不该影响开门判定
   const alen = Math.hypot(_aimDir.x, _aimDir.z) || 1e-3;
   const ax = _aimDir.x/alen, az = _aimDir.z/alen;
+  const ex = camera.position.x, ez = camera.position.z;
   let best=null, bs=-1;
   for(const gd of GLASS){
-    const dx=gd.x-camera.position.x, dz=gd.z-camera.position.z;
+    const dx=gd.x-ex, dz=gd.z-ez;
     const dist=Math.hypot(dx,dz);
-    if(dist>4.2) continue;
+    if(dist>3.2) continue;                          // 太远够不着
     const dot=(dx*ax + dz*az)/(dist||1e-3);
-    if(dot<0.55 && dist>1.3) continue;   // 贴脸时不用对准也能开
+    // 必须正对着门（贴到 1.2 米内才稍微放宽）
+    const need = dist < 1.2 ? 0.55 : 0.80;
+    if(dot < need) continue;
+    // 中间隔着墙 → 不算（防止隔房间遥控）
+    if(!hasLineOfSight(ex, ez, gd.x, gd.z, gd.box)) continue;
     if(dot>bs){ bs=dot; best=gd; }
   }
   return best;
@@ -891,17 +1034,37 @@ const coneMat=new THREE.MeshBasicMaterial({
 });
 // 灯位：环廊 + 四条内区走廊，全部按中心线采样
 const NET=[];
-for(const s of PATH.segs) NET.push(s);
-for(const x of VX) NET.push({x, z:-IZ, dx:0, dz:1, len:2*IZ});
-for(const z of HY) NET.push({x:-IX, z, dx:1, dz:0, len:2*IX});
-for(const s of NET){
-  for(let d=2.6; d<s.len-1.2; d+=6.4){
-  const p={x:s.x+s.dx*d, z:s.z+s.dz*d};
-  const rotY = Math.abs(s.dx)>0.5 ? Math.PI/2 : 0;
+const LAMPS=[];
+if(MAZE){
+  // 迷宫模式：在可走区域按 6.4 米网格撒灯，灯绝不落在墙里
+  const b = window.MAZE_BOUNDS || {x0:-28,x1:28,z0:-22,z1:22};
+  const freeAt = function(x,z){
+    for(const w of WALLS){
+      if(x > w.x0-1.0 && x < w.x1+1.0 && z > w.z0-1.0 && z < w.z1+1.0) return false;
+    }
+    return true;
+  };
+  for(let x=b.x0+3.2; x<=b.x1-3.2; x+=6.4){
+    for(let z=b.z0+3.2; z<=b.z1-3.2; z+=6.4){
+      if(freeAt(x,z)) LAMPS.push({x:x, z:z, rotY:0});
+    }
+  }
+} else {
+  for(const s of PATH.segs) NET.push(s);
+  for(const x of VX) NET.push({x, z:-IZ, dx:0, dz:1, len:2*IZ});
+  for(const z of HY) NET.push({x:-IX, z, dx:1, dz:0, len:2*IX});
+  for(const s of NET){
+    for(let d=2.6; d<s.len-1.2; d+=6.4){
+      LAMPS.push({x:s.x+s.dx*d, z:s.z+s.dz*d, rotY: Math.abs(s.dx)>0.5 ? Math.PI/2 : 0});
+    }
+  }
+}
+for(const p of LAMPS){
+  const rotY = p.rotY || 0;
   const slot=new THREE.Mesh(new THREE.BoxGeometry(1.18,.07,.34), darkMat);
   slot.position.set(p.x, H-.04, p.z); slot.rotation.y=rotY; scene.add(slot);
 
-  const lit = R()<0.5;
+  const lit = R()<(MAZE?0.72:0.5);
   const panelMat=new THREE.MeshStandardMaterial({
     color: lit?0xdfe6ee:0x30343c, emissive: lit?0xf2f6ff:0x000000,
     emissiveIntensity: lit?1.4:0, roughness:.5
@@ -912,14 +1075,13 @@ for(const s of NET){
   scene.add(panel);
 
   if(lit){
-    const pl=new THREE.PointLight(0xc6dce6, 56, 13, 1.85);
+    const pl=new THREE.PointLight(0xc6dce6, MAZE?78:56, MAZE?16:13, 1.85);
     pl.position.set(p.x+rr(-.16,.16), H-.24, p.z+rr(-.16,.16));
     pl.userData.base=62;
     scene.add(pl); lightPts.push(pl);
     const cone=new THREE.Mesh(new THREE.ConeGeometry(.78, H-.16, 14, 1, true), coneMat);
     cone.position.set(pl.position.x, (H-.16)/2, pl.position.z);
     scene.add(cone);
-  }
   }
 }
 // 顶部两根管道：沿四条边各拉一段，转角用吊顶盒子盖住接缝
@@ -1592,12 +1754,140 @@ function segHitsRect(x0,z0,x1,z1,rct){
   }
   return true;
 }
+// 鬼要能"推门进来"：找那扇挡在它和玩家之间、还关着的房间门
+function doorBetweenGhostAndPlayer(){
+  let best = null, bd = 1e9;
+  for(const d of ROOM_DOORS){
+    if(d.open) continue;
+    const dg = Math.hypot(d.x - ghost.position.x, d.z - ghost.position.z);
+    if(dg > 3.2 || dg > bd) continue;
+    const dp = Math.hypot(d.x - player.x, d.z - player.z);
+    const straight = Math.hypot(player.x - ghost.position.x, player.z - ghost.position.z);
+    if(dg + dp < straight + 1.6){ bd = dg; best = d; }
+  }
+  return best;
+}
 function losBlocked(x0,z0,x1,z1){
   for(const w of WALLS) if(segHitsRect(x0,z0,x1,z1,w)) return true;
   return false;
 }
 // 走廊上的随机点（一半在外围环廊，一半在内区四条走廊）
+
+// ===== 连通性：保证出生点不会被封在独立小房间里 =====
+// 用与寻路同样的规则（门可以推开 → 不算障碍）做一次洪水填充，
+// 取"含出口 + 含钥匙柜"的那个连通区当可玩区，玩家和鬼都只在这个区里出生。
+function mazePlayRegion(){
+  if(window.__MAZE_REGION) return window.__MAZE_REGION;
+  const b = window.MAZE_BOUNDS || {x0:-28,x1:28,z0:-22,z1:22};
+  const cell = 0.55, R = 0.34;
+  const nx = Math.max(2, Math.ceil((b.x1-b.x0)/cell));
+  const nz = Math.max(2, Math.ceil((b.z1-b.z0)/cell));
+  const N = nx*nz;
+  const blocked = new Uint8Array(N);
+  // 门的碰撞盒不算障碍
+  const doorCols = new Set();
+  try{ for(const d of ROOM_DOORS) if(d && d.col) doorCols.add(d.col); }catch(e){}
+  for(let iz=0; iz<nz; iz++){
+    for(let ix=0; ix<nx; ix++){
+      const x = b.x0 + (ix+0.5)*cell, z = b.z0 + (iz+0.5)*cell;
+      let bl = !(x > b.x0+0.2 && x < b.x1-0.2 && z > b.z0+0.2 && z < b.z1-0.2);
+      if(!bl){
+        for(const w of WALLS){
+          if(w.top != null && w.top <= 0.75) continue;
+          if(doorCols.has(w)) continue;
+          if(x > w.x0-R && x < w.x1+R && z > w.z0-R && z < w.z1+R){ bl = true; break; }
+        }
+      }
+      blocked[iz*nx+ix] = bl ? 1 : 0;
+    }
+  }
+  // 洪水填充
+  const comp = new Int32Array(N).fill(-1);
+  const sizes = [];
+  const q = new Int32Array(N);
+  let cid = 0;
+  for(let i=0;i<N;i++){
+    if(blocked[i] || comp[i] !== -1) continue;
+    let head=0, tail=0; q[tail++]=i; comp[i]=cid; let sz=0;
+    while(head<tail){
+      const cur=q[head++]; sz++;
+      const cx=cur%nx, cz=(cur-cx)/nx;
+      const nb=[cx>0?cur-1:-1, cx<nx-1?cur+1:-1, cz>0?cur-nx:-1, cz<nz-1?cur+nx:-1];
+      for(const n2 of nb){
+        if(n2<0 || blocked[n2] || comp[n2]!==-1) continue;
+        comp[n2]=cid; q[tail++]=n2;
+      }
+    }
+    sizes.push(sz); cid++;
+  }
+  // 给每个连通区打分：含出口 +5，含钥匙柜 +3，面积按比例
+  const score = new Int32Array(sizes.length);
+  const cellOf = function(x,z){
+    const ix = Math.floor((x-b.x0)/cell), iz = Math.floor((z-b.z0)/cell);
+    if(ix<0||iz<0||ix>=nx||iz>=nz) return -1;
+    return comp[iz*nx+ix];
+  };
+  // 出口门在墙上，格子本身可能是"不可走"，要往周围找最近的可行走格再给它所属区域加分
+  const compNear = function(x,z){
+    const base = cellOf(x,z);
+    if(base >= 0) return base;
+    for(let r=1; r<=10; r++){
+      for(let dz=-r; dz<=r; dz++){
+        for(let dx=-r; dx<=r; dx++){
+          if(Math.max(Math.abs(dx),Math.abs(dz)) !== r) continue;
+          const c = cellOf(x + dx*cell, z + dz*cell);
+          if(c >= 0) return c;
+        }
+      }
+    }
+    return -1;
+  };
+  try{ for(const e of (window.EXITS||[])){ const c=compNear(e.x,e.z); if(c>=0) score[c]+=5; } }catch(e){}
+  try{
+    for(const c of CABINETS){
+      let nearKey = false;
+      for(const kp of (window.LEVEL_DATA && LEVEL_DATA.钥匙点) || []){
+        if(Math.hypot(kp.x-c.x, kp.z-c.z) < 3) nearKey = true;
+      }
+      if(nearKey){ const cc=compNear(c.x,c.z); if(cc>=0) score[cc]+=3; }
+    }
+  }catch(e){}
+  let best = -1, bs = -1;
+  for(let i=0;i<sizes.length;i++){
+    const s2 = score[i]*1000 + sizes[i];
+    if(s2 > bs){ bs = s2; best = i; }
+  }
+  const region = { comp, nx, nz, cell, x0:b.x0, z0:b.z0, best, sizes, score };
+  window.__MAZE_REGION = region;
+  return region;
+}
+// 在可玩连通区里随机取一个点
+function mazePickInRegion(minDistFrom, fx, fz){
+  const r = mazePlayRegion();
+  if(r.best < 0) return null;
+  const N = r.nx*r.nz;
+  let best = null, bestScore = -1;
+  for(let tries=0; tries<900; tries++){
+    const i = (Math.random()*N)|0;
+    if(r.comp[i] !== r.best) continue;
+    const ix = i % r.nx, iz = (i - ix)/r.nx;
+    const x = r.x0 + (ix+0.5)*r.cell, z = r.z0 + (iz+0.5)*r.cell;
+    if(minDistFrom && fx !== undefined){
+      if(Math.hypot(x-fx, z-fz) < minDistFrom) continue;
+      return {x:x, z:z};                       // 只要够远，直接要
+    }
+    const sc = Math.random();
+    if(sc > bestScore){ bestScore = sc; best = {x:x, z:z}; }
+  }
+  return best;
+}
+
 function randomSpawnPoint(){
+  if(MAZE){
+    // 只在"和出口/钥匙连在一起"的那片区域里出生，绝不会被小房间关死
+    const p = mazePickInRegion();
+    if(p) return p;
+  }
   if(Math.random()<0.5){
     const p=atPath(Math.random()*RING_LEN);
     const t=rr(-W/2+PR+0.25, W/2-PR-0.25);
@@ -1668,55 +1958,91 @@ const ghost = new THREE.Group();
   cube.position.y = .95; cube.visible=false; ghost.add(cube);
   ghost.userData.cube = cube;
   ghost.userData.body = { root: g };
+  ghost.userData.person = gPerson;      // 留着走路动画用
   ghost.position.set(SPAWN.ghost.x, 0, SPAWN.ghost.z);
   scene.add(ghost);
 }
 
 // —— 安全出口：刷新在鬼附近 14 米内，避开转角 ——
 // 固定位置：从鬼出生点往走廊前方找第一个"离所有门 3 米以上"的点
-let EXIT_D = null;
-for(let k=0;k<120;k++){
-  const d = (GHOST_D + 5.0 + k*0.5) % RING_LEN;
-  if(cornerDist(d) < 3.2) continue;
-  const pp = atPath(d);
-  const wx = pp.x + pp.nx*(W/2-0.15), wz = pp.z + pp.nz*(W/2-0.15);
-  if(!doorsClearWorld(wx, wz, 3.0)) continue;
-  EXIT_D = d; break;
-}
-if(EXIT_D === null) EXIT_D = (GHOST_D + 9) % RING_LEN;
-const EXIT_P = atPath(EXIT_D);
-const EXIT_WALL = { x: EXIT_P.x + EXIT_P.nx*(W/2-0.15), z: EXIT_P.z + EXIT_P.nz*(W/2-0.15) };
-{
-  addDoorAt(EXIT_WALL.x, EXIT_WALL.z, Math.atan2(-EXIT_P.nx,-EXIT_P.nz), 0);   // 门（关着）
-  // 绿色安全出口牌
+// ===== 安全出口：样式统一，位置由 level.js 的「安全出口」决定（迷宫模式） =====
+window.EXITS = [];
+function exitDoorAt(px, pz, nx, nz){
+  const rotY = Math.atan2(-nx, -nz);
+  addDoorAt(px, pz, rotY, 0);
+  try{ DOORS[DOORS.length-1].kind = 'exit'; }catch(e){}   // 标记：出口门（不给躲、不给鬼检视）
+  // 绿色 EXIT 牌
   const c=canvasOf(256), cx2=c.getContext('2d');
   cx2.fillStyle='#02140a'; cx2.fillRect(0,0,256,256);
-  cx2.fillStyle='#39e07c'; cx2.font='bold 74px sans-serif';
+  cx2.fillStyle='#39e07c'; cx2.font='bold 96px sans-serif';
   cx2.textAlign='center'; cx2.textBaseline='middle';
-  cx2.fillText('安全',128,84); cx2.fillText('出口',128,172);
-  const tx=new THREE.CanvasTexture(c); tx.colorSpace=THREE.SRGBColorSpace;
-  const sign=new THREE.Mesh(new THREE.PlaneGeometry(.64,.64),
-    new THREE.MeshBasicMaterial({map:tx, transparent:true}));
-  sign.position.set(EXIT_P.x + EXIT_P.nx*(W/2-.10), 2.44, EXIT_P.z + EXIT_P.nz*(W/2-.10));
-  sign.rotation.y = Math.atan2(-EXIT_P.nx,-EXIT_P.nz);
+  cx2.fillText('EXIT', 128, 128);
+  const tx2=new THREE.CanvasTexture(c); tx2.colorSpace=THREE.SRGBColorSpace;
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(0.86,0.86),
+    new THREE.MeshBasicMaterial({map:tx2, transparent:true, side:THREE.DoubleSide}));
+  sign.position.set(px - nx*0.34, 2.70, pz - nz*0.34);
+  sign.rotation.y = rotY;
   scene.add(sign);
-  // 出口的绿光（远远就能看见"有救了"）
+  // 绿光
   const gl2=new THREE.PointLight(0x48d18c, 14, 9, 1.9);
-  gl2.position.set(EXIT_P.x + EXIT_P.nx*(W/2-1.1), 2.3, EXIT_P.z + EXIT_P.nz*(W/2-1.1));
+  gl2.position.set(px - nx*1.1, 2.3, pz - nz*1.1);
   scene.add(gl2);
-  // 地面上一圈发光标记
+  // 地面光环
   const ring=new THREE.Mesh(new THREE.RingGeometry(.55,.72,24),
     new THREE.MeshBasicMaterial({color:0x2fd47f, transparent:true, opacity:.35, side:THREE.DoubleSide}));
   ring.rotation.x=-Math.PI/2;
-  ring.position.set(EXIT_P.x + EXIT_P.nx*(W/2-1.0), .02, EXIT_P.z + EXIT_P.nz*(W/2-1.0));
+  ring.position.set(px - nx*1.0, .02, pz - nz*1.0);
   scene.add(ring);
+  // 地面柔光
+  const gc = canvasOf(256), gx2 = gc.getContext('2d');
+  const gg = gx2.createRadialGradient(128,128,6,128,128,126);
+  gg.addColorStop(0.00,'rgba(70,255,160,0.85)');
+  gg.addColorStop(0.40,'rgba(50,220,140,0.42)');
+  gg.addColorStop(0.75,'rgba(30,160,100,0.14)');
+  gg.addColorStop(1.00,'rgba(20,120,70,0)');
+  gx2.fillStyle=gg; gx2.fillRect(0,0,256,256);
+  const gtex = new THREE.CanvasTexture(gc); gtex.colorSpace = THREE.SRGBColorSpace;
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(1,1),
+    new THREE.MeshBasicMaterial({map:gtex, transparent:true, opacity:0.85,
+      depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false}));
+  glow.rotation.x = -Math.PI/2;
+  glow.scale.set(4.6,4.6,1);
+  glow.position.set(px - nx*1.35, .035, pz - nz*1.35);
+  glow.renderOrder = 3;
+  scene.add(glow);
+  return {x:px, z:pz, nx:nx, nz:nz};
 }
-window.EXIT_INFO = { d:EXIT_D, x:EXIT_WALL.x, z:EXIT_WALL.z, ghostD:GHOST_D, playerD:PLAYER_D };
+
+let EXIT_D = null;
+if(MAZE && window.LEVEL_DATA && Array.isArray(LEVEL_DATA.安全出口) && LEVEL_DATA.安全出口.length){
+  for(const ex of LEVEL_DATA.安全出口){
+    const r = ex.rot || 0;
+    const nx = Math.sin(r), nz = Math.cos(r);      // 朝外的法线
+    window.EXITS.push(exitDoorAt(ex.x, ex.z, nx, nz));
+  }
+  window.EXIT_INFO = { x: window.EXITS[0].x, z: window.EXITS[0].z, all: window.EXITS };
+} else {
+  for(let k=0;k<120;k++){
+    const d = (GHOST_D + 5.0 + k*0.5) % RING_LEN;
+    if(cornerDist(d) < 3.2) continue;
+    const pp = atPath(d);
+    const wx = pp.x + pp.nx*(W/2-0.15), wz = pp.z + pp.nz*(W/2-0.15);
+    if(!doorsClearWorld(wx, wz, 3.0)) continue;
+    EXIT_D = d; break;
+  }
+  if(EXIT_D === null) EXIT_D = (GHOST_D + 9) % RING_LEN;
+  const EXIT_P = atPath(EXIT_D);
+  const EXIT_WALL = { x: EXIT_P.x + EXIT_P.nx*(W/2-0.15), z: EXIT_P.z + EXIT_P.nz*(W/2-0.15) };
+  const rec = exitDoorAt(EXIT_WALL.x, EXIT_WALL.z, EXIT_P.nx, EXIT_P.nz);
+  window.EXITS.push(rec);
+  window.EXIT_INFO = { d:EXIT_D, x:EXIT_WALL.x, z:EXIT_WALL.z, ghostD:GHOST_D, playerD:PLAYER_D };
+}
 
 /* ================= 2.0：柜子 / 架子 / 道具 / 交互 / 鬼视角 ================= */
 const CABINETS=[], SHELVES=[], ITEMS=[], PROJECTILES=[];
 const CAB_HIT=[], ITEM_HIT=[];
 const INV={ink:0, shoe:0};
+let INK_READY=false;    // 背包里拿起了墨水，左键可扔
 const elXh=document.getElementById('xhair');
 const elAimTip=document.getElementById('prompt');
 if(elAimTip) elAimTip.style.display='none';   // 不要再在屏幕中间弹 E 提示（只保留下方小条）
@@ -1765,10 +2091,22 @@ function makeCabinet(x,z,rotY){
   CAB_HIT.push({mesh:g.children[4], cab:rec});
   return rec;
 }
+
+// 拉开抽屉时，把里面的东西露出来（不然会一直是"隐藏"状态）
+function revealDrawerItem(cab){
+  try{
+    if(cab && cab.item && !cab.item.taken){
+      cab.item.hidden = false;
+      cab.item.mesh.visible = true;
+    }
+  }catch(e){}
+}
+
 function toggleDrawer(rec){
   if(!rec || !rec.drawers) return;
   const d = rec.drawers.find(function(x){ return !x.open; });
   if(d){
+    try{ SFX.play('cabinetOpen'); }catch(e){}
     d.open = true;
     if(d.item){
       d.item.hidden = false;
@@ -1912,7 +2250,55 @@ function spawnRoundItems(){
   shuffleArr(anchors);
   for(let i=0;i<Math.min(2, anchors.length);i++) placeItem('shoe', anchors[i]);
 }
-spawnRoundItems();
+function nearestCabinet(x,z,used){
+  let best=null, bd=1e9;
+  for(const c of CABINETS){
+    if(used && used.has(c)) continue;
+    const d = Math.hypot(c.x-x, c.z-z);
+    if(d < bd){ bd=d; best=c; }
+  }
+  return best;
+}
+function nearestShelf(x,z){
+  let best=null, bd=1e9;
+  for(const sh of SHELVES){
+    const d = Math.hypot(sh.x-x, sh.z-z);
+    if(d < bd){ bd=d; best=sh; }
+  }
+  return best;
+}
+function spawnRoundItemsMaze(){
+  const pts = (window.LEVEL_DATA && LEVEL_DATA.道具点) || [];
+  const usedCabs = new Set();
+  for(const p of pts){
+    if(p.kind === 'ink'){
+      const c = nearestCabinet(p.x, p.z, usedCabs);
+      if(!c) continue;
+      const free = c.drawers.filter(function(d){ return !d.item; });
+      if(!free.length) continue;
+      const d = free[free.length-1];
+      const gg = makeItemMesh('ink');
+      gg.position.set(0, 0.02, 0.02); gg.visible = false;
+      gg.traverse(function(o){ if(o.isPointLight) o.intensity = 0; });
+      d.slide.add(gg);
+      const it = {kind:'ink', mesh:gg, taken:false, hidden:true, drawer:d};
+      ITEMS.push(it); ITEM_HIT.push({mesh:gg, item:it});
+      d.item = it; usedCabs.add(c);
+    } else if(p.kind === 'shoe'){
+      const sh = nearestShelf(p.x, p.z);
+      if(!sh || !sh.anchors || !sh.anchors.length) continue;
+      const a = sh.anchors[(Math.random()*sh.anchors.length)|0];
+      if(a.userData && a.userData.__item) continue;
+      placeItem('shoe', a);
+      try{ a.userData.__item = true; }catch(e){}
+    }
+  }
+}
+if(MAZE && window.LEVEL_DATA && Array.isArray(LEVEL_DATA.道具点) && LEVEL_DATA.道具点.length){
+  spawnRoundItemsMaze();
+} else {
+  spawnRoundItems();
+}
 
 // —— 准心瞄准：距离 + 夹角（不用射线，便宜且够准）——
 const _aimDir=new THREE.Vector3(), _aimPos=new THREE.Vector3();
@@ -1930,11 +2316,37 @@ function aimTarget(){
     const score=dot*(1-dist/3.4);
     if(score>bestScore){ bestScore=score; best={kind, ref}; }
   };
-  for(const h of CAB_HIT) test(h.mesh,'cabinet',h.cab);
-  for(const h of ITEM_HIT) if(!h.item.taken && !h.item.hidden) test(h.mesh,'item',h.item);
-  return best;
+  let bestItem=null, bestItemScore=-1;
+  let bestCab=null,  bestCabScore=-1;
+  const testOne=(mesh, cb)=>{
+    mesh.getWorldPosition(_aimPos);
+    const dx=_aimPos.x-ex, dy=_aimPos.y-ey, dz=_aimPos.z-ez;
+    const dist=Math.hypot(dx,dy,dz)||1e-3;
+    if(dist>2.5) return;
+    const dot=(dx*_aimDir.x+dy*_aimDir.y+dz*_aimDir.z)/dist;
+    if(dot<0.86) return;
+    cb(dot*(1-dist/3.4));
+  };
+  for(const h of ITEM_HIT) if(!h.item.taken && (!h.item.hidden || (h.item.drawer && h.item.drawer.open))) testOne(h.mesh,(sc)=>{ if(sc>bestItemScore){ bestItemScore=sc; bestItem={kind:'item', ref:h.item}; } });
+  for(const h of CAB_HIT) testOne(h.mesh,(sc)=>{ if(sc>bestCabScore){ bestCabScore=sc; bestCab={kind:'cabinet', ref:h.cab}; } });
+  return bestItem || bestCab;   // 道具优先
 }
 let tipT=0, tipMsg='';
+
+// 独立提示条（拾取道具等），不会被准心提示覆盖
+const elToast = document.createElement('div');
+elToast.style.cssText = 'position:fixed;left:50%;top:16%;transform:translateX(-50%);z-index:70;' +
+  'padding:9px 18px;border-radius:8px;background:rgba(8,12,16,.82);border:1px solid rgba(150,200,180,.35);' +
+  'color:#d6e6dd;font:13px/1.4 system-ui,sans-serif;letter-spacing:.06em;opacity:0;' +
+  'transition:opacity .18s;pointer-events:none;white-space:nowrap';
+document.body.appendChild(elToast);
+let _toastT = 0;
+function showToast(msg, sec){
+  elToast.textContent = msg;
+  elToast.style.opacity = '1';
+  _toastT = sec || 2.0;
+}
+
 function toastTip(msg){ tipMsg=msg; tipT=1.2; elAimTip.textContent=msg; elAimTip.style.opacity='1'; }
 function updateItemHud(){
   const parts=[];
@@ -1944,23 +2356,128 @@ function updateItemHud(){
 function pickupItem(it){
   if(it.taken) return;
   it.taken=true; it.mesh.visible=false;
-  if(it.kind==='ink'){ INV.ink++; toastTip('捡到墨水 · 鼠标左键扔出去'); }
-  else { STAM_MAX=CFG.道具.皮鞋疾跑上限; stamina=1; toastTip('捡到皮鞋 · 疾跑上限变成 '+CFG.道具.皮鞋疾跑上限+' 秒'); }
+  if(it.kind==='ink'){ INV.ink++; showToast('拾取道具 · 墨水炸弹 ×1'); }
+  else if(it.kind==='key'){
+    PLAYER_HAS_KEY = true; it.taken = true;
+    if(it.key) it.key.taken = true;
+    KEYS_TAKEN++;
+    try{ if(it.drawer) it.drawer.item = null; }catch(e){}
+    showToast('拾取钥匙 ×1 · 去安全门撤离');
+    updateKeyHud();
+  }
+  else { INV.shoe++; showToast('拾取道具 · 皮鞋 ×1'); }
   updateItemHud();
 }
 // —— 墨水：扔出去，砸中鬼 → 鬼的屏幕黑 3 秒 ——
 let blindT=0;          // 鬼被墨水糊住的剩余秒数（按真实时间衰减，不随视角切换重置）
+
+// 鬼被墨水糊一脸（全屏墨迹，效果结束时跟着消失）
+const INK_FACE = document.createElement('canvas');
+INK_FACE.id = 'inkFace';
+INK_FACE.style.cssText = 'position:fixed;inset:0;z-index:78;pointer-events:none;opacity:0;transition:opacity .6s';
+document.body.appendChild(INK_FACE);
+function drawInkSplat(){
+  INK_FACE.width = innerWidth; INK_FACE.height = innerHeight;
+  const x = INK_FACE.getContext('2d'), W=INK_FACE.width, H=INK_FACE.height;
+  x.clearRect(0,0,W,H);
+  const cx=W*0.5, cy=H*0.5, R=Math.min(W,H)*0.42;
+  x.fillStyle='rgba(5,7,18,.97)';
+  x.beginPath();
+  for(let i=0;i<=48;i++){
+    const a=i/48*Math.PI*2, rr2=R*(0.70+Math.random()*0.55);
+    const px=cx+Math.cos(a)*rr2, py=cy+Math.sin(a)*rr2*0.92;
+    i?x.lineTo(px,py):x.moveTo(px,py);
+  }
+  x.closePath(); x.fill();
+  for(let i=0;i<80;i++){
+    const a=Math.random()*Math.PI*2, d=R*(0.55+Math.random()*0.9);
+    x.fillStyle='rgba(5,7,18,'+(0.45+Math.random()*0.5)+')';
+    x.beginPath(); x.arc(cx+Math.cos(a)*d, cy+Math.sin(a)*d*0.9, 4+Math.random()*20, 0, 7); x.fill();
+  }
+  for(let i=0;i<10;i++){
+    const sx=cx+(Math.random()-0.5)*R*1.1, sy=cy-R*0.15;
+    x.strokeStyle='rgba(5,7,18,.72)'; x.lineWidth=6+Math.random()*9; x.lineCap='round';
+    x.beginPath(); x.moveTo(sx,sy); x.lineTo(sx+(Math.random()-0.5)*24, sy+R*(0.55+Math.random()*0.6)); x.stroke();
+  }
+}
+
+// 鬼脸上的墨迹：贴在鬼的头上，被砸中才出现，效果结束自己淡掉
+let GHOST_INK = null;
+function makeInkTexture(){
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const x = cv.getContext('2d');
+  x.clearRect(0,0,128,128);
+  const cx=64, cy=64;
+  x.fillStyle='rgba(6,9,20,.97)';
+  x.beginPath();
+  for(let i=0;i<=28;i++){
+    const a=i/28*Math.PI*2, r=40*(0.55+Math.random()*0.55);
+    const px=cx+Math.cos(a)*r, py=cy+Math.sin(a)*r;
+    i?x.lineTo(px,py):x.moveTo(px,py);
+  }
+  x.closePath(); x.fill();
+  for(let i=0;i<26;i++){
+    const a=Math.random()*Math.PI*2, d=40+Math.random()*24;
+    x.fillStyle='rgba(6,9,20,'+(0.45+Math.random()*0.5)+')';
+    x.beginPath(); x.arc(cx+Math.cos(a)*d, cy+Math.sin(a)*d, 2+Math.random()*7, 0, 7); x.fill();
+  }
+  // 往下淌的两道
+  for(let i=0;i<3;i++){
+    x.strokeStyle='rgba(6,9,20,.8)'; x.lineWidth=3+Math.random()*4; x.lineCap='round';
+    x.beginPath(); x.moveTo(cx-10+i*10, cy); x.lineTo(cx-10+i*10+(Math.random()*8-4), cy+34+Math.random()*14); x.stroke();
+  }
+  return new THREE.CanvasTexture(cv);
+}
+function attachGhostInk(){
+  if(GHOST_INK){ ghost.remove(GHOST_INK); GHOST_INK.geometry.dispose(); GHOST_INK.material.map.dispose(); GHOST_INK.material.dispose(); GHOST_INK=null; }
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.46, 0.46),
+    new THREE.MeshBasicMaterial({ map: makeInkTexture(), transparent:true, opacity:1, depthWrite:false, side:THREE.DoubleSide })
+  );
+  m.position.set(0, 1.78, 0.20);      // 脸的位置（模型放大了 1.22 倍）
+  m.renderOrder = 3;
+  ghost.add(m);
+  GHOST_INK = m;
+}
+function tickGhostInk(){
+  if(!GHOST_INK) return;
+  const total = Math.max(0.001, CFG.道具.墨水黑屏秒);
+  const k = Math.max(0, blindT/total);
+  GHOST_INK.material.opacity = k;
+  if(k <= 0.01){
+    ghost.remove(GHOST_INK);
+    GHOST_INK.geometry.dispose(); GHOST_INK.material.map.dispose(); GHOST_INK.material.dispose();
+    GHOST_INK = null;
+  }
+}
+
+function inkHitGhost(){
+  blindT = Math.max(blindT, CFG.道具.墨水黑屏秒);
+  // 墨水黏住：鬼被拖慢 1 秒，只有人类蹲着走的一半速度
+  const _d = cfgNum('鬼AI','墨水减速秒',1);
+  if(GV.on) GV.inkSlowT = Math.max(GV.inkSlowT||0, _d);
+  else      GAI.inkSlowT = Math.max(GAI.inkSlowT||0, _d);
+  attachGhostInk();                       // 鬼脸上糊一块墨（看着鬼的人都能看到）
+  if(GV.on){                              // 只有被砸的鬼自己，屏幕才会被糊住
+    drawInkSplat();
+    INK_FACE.style.opacity = '1';
+    try{ elBlind.style.opacity='0'; }catch(e){}
+    showToast('你被墨水糊住了！');
+  } else {
+    showToast('墨水砸中鬼！它的脸被糊住了');
+  }
+}
+
 function onInkHit(){
   Sound.click();
-  blindT = CFG.道具.墨水黑屏秒;
-  // 只有"正在看鬼的屏幕"才全黑；人类视角下只提示，不遮自己的眼
-  if(GV.on){ elBlind.style.opacity='1'; }
-  else toastTip('墨水砸中鬼 · 它被糊住眼睛 3 秒');
+  if(!GV.on) INK_FACE.style.opacity = '0';   // 人类不该被糊屏幕
+  inkHitGhost();
+  // 人类视角下只提示
   ghost.userData.pulse = 1.0;      // 鬼身上闪一下，确认砸中了
 }
 function throwInk(){
-  if(INV.ink<=0) return;
-  INV.ink--; updateItemHud();
+  if(!INK_READY) return;
+  INK_READY = false;
   camera.getWorldDirection(_aimDir);
   const m=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),
     new THREE.MeshStandardMaterial({color:0x0d141c, emissive:0x2b4055, emissiveIntensity:1.1, roughness:.4}));
@@ -1994,7 +2511,9 @@ function updateBlind(dt){
     }
     if(blindT <= 0){
       elBlind.style.opacity = '0';
+      tickGhostInk();
       if(GV.on) toastTip('视线恢复了');
+      try{ INK_FACE.style.opacity='0'; }catch(e){}
     }
   } else if(!GV.on){
     elBlind.style.opacity = '0';
@@ -2017,7 +2536,7 @@ function updateCabinets(dt){
 // —— P 键：切到鬼的视角（调试联机用）——
 const GV={on:false, x:0, z:0, y:0, vy:0, grounded:true, yaw:0, pitch:0};
 function toggleGhostView(){
-  RADAR = true;              // 按过一次 P 之后，雷达常驻
+  // 雷达只由 F8 控制，不再跟视角绑定
   // 注意：切到鬼视角时【不要】清掉躲藏状态——那是人类那一侧的状态，
   // 清掉就会让玩家重新"站回门外"。鬼本身不能躲藏（tryHide 里已拦）。
   GV.on=!GV.on;
@@ -2029,7 +2548,7 @@ function toggleGhostView(){
   elRed.style.opacity = GV.on ? '0.45':'0';
   elGhostTag.style.opacity = GV.on ? '1':'0';
   if(ghost.userData.body) ghost.userData.body.root.visible = !GV.on;
-  toastTip(GV.on ? '切到鬼的视角（再按 P 切回）' : '回到人类视角');
+  toastTip(GV.on ? '进入鬼的视角' : '回到人类视角');
 }
 
 /* ---------- 8. 手电筒 + 极弱环境光 ---------- */
@@ -2233,9 +2752,18 @@ function hitPlayer(){
   applyHit();
 }
 function applyHit(){
+  if(GV.on) return;
   if(DEAD) return;
+  // 硬保底：两次砍中至少间隔 2.8 秒（不管是 AI 鬼还是玩家鬼、也不管哪条代码路径触发）
+  const _now = performance.now();
+  if(_now - (window.__LAST_HIT_AT || 0) < 2800) return;
+  window.__LAST_HIT_AT = _now;
+  // 躲柜子里被砍：立刻被拽到门外，马上能跑（不用等玩家自己按 E）
+  try{ if(typeof HIDE !== 'undefined' && HIDE.hidden) forceOutOfHide(); }catch(e){}
   if(HURT_LV>=2) return;              // 掉腿状态下鬼不能再砍
   HURT_LV++;
+  stamina = 1;                        // 被砍一刀 → 体力立刻回满（肾上腺素）
+  try{ exhausted = false; }catch(e){}
 
   Sound.heart();
   scream();                       // 玩家的惨叫
@@ -2256,7 +2784,7 @@ function applyHit(){
     toastTip('左腿被砍断！你只能爬行，无法开门和开抽屉');
     // 单人模式：被砍两刀直接判负
     if(AI.mode==='single' && AI.role==='human'){
-      DEAD = true;
+      DEAD = true; try{ SFX.play('playerDie'); }catch(e){} try{ SFX.play('playerDie'); }catch(e){}
       if(ghost.userData.body) ghost.userData.body.root.visible = true;
       showDead();
     }
@@ -2281,6 +2809,7 @@ function scream(){ try{ Sound.scream(); }catch(e){} }
 
 // —— 鬼跳脸 CG（1 秒，只给玩家看）——
 function jumpScare(){
+  try{ if(SFX.play('jumpScare')){ /* 已播真实跳脸音 */ } }catch(e){}
   if(!STARTED || DEAD) return;          // 回主界面 / 已经死了：绝对不再弹脸
   let el = document.getElementById('jumpScare');
   if(!el){
@@ -2930,7 +3459,17 @@ function paintMenuBackdrop(){
 
 
 // 把上一局残留的遮罩/提示全部清干净（回菜单、死亡、重开都要调）
+function resetInventory(){
+  try{ INV.ink = 0; INV.shoe = 0; }catch(e){}
+  try{ BAG = false; const b=document.getElementById('bag'); if(b) b.classList.remove('on'); }catch(e){}
+  try{ clearKeys(); }catch(e){}
+  try{ PLAYER_HAS_KEY = false; KEYS_TAKEN = 0; }catch(e){}
+  try{ PROJECTILES.length = 0; }catch(e){}
+  try{ updateKeyHud(); }catch(e){}
+  try{ const it=document.getElementById('items'); if(it) it.style.display='none'; }catch(e){}
+}
 function clearTransient(){
+  try{ resetInventory(); }catch(e){}
   try{
     const js = document.getElementById('jumpScare');
     if(js){ js.classList.remove('on'); js.style.opacity='0'; }
@@ -2967,11 +3506,28 @@ function showDefeat(){
   window.__defeatT = setTimeout(backToMenu, 5000);
 }
 function backToMenu(){
+  try{ SFX.stopAll(); SFX.music('ambience', false); SFX.music('menuMusic', true); }catch(e){}
   clearTimeout(window.__defeatT);
   if(document.pointerLockElement) document.exitPointerLock();
+  // —— 回主菜单＝这一局直接作废，全部重置 ——
+  try{ if(GV.on) toggleGhostView(); }catch(e){}      // 退出鬼视角
+  try{ PAUSED = false; }catch(e){}
+  try{ if(typeof BAG !== 'undefined' && BAG){ BAG = false; const b=document.getElementById('bag'); if(b) b.classList.remove('on'); } }catch(e){}
+  try{ RADAR = false; }catch(e){}
+  try{ ATK.on = false; ATK.t = 0; }catch(e){}
+  try{ if(typeof CHECK !== 'undefined'){ CHECK.on=false; CHECK.t=0; CHECK.npc=null; CHECK.door=null; } }catch(e){}
+  try{ respawnPlayer(); }catch(e){}                  // 玩家/鬼/AI 回到开局位置与状态
   STARTED = false; DEAD = false; HURT_LV = 0;
   if(typeof GHOST_WON !== 'undefined') GHOST_WON = false;
+  setTimeout(function(){ try{ if(!STARTED && GV.on) toggleGhostView(); }catch(e){} }, 150);
   clearTransient();
+  // 游戏内 HUD 一律收起来：钥匙提示、体力条、鬼标记、雷达、准心
+  try{
+    const hideIds = ['items','hud','ghostTag','elRadar','lockHint','tapToPlay'];
+    for(const id of hideIds){ const el=document.getElementById(id); if(el) el.style.display='none'; }
+    if(typeof elRadar!=='undefined' && elRadar) elRadar.style.display='none';
+    if(typeof switchHUD==='function') switchHUD(false);
+  }catch(e){}
   showView('pMain');
   MENU_ANIM.intro = 0; MENU_ANIM.stareT = 0; MENU_ANIM.stare = 0; MENU_ANIM.turnT = 0; MENU_ANIM.turn = 0;
   MENU_ANIM.swT = 0; MENU_ANIM.sw = 0;
@@ -2986,6 +3542,11 @@ function backToMenu(){
 // 鬼按左键：挥刀 → 命中判定
 function ghostAttack(){
   if(!GV.on || ATK.on || DEAD) return;
+  if(GV.hitCd === undefined) GV.hitCd = 0;
+  if(GV.hitCd > 0){
+    try{ toastTip('刀还在擦，等一下再砍（' + GV.hitCd.toFixed(1) + ' 秒）'); }catch(e){}
+    return;
+  }
   ATK.on=true; ATK.t=0;
   const dx=player.x-GV.x, dz=player.z-GV.z;
   const dist=Math.hypot(dx,dz)||1e-3;
@@ -2994,16 +3555,9 @@ function ghostAttack(){
   Sound.slash();
   // 躲在柜子里的人砍不到；正面 2.2 米内且大致朝向 → 命中
   let hitSomething = false;
-  if(!HIDE.hidden && dist<2.2 && dot>0.45){ applyHit(); hitSomething = true; GV.slowT = cfgNum('鬼AI','砍人减速秒',5); }
-  else if(AI.humans.length){
-    // 砍 AI 人类也算
-    for(const h of AI.humans){
-      if(h.state==='dead' || h.state==='out' || h.state==='hide') continue;
-      const hx=h.person.root.position.x, hz=h.person.root.position.z;
-      const hd=Math.hypot(hx-GV.x, hz-GV.z);
-      if(hd < 2.2){ aiHurtHuman(h); hitSomething = true; GV.slowT = cfgNum('鬼AI','砍人减速秒',5); break; }
-    }
-  }
+  if(!GV.on && !HIDE.hidden && dist<2.2 && dot>0.45 && !losBlocked(GV.x, GV.z, player.x, player.z)){ GV.hitCd = cfgNum('鬼AI','砍人间隔秒',3); applyHit(); hitSomething = true; GV.slowT = cfgNum('鬼AI','砍人减速秒',5); }
+  // 注：以前这里还有一段"砍 AI 人类"的判定，会和下面的循环重复计算一次，
+  // 导致 AI 一刀就被判定两下直接倒地。现在只保留下面对朝向 + 视线有要求的循环。
   // AI 人类也能砍（倒地的不再判定）
   const fx2=fx, fz2=fz;
   for(const h of AI.humans){
@@ -3023,7 +3577,10 @@ function ghostCheck(){
   let cab = null, kind = null;
   const aim = aimTarget();
   if(aim && aim.kind === 'cabinet'){ cab = aim.ref; kind = 'cabinet'; }
-  if(!cab){ const dr = nearestDoor(); if(dr){ cab = dr; kind = 'door'; } }
+  if(!cab && typeof DOORS!=='undefined'){
+    const dr = nearestDoor();
+    if(dr && dr.kind !== 'exit'){ cab = dr; kind = 'door'; }
+  }
   if(!cab){ const rd = nearestRoomDoor(); if(rd){ cab = rd; kind = 'roomdoor'; } }
   if(!cab){ toastTip('对准柜子或门按 E 检查'); return; }
 
@@ -3042,6 +3599,17 @@ function ghostCheck(){
   CHECK.ref   = cab;
   CHECK.tx    = cab.x;
   CHECK.tz    = cab.z;
+  // 门后有没有 AI 人类（玩家当鬼时，AI 也会躲门里）
+  let npc = null;
+  if(kind === 'door'){
+    npc = AI.humans.find(function(h){
+      if(h.state !== 'hide' || !h.hideDoor) return false;
+      if(h.hideDoor === cab) return true;
+      return Math.hypot(h.hideDoor.x - cab.x, h.hideDoor.z - cab.z) < 1.2;
+    }) || null;
+    if(npc) victim = true;
+  }
+  CHECK.npc   = npc;
   CHECK.victim= victim;
   CHECK.opened= false;
   CHECK.closed= false;
@@ -3078,36 +3646,274 @@ function bagSlots(){
       '<span style="font-size:10px;opacity:.62;text-align:center;padding:0 6px;line-height:1.35">'+x.d+'</span></div>';
   }).join('');
   w.querySelectorAll('[data-k]').forEach(function(el){
-    el.onclick = function(){
+    el.onclick = function(ev){
+      ev.stopPropagation();
       const k = el.dataset.k;
       if(!k) return;
-      if(k==='shoe'){ INV.shoe--; STAM_MAX=CFG.道具.皮鞋疾跑上限; stamina=1; toastTip('穿上皮鞋 · 疾跑上限 '+CFG.道具.皮鞋疾跑上限+' 秒'); }
-      if(k==='ink'){ toastTip('墨水：关闭背包后按左键投掷'); }
+      if(k==='shoe'){ INV.shoe--; STAM_MAX=CFG.道具.皮鞋疾跑上限; stamina=1; showToast('已穿上皮鞋 · 疾跑上限 '+CFG.道具.皮鞋疾跑上限+' 秒'); }
+      if(k==='ink'){ INV.ink--; INK_READY=true; showToast('已携带墨水炸弹 · 左键投掷'); }
       toggleBag();
     };
   });
+  // 点背包的空白处：把已经拿在手上的墨水收回背包（取消携带）
+  w.addEventListener('click', function(ev){
+    if(ev.target.closest('[data-k]')) return;
+    if(INK_READY){
+      INK_READY = false;
+      INV.ink++;
+      updateItemHud();
+      showToast('墨水已收回背包');
+      toggleBag();
+    }
+  });
 }
 
+let BAG_INTENT = false;
 function toggleBag(){
   if(!STARTED) return;
   BAG = !BAG;
   if(BAG){
+    BAG_INTENT = true;
     if(document.pointerLockElement) document.exitPointerLock();
     bagSlots(); elBag.style.display='flex';
   } else {
     elBag.style.display='none';
+    BAG_INTENT = false;
     const p2 = renderer.domElement.requestPointerLock();
     if(p2 && p2.catch) p2.catch(function(){});
   }
 }
 
 
-/* ================= 15. 雷达小地图（按 P 后常驻显示）================= */
+
+/* ================= 鬼的红色地面警示圈 =================
+   以鬼为圆心、半径约 3.2 米（≈3 个身位）的红光，只对"人类玩家"可见，
+   靠近时逐渐变亮并轻微脉动，用来提示"鬼就在附近"。 */
+const GHOST_AURA = (()=>{
+  const S = 256;
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const g = cv.getContext('2d');
+  const grad = g.createRadialGradient(S/2, S/2, S*0.06, S/2, S/2, S*0.5);
+  grad.addColorStop(0.00, 'rgba(255,70,50,0.95)');
+  grad.addColorStop(0.35, 'rgba(220,40,30,0.55)');
+  grad.addColorStop(0.70, 'rgba(150,20,15,0.20)');
+  grad.addColorStop(1.00, 'rgba(120,10,10,0)');
+  g.fillStyle = grad; g.fillRect(0,0,S,S);
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1,1),
+    new THREE.MeshBasicMaterial({ map: tex, transparent:true, opacity:0, depthWrite:false,
+                                  blending: THREE.AdditiveBlending, toneMapped:false })
+  );
+  mesh.rotation.x = -Math.PI/2;
+  mesh.position.y = 0.03;
+  mesh.renderOrder = 3;
+  mesh.visible = false;
+  scene.add(mesh);
+  return { mesh, radius: 6.4, mat: mesh.material };
+})();
+
+function updateGhostAura(dt, t){
+  try{
+    const m = GHOST_AURA.mesh;
+    if(!m) return;
+    if(GV.on || !STARTED || DEAD){ m.visible = false; return; }
+    const dx = ghost.position.x - player.x, dz = ghost.position.z - player.z;
+    const d = Math.hypot(dx, dz);
+    if(d > 24){ m.visible = false; return; }
+    m.visible = true;
+    m.position.set(ghost.position.x, 0.03, ghost.position.z);
+    const R = GHOST_AURA.radius * 2;         // 直径
+    const pulse = 0.86 + Math.sin(t*4.2)*0.14;
+    m.scale.set(R*pulse, R*pulse, 1);
+    const near = 1 - Math.min(1, Math.max(0, (d - 2) / 18));   // 2 米内最亮
+    GHOST_AURA.mat.opacity = 0.32 + near*0.58;
+  }catch(e){}
+}
+
+
+/* ================= 钥匙系统（3 色钥匙 / 通关条件） =================
+   · 玩家当鬼：场上刷 3 把（红/绿/蓝），分在不同房间的抽屉里，AI 集齐 → 人类赢
+   · 玩家当人类：只刷 1 把，拿到后去安全门按 E 撤退 → 人类赢
+   · 钥匙只刷在抽屉里，且不会和墨水刷在同一个抽屉
+*/
+const KEY_COLORS = [0xff4a4a, 0x5cff9d, 0x5aa9ff];
+const KEY_NAMES  = ['红', '绿', '蓝'];
+let KEYS = [];
+let KEYS_TAKEN = 0;
+let PLAYER_HAS_KEY = false;
+let HUMANS_WON = false;
+let AI_ESCAPED = 0;
+
+function roomOfPoint(x, z){
+  for(const r of ROOMS){
+    if(x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1) return r;
+  }
+  return null;
+}
+function makeKeyMesh(color){
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 3.2, metalness: .55, roughness: .25 });   // 亮度提高一倍多
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.030, .009, 6, 12), m);
+  ring.rotation.x = Math.PI/2; g.add(ring);
+  const shaft = new THREE.Mesh(new THREE.BoxGeometry(.011,.011,.070), m);
+  shaft.position.z = .046; g.add(shaft);
+  const tooth = new THREE.Mesh(new THREE.BoxGeometry(.026,.009,.013), m);
+  tooth.position.set(.010, 0, .078); g.add(tooth);
+  // 不给钥匙加灯光：鬼不该看到钥匙的光
+  return g;
+}
+function clearKeys(){
+  for(const k of KEYS){
+    try{
+      const it = k.drawer && k.drawer.item;
+      if(it){
+        for(let i=ITEM_HIT.length-1;i>=0;i--) if(ITEM_HIT[i].item === it) ITEM_HIT.splice(i,1);
+        for(let i=ITEMS.length-1;i>=0;i--) if(ITEMS[i] === it) ITEMS.splice(i,1);
+      }
+    }catch(e){}
+    try{ if(k.mesh && k.mesh.parent) k.mesh.parent.remove(k.mesh); }catch(e){}
+    try{ if(k.drawer && k.drawer.item && k.drawer.item.kind === 'key') k.drawer.item = null; }catch(e){}
+  }
+  KEYS = []; KEYS_TAKEN = 0; PLAYER_HAS_KEY = false; HUMANS_WON = false;
+  updateKeyHud();
+}
+function spawnKeys(n){
+  clearKeys();
+  const pool = [], usedRoom = new Set();
+  // 迷宫模式：直接按编辑器「钥匙点」找最近的柜子，一把一个
+  if(MAZE && window.LEVEL_DATA && Array.isArray(LEVEL_DATA.钥匙点) && LEVEL_DATA.钥匙点.length){
+    const usedC = new Set();
+    for(const kp of LEVEL_DATA.钥匙点){
+      if(pool.length >= n) break;
+      const c = nearestCabinet(kp.x, kp.z, usedC);
+      if(!c) continue;
+      const free = c.drawers.filter(function(d){ return !d.item; });
+      if(!free.length) continue;
+      usedC.add(c);
+      pool.push({ c:c, free:free });
+    }
+    for(let i=0;i<pool.length;i++){
+      const e = pool[i];
+      const d = e.free[e.free.length-1];
+      const mesh = makeKeyMesh(KEY_COLORS[i]);
+      mesh.position.set(0, 0.02, 0.02);
+      mesh.rotation.x = 0;
+      mesh.rotation.y = Math.random()*Math.PI*2;
+      mesh.scale.set(2.6, 2.6, 2.6);
+      mesh.visible = false;
+      mesh.traverse(function(o){ if(o.isPointLight) o.intensity = 0; });
+      d.slide.add(mesh);
+      const rec = { color:KEY_COLORS[i], name:KEY_NAMES[i], cab:e.c, drawer:d, mesh:mesh, taken:false };
+      const it  = { kind:'key', mesh:mesh, taken:false, hidden:true, drawer:d, key:rec };
+      d.item = it;
+      ITEMS.push(it);
+      ITEM_HIT.push({ mesh:mesh, item: it });
+      KEYS.push(rec);
+    }
+    updateKeyHud();
+    return;
+  }
+  for(const c of CABINETS){
+    const r = roomOfPoint(c.x, c.z);
+    if(!r || usedRoom.has(r)) continue;
+    const free = c.drawers.filter(d => !d.item);      // 不和墨水抢同一个抽屉
+    if(!free.length) continue;
+    usedRoom.add(r);
+    pool.push({ c, free });
+  }
+  shuffleArr(pool);
+  for(let i=0; i<Math.min(n, pool.length); i++){
+    const e = pool[i];
+    const d = e.free[e.free.length-1];                // 放最下层抽屉，避免和上层墨水混淆
+    const mesh = makeKeyMesh(KEY_COLORS[i]);
+    // 放进抽屉内胆里（贴底、靠里），不要浮在抽屉口外面
+    // 和墨水用同一个摆放位置（那个位置已验证"拉开抽屉就能看见"）
+    mesh.position.set(0, 0.02, 0.02);
+    mesh.rotation.x = 0;                 // 钥匙本身已经是平躺的，不要再转 90°
+    mesh.rotation.y = Math.random()*Math.PI*2;   // 每把朝向随机一点，自然些
+    mesh.scale.set(2.6, 2.6, 2.6);
+    mesh.visible = false;
+    mesh.traverse(function(o){ if(o.isPointLight) o.intensity = 0; });
+    d.slide.add(mesh);
+    const rec = { color:KEY_COLORS[i], name:KEY_NAMES[i], cab:e.c, drawer:d, mesh, taken:false };
+    const it  = { kind:'key', mesh, taken:false, hidden:true, drawer:d, key:rec };
+    d.item = it;
+    ITEMS.push(it);                       // ★ 注册到道具表，准心才能识别、E 才能拾取
+    ITEM_HIT.push({ mesh, item: it });
+    KEYS.push(rec);
+  }
+  updateKeyHud();
+}
+function takeKeyFromDrawer(d){
+  if(!d || !d.item || d.item.kind !== 'key' || d.item.taken) return null;
+  d.item.taken = true;
+  try{ d.item.mesh.visible = false;
+       d.item.mesh.traverse(function(o){ if(o.isPointLight) o.intensity = 0; }); }catch(e){}
+  const k = d.item.key;
+  if(k) k.taken = true;
+  KEYS_TAKEN++;
+  updateKeyHud();
+  // 集齐钥匙不再直接结束：他们必须逐个走到安全门撤离（见 aiHumansUpdate 的 toExit）
+  return k;
+}
+function updateKeyHud(){
+  try{
+    let el = document.getElementById('keyHud');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'keyHud';
+      el.style.cssText = 'position:fixed;right:16px;top:70px;z-index:38;font:12px/1.6 system-ui;' +
+        'color:#dfeaf2;background:rgba(6,10,14,.62);border:1px solid rgba(120,170,155,.30);' +
+        'border-radius:8px;padding:7px 11px;pointer-events:none;white-space:pre';
+      document.body.appendChild(el);
+    }
+    if(!STARTED){ el.style.display='none'; return; }
+    el.style.display = 'block';
+    if(KEYS.length <= 1){
+      el.textContent = '钥匙  ' + (KEYS_TAKEN >= 1 ? '已拿到 ✔' : '未拿到');
+    }else{
+      let line = '钥匙  ' + KEYS_TAKEN + ' / ' + KEYS.length + '  ';
+      for(const k of KEYS) line += (k.taken ? '●' : '○');
+      el.textContent = line;
+    }
+  }catch(e){}
+}
+// 统一结束界面：解锁鼠标、显示菜单层、切到结算页（否则会停在 3D 画面里出不去）
+function showEndScreen(title, hint){
+  try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(e){}
+  STARTED = false;
+  PAUSED = false;
+  try{
+    const t = document.getElementById('winTitle');
+    const h = document.getElementById('winHint');
+    if(t) t.textContent = title;
+    if(h) h.textContent = hint || '';
+    const uiEl = document.getElementById('ui');
+    if(uiEl) uiEl.classList.remove('hide');
+    const btn = document.getElementById('winBtn');
+    if(btn){ btn.textContent = '再来一次'; btn.onclick = function(){ location.reload(); }; }
+    showView('pWin');
+  }catch(e){}
+}
+
+function humanSideWin(reason){
+  if(HUMANS_WON) return;
+  HUMANS_WON = true;
+  if(AI.role === 'ghost'){ try{ SFX.play('gameOver'); }catch(e){} }
+  else { try{ Sound.scream && Sound.scream(); }catch(e){} }
+  try{ showEndScreen('人类赢了', reason || '他们带着钥匙从安全门撤离了'); }catch(e){}
+}
+
+/* ================= 15. 雷达小地图 ================= */
 let RADAR = false;
+let RADAR_BOUNDS = null;
 const elRadar = document.createElement('canvas');
-elRadar.width = 168; elRadar.height = 126;
+elRadar.width = 260; elRadar.height = 196;
 elRadar.style.cssText = 'position:fixed;left:16px;top:16px;z-index:39;opacity:0;' +
-  'border:1px solid rgba(120,170,155,.35);border-radius:6px;background:rgba(4,9,11,.62);' +
+  'border:1px solid rgba(120,170,155,.45);border-radius:8px;background:rgba(4,9,11,.72);' +
   'box-shadow:0 0 14px rgba(0,0,0,.7);pointer-events:none;transition:opacity .3s';
 document.body.appendChild(elRadar);
 const rctx = elRadar.getContext('2d');
@@ -3115,35 +3921,150 @@ const rctx = elRadar.getContext('2d');
 function drawRadar(){
   if(!RADAR || !STARTED){ elRadar.style.opacity='0'; return; }
   elRadar.style.opacity='1';
-  const CW=elRadar.width, CH=elRadar.height, pad=9;
-  const sx=(CW-pad*2)/(HX*2), sz=(CH-pad*2)/(HZ*2);
-  const px=x=>pad+(x+HX)*sx, pz=z=>pad+(z+HZ)*sz;
+  const CW=elRadar.width, CH=elRadar.height, pad=10;
+  // 地图范围只算一次：开着的门会把碰撞盒设成 -9999，每次都重算就会把地图压成一个点
+  if(!RADAR_BOUNDS){
+    let mnx=1e9,mxx=-1e9,mnz=1e9,mxz=-1e9;
+    for(const w of WALLS){
+      if(w.top != null) continue;
+      if(w.x0 < -500 || w.x1 < -500) continue;        // 开着的门 / 无效盒
+      if(w.x0<mnx) mnx=w.x0; if(w.x1>mxx) mxx=w.x1;
+      if(w.z0<mnz) mnz=w.z0; if(w.z1>mxz) mxz=w.z1;
+    }
+    if(mnx>mxx){ mnx=-HX; mxx=HX; mnz=-HZ; mxz=HZ; }
+    RADAR_BOUNDS = {mnx, mxx, mnz, mxz};
+  }
+  const mnx=RADAR_BOUNDS.mnx, mxx=RADAR_BOUNDS.mxx, mnz=RADAR_BOUNDS.mnz, mxz=RADAR_BOUNDS.mxz;
+  const spanX = Math.max(1, mxx-mnx), spanZ = Math.max(1, mxz-mnz);
+  const sc = Math.min((CW-pad*2)/spanX, (CH-pad*2)/spanZ);
+  const ox = pad + ((CW-pad*2) - spanX*sc)/2;
+  const oz = pad + ((CH-pad*2) - spanZ*sc)/2;
+  const px = x => ox + (x-mnx)*sc;
+  const pz = z => oz + (z-mnz)*sc;
+
   rctx.clearRect(0,0,CW,CH);
-  // 走廊（外圈减中庭）
-  rctx.fillStyle='rgba(96,140,128,.20)';
-  rctx.fillRect(px(-HX),pz(-HZ),HX*2*sx,HZ*2*sz);
-  rctx.clearRect(px(-IX),pz(-IZ),IX*2*sx,IZ*2*sz);
-  rctx.strokeStyle='rgba(120,190,170,.45)'; rctx.lineWidth=1;
-  rctx.strokeRect(px(-HX)+.5,pz(-HZ)+.5,HX*2*sx-1,HZ*2*sz-1);
-  rctx.strokeRect(px(-IX)+.5,pz(-IZ)+.5,IX*2*sx-1,IZ*2*sz-1);
+  rctx.fillStyle='rgba(3,8,10,.78)';
+  rctx.fillRect(0,0,CW,CH);
+
+  // 墙体（只画墙，不画矮家具）
+  rctx.fillStyle='rgba(110,160,150,.42)';
+  for(const w of WALLS){
+    if(w.top != null) continue;
+    if(w.x0 < -500 || w.x1 < -500) continue;
+    const x0=px(w.x0), z0=pz(w.z0);
+    const ww=Math.max(0.8,(w.x1-w.x0)*sc), hh=Math.max(0.8,(w.z1-w.z0)*sc);
+    rctx.fillRect(x0, z0, ww, hh);
+  }
+
+  // 假门（能藏人的门）
+  try{
+    for(const dr of (typeof DOORS!=='undefined' ? DOORS : MAP.doors)){
+      if(dr.kind === 'exit') continue;
+      const X=px(dr.x), Z=pz(dr.z);
+      rctx.fillStyle='#ffd166';
+      rctx.fillRect(X-2, Z-2, 4, 4);
+      rctx.strokeStyle='rgba(255,209,102,.35)'; rctx.lineWidth=1;
+      rctx.strokeRect(X-3.5, Z-3.5, 7, 7);
+    }
+  }catch(e){}
+  // 房间真门
+  try{
+    for(const rd of (ROOM_DOORS||[])){
+      rctx.fillStyle='rgba(120,200,255,.85)';
+      rctx.fillRect(px(rd.x)-1.5, pz(rd.z)-1.5, 3, 3);
+    }
+  }catch(e){}
+  // 玻璃门
+  for(const gd of GLASS){
+    rctx.fillStyle = gd.open ? 'rgba(150,220,255,.45)' : 'rgba(150,220,255,.95)';
+    rctx.fillRect(px(gd.x)-1.5, pz(gd.z)-1.5, 3, 3);
+  }
   // 安全出口
   if(window.EXIT_INFO){ rctx.fillStyle='#3fd48a'; rctx.fillRect(px(EXIT_INFO.x)-2,pz(EXIT_INFO.z)-2,4,4); }
-  // 玻璃门
-  for(const gd of GLASS){ rctx.fillStyle = gd.open?'rgba(150,220,255,.5)':'rgba(150,220,255,.9)';
-    rctx.fillRect(px(gd.x)-1.5,pz(gd.z)-1.5,3,3); }
-  // 玩家
-  rctx.fillStyle='#7fe0a8'; rctx.beginPath(); rctx.arc(px(player.x),pz(player.z),3,0,7); rctx.fill();
-  // 鬼
-  rctx.fillStyle='#ff5a44'; rctx.beginPath(); rctx.arc(px(ghost.position.x),pz(ghost.position.z),3,0,7); rctx.fill();
-  // 玩家朝向
-  rctx.strokeStyle='rgba(127,224,168,.8)'; rctx.beginPath();
-  rctx.moveTo(px(player.x),pz(player.z));
-  rctx.lineTo(px(player.x - Math.sin(player.yaw)*2.2), pz(player.z - Math.cos(player.yaw)*2.2));
-  rctx.stroke();
-  // 标签
-  rctx.fillStyle='rgba(150,200,185,.55)'; rctx.font='9px system-ui';
-  rctx.fillText('RADAR', 6, CH-5);
+
+  // 道具点位（墨水=蓝，皮鞋=橙；已捡走的不画）
+  try{
+    for(const it of ITEMS){
+      if(!it || it.taken) continue;
+      const m = it.mesh;
+      if(!m) continue;
+      let wx = m.position.x, wz = m.position.z;
+      try{ if(m.parent){ const v=new THREE.Vector3(); m.getWorldPosition(v); wx=v.x; wz=v.z; } }catch(e){}
+      rctx.fillStyle = (it.kind==='ink') ? '#5c8fe0' : '#e0a24a';
+      rctx.fillRect(px(wx)-2, pz(wz)-2, 4, 4);
+      rctx.strokeStyle = (it.kind==='ink') ? 'rgba(92,143,224,.4)' : 'rgba(224,162,74,.4)';
+      rctx.lineWidth=1; rctx.strokeRect(px(wx)-3.5, pz(wz)-3.5, 7, 7);
+    }
+  }catch(e){}
+  // 抽屉柜（灰点）＋ 有钥匙的抽屉（亮黄点）
+  try{
+    for(const c of CABINETS){
+      rctx.fillStyle='rgba(150,160,175,.55)';
+      rctx.fillRect(px(c.x)-1.5, pz(c.z)-1.5, 3, 3);
+      if(c.drawers && c.drawers.some(function(d){ return d.item && d.item.kind==='key' && !d.item.taken; })){
+        rctx.fillStyle='#ffe066';
+        rctx.fillRect(px(c.x)-1, pz(c.z)-4.5, 2.5, 2.5);
+      }
+    }
+  }catch(e){}
+
+  // 安全出口：大一点的绿方块 + 光圈
+  if(window.EXIT_INFO){
+    const X=px(EXIT_INFO.x), Z=pz(EXIT_INFO.z);
+    rctx.fillStyle='#3fd48a';
+    rctx.fillRect(X-3, Z-3, 6, 6);
+    rctx.strokeStyle='rgba(63,212,138,.7)'; rctx.lineWidth=1.2;
+    rctx.beginPath(); rctx.arc(X, Z, 6.5, 0, 7); rctx.stroke();
+  }
+
+  // 4 个 AI 人类（橙点；躲起来的是空心橘圈）
+  try{
+    for(const h of AI.humans){
+      if(h.state === 'dead') continue;
+      const X=px(h.person.root.position.x), Z=pz(h.person.root.position.z);
+      if(h.state === 'hide'){
+        rctx.strokeStyle='#ff9f43'; rctx.lineWidth=1.2;
+        rctx.beginPath(); rctx.arc(X,Z,2.4,0,7); rctx.stroke();
+      }else{
+        rctx.fillStyle='#ff9f43'; rctx.beginPath(); rctx.arc(X,Z,2.4,0,7); rctx.fill();
+      }
+    }
+  }catch(e){}
+
+  if(GV.on){
+    // 玩家在玩鬼：绿点＝你自己（鬼的位置），不再画那个残留的"人类替身"
+    rctx.fillStyle='#7fe0a8'; rctx.beginPath(); rctx.arc(px(GV.x),pz(GV.z),3,0,7); rctx.fill();
+    rctx.strokeStyle='rgba(127,224,168,.85)'; rctx.lineWidth=1.2;
+    rctx.beginPath(); rctx.moveTo(px(GV.x),pz(GV.z));
+    rctx.lineTo(px(GV.x + Math.sin(GV.yaw)*2.2), pz(GV.z + Math.cos(GV.yaw)*2.2));
+    rctx.stroke();
+  }else{
+    // 玩人类：红点＝鬼，绿点＝你
+    const gx = ghost.position.x, gz = ghost.position.z;
+    rctx.fillStyle='#ff4d3d'; rctx.beginPath(); rctx.arc(px(gx),pz(gz),3,0,7); rctx.fill();
+    const gyaw = ghost.rotation.y;
+    rctx.strokeStyle='rgba(255,90,70,.85)'; rctx.lineWidth=1.2;
+    rctx.beginPath(); rctx.moveTo(px(gx),pz(gz));
+    rctx.lineTo(px(gx + Math.sin(gyaw)*2.2), pz(gz + Math.cos(gyaw)*2.2));
+    rctx.stroke();
+
+    rctx.fillStyle='#7fe0a8'; rctx.beginPath(); rctx.arc(px(player.x),pz(player.z),3,0,7); rctx.fill();
+    rctx.strokeStyle='rgba(127,224,168,.85)'; rctx.lineWidth=1.2;
+    rctx.beginPath(); rctx.moveTo(px(player.x),pz(player.z));
+    rctx.lineTo(px(player.x - Math.sin(player.yaw)*2.2), pz(player.z - Math.cos(player.yaw)*2.2));
+    rctx.stroke();
+  }
+
+  // 图例
+  rctx.font='8px system-ui';
+  rctx.fillStyle='rgba(150,200,185,.75)';
+  rctx.fillText('F8 调试地图', 5, 10);
+  rctx.fillStyle='#7fe0a8'; rctx.fillText('●你', 5, CH-4);
+  rctx.fillStyle='#ff4d3d'; rctx.fillText('●鬼', 26, CH-4);
+  rctx.fillStyle='#ff9f43'; rctx.fillText('●AI', 47, CH-4);
+  rctx.fillStyle='#ffd166'; rctx.fillText('■假门', 68, CH-4);
 }
+
 /* ---------- 13. 声音系统：全部由代码合成，不用任何音频文件 ---------- */
 const Sound = (()=>{
   let ctx=null, master=null, noiseBuf=null, on=false;
@@ -3230,10 +4151,10 @@ const Sound = (()=>{
     setDrip(fn){ module_drip_hook = fn; },
     setVol(v){ vol=v; if(master) master.gain.value=v*2.8; },
     // 脚步：跑和走音色不同
-    step(run){ noiseHit(run?420:330, 1.3, run?.32:.23, .004, run?.15:.20, 'lowpass');
-      tone(run?72:60, .22, .18, 'sine', run?44:38);      // 体重砸地的低频
-      tone(150, .07, .07, 'triangle');
-      if(run) setTimeout(()=>noiseHit(1200,.9,.05,.002,.045,'bandpass'), 30);
+    step(run){ noiseHit(run?420:330, 1.3, run?.64:.46, .004, run?.30:.40, 'lowpass');
+      tone(run?72:60, .44, .36, 'sine', run?44:38);      // 体重砸地的低频（加倍）
+      tone(150, .14, .14, 'triangle');
+      if(run) setTimeout(()=>noiseHit(1200,.9,.10,.002,.09,'bandpass'), 30);
                tone(run?92:74, .10, .09, 'sine'); },
     // 玩家惨叫（被砍中）
     scream(){
@@ -3395,7 +4316,159 @@ const Sound = (()=>{
     }
   };
 })();
-Sound.setDrip(()=>Sound.drip());
+
+/* ================= 音效系统：按 level.js 的「音效」播放真实 mp3 ================= */
+const SFX = (function(){
+  const CFG = (window.LEVEL_DATA && window.LEVEL_DATA.音效) || {};
+  const DEL = new Set((window.LEVEL_DATA && window.LEVEL_DATA.删除音效) || []);
+  const LIMIT = { breath:1, heart:1, ghostStep:2, step:3, drip:1 };
+  const live = new Map();          // 事件 -> 正在播的 Audio[]
+  const pool = new Map();          // 文件 -> Audio（复用，避免重复 new）
+  let last = null;
+  let master = 1;
+
+  function src(f){ return '素材/音频/' + encodeURIComponent(f); }
+  function audioFor(f){
+    if(pool.has(f)) return pool.get(f);
+    const a = new Audio(src(f));
+    a.preload = 'auto';
+    pool.set(f, a);
+    return a;
+  }
+  function stopEvent(name){
+    const arr = live.get(name) || [];
+    for(const a of arr){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
+    live.set(name, []);
+  }
+  function stopAll(){ for(const k of live.keys()) stopEvent(k); }
+  function play(name){
+    if(DEL.has(name)) return false;
+    const ev = CFG[name];
+    if(!ev || !ev.items || !ev.items.length) return false;
+    const files = ev.items.filter(function(it){ return it.kind==='file' && it.file; });
+    if(!files.length) return false;                       // 纯合成音事件交给老的 Sound
+
+    const lim = LIMIT[name] || 3;
+    const arr = (live.get(name) || []).filter(function(a){ return a && !a.paused && !a.ended; });
+    if(arr.length >= lim) return false;
+
+    const it = ev.random ? files[(Math.random()*files.length)|0] : files[0];
+    const a = audioFor(it.file);
+    try{
+      a.pause(); a.currentTime = 0;
+      const _boost = (name === 'ghostStep') ? 1.9 :
+                     (name === 'doorOpen' || name === 'doorClose') ? 1.25 : 1;   // 开关门再放大 1/4
+      a.volume = Math.min(1, (ev.vol==null?1:ev.vol) * master * _boost);
+      a.loop = false;
+      a.__event = name;
+    }catch(e){}
+
+    // 重复 n 遍
+    const reps = Math.max(1, it.repeat|0 || 1);
+    if(reps > 1){
+      let n = 1;
+      a.onended = function(){
+        if(n < reps){ n++; try{ a.currentTime = 0; a.play().catch(function(){}); }catch(e){} }
+      };
+    } else {
+      a.onended = null;
+    }
+
+    // 到点掐断
+    if(it.dur && it.dur > 0){
+      setTimeout(function(){ try{ a.pause(); }catch(e){} }, it.dur*1000);
+    }
+
+    const p = a.play();
+    if(p && p.catch) p.catch(function(){ /* 文件缺失：静默回落 */ });
+
+    arr.push(a); live.set(name, arr);
+    last = { name:name, file:it.file };
+    return true;
+  }
+
+  // 音乐层：主界面 / 游戏内，loop 循环
+  const music = {};
+  function playMusic(name, on){
+    const ev = CFG[name];
+    if(!ev || !ev.items) return false;
+    const f = (ev.items.find(function(it){ return it.kind==='file'; }) || {}).file;
+    if(!f) return false;
+    if(!on){ if(music[name]){ try{ music[name].pause(); }catch(e){} } return true; }
+    if(!music[name]){
+      const a = new Audio(src(f));
+      a.loop = true; a.preload = 'auto';
+      music[name] = a;
+    }
+    try{
+      music[name].volume = Math.min(1, (ev.vol==null?1:ev.vol));
+      const p = music[name].play();
+      if(p && p.catch) p.catch(function(){});
+    }catch(e){}
+    return true;
+  }
+  function stopMusic(){ for(const k in music){ try{ music[k].pause(); }catch(e){} } }
+
+  return { play:play, stopEvent:stopEvent, stopAll:stopAll, music:playMusic, stopMusic:stopMusic,
+           get last(){ return last; }, setMaster:function(v){ master = v; } };
+})();
+window.SFX = SFX;
+// ===== 胜利音：优先用 level.js 的 victory/win 音频；没有就合成一段上行和弦 =====
+let _WIN_CTX = null;
+function playWin(){
+  try{ if(typeof SFX!=='undefined' && (SFX.play('victory') || SFX.play('win'))) return; }catch(e){}
+  // 没有配置 victory 时，播这首阴森的"幸存"音（低沉嗡鸣 + 三全音）
+  try{
+    if(!window.__WIN_AUDIO){
+      window.__WIN_AUDIO = new Audio('素材/音频/' + encodeURIComponent('胜利-阴森.wav'));
+      window.__WIN_AUDIO.volume = 0.85;
+    }
+    const a = window.__WIN_AUDIO;
+    a.currentTime = 0;
+    const pr = a.play();
+    if(pr && pr.then){ pr.then(function(){ window.__WIN_PLAYED = true; }).catch(function(){}); }
+    if(window.__WIN_PLAYED || !a.error) return;
+  }catch(e){}
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    if(!_WIN_CTX) _WIN_CTX = new AC();
+    const ctx = _WIN_CTX;
+    if(ctx.state === 'suspended') ctx.resume();
+    const t0 = ctx.currentTime;
+    const notes = [392.00, 493.88, 587.33, 783.99];      // G4 B4 D5 G5（整体降纯四度，更低沉）
+    const lp = ctx.createBiquadFilter();                 // 低通：削掉高频，声音更闷
+    lp.type = 'lowpass'; lp.frequency.value = 1800; lp.Q.value = 0.6;
+    lp.connect(ctx.destination);
+    notes.forEach(function(f, i){
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      const st = t0 + i*0.16;
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.22, st + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.55);
+      o.connect(g); g.connect(lp);
+      o.start(st); o.stop(st + 0.6);
+    });
+  }catch(e){}
+}
+
+
+// 老 Sound 的对应方法改成"优先放真音频，没有文件再回落合成音"
+(function(){
+  const pairs = [['doorOpen','doorOpen'],['creak','doorOpen'],['doorClose','doorClose'],
+                 ['ghostStep','ghostStep'],['heart','heart'],['breath','breath'],
+                 ['slash','slash'],['drip','drip'],['scream','scream']];
+  for(const pr of pairs){
+    const k = pr[0], ev = pr[1];
+    const f = Sound[k];
+    if(typeof f === 'function'){
+      Sound[k] = function(){ if(SFX.play(ev)) return; return f.apply(Sound, arguments); };
+    }
+  }
+})();
+
+// 滴水改由 Drip 控制器统一管理（单次、不重叠）
 
 /* ---------- 12. 行走控制 ---------- */
 const _spawn = SPAWN.player;
@@ -3413,27 +4486,9 @@ const MENU_CAM = (()=>{
   return {x:p.x - p.dz*0.9, z:p.z + p.dx*0.9,
           yaw:Math.atan2(-p.dx,-p.dz), pitch:-0.015};
 })();
-const HANG = (()=>{
-  const p=atPath(6);
-  // 前方 6.4 米、屏幕右手边 1.95 米（走廊内侧那边）
-  const px=p.x + p.dx*6.4 - p.dz*1.95;
-  const pz=p.z + p.dz*6.4 + p.dx*1.95;
-  const g=new THREE.Group(); g.position.set(px,0,pz);
-  g.rotation.y = Math.atan2(-p.dx, -p.dz);   // 面朝镜头
-  scene.add(g);
-  const body=makePerson({cloth:0x171b20, torch:false});
-  body.root.position.y=0.62; body.root.rotation.z=0.06;
-  body.root.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
-  g.add(body.root);
-  const rope=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,0.70,8),
-                new THREE.MeshStandardMaterial({color:0x2b2a26, roughness:.95}));
-  rope.position.y=2.50; g.add(rope);
-  const hook=new THREE.Mesh(new THREE.TorusGeometry(.05,.012,6,10), metalMat);
-  hook.position.y=2.84; g.add(hook);
-  const spot=new THREE.PointLight(0x9fc4d6, 14, 7, 2.0);   // 身后一点轮廓光，把剪影勾出来
-  spot.position.set(0.5, 2.45, -1.0); g.add(spot);
-  return {group:g, x:px, z:pz};
-})();
+// 吊死鬼 3D 模型已彻底删除（主菜单用照片背景，走廊里不再有这只吊死鬼）
+const HANG = null;
+
 const keys=Object.create(null);
 addEventListener('keydown',e=>{keys[e.code]=true;});
 addEventListener('keyup',  e=>{keys[e.code]=false;});
@@ -3441,7 +4496,191 @@ addEventListener('keyup',  e=>{keys[e.code]=false;});
 /* —— 体力 + 冲刺开关 —— */
 let   STAM_MAX=CFG.玩家.疾跑上限秒;                    // config.js 可调
 const STAM_REGEN=CFG.玩家.体力回复秒, STAM_DELAY=0.9, WALK_SPD=CFG.玩家.走速, RUN_SPD=CFG.玩家.跑速;
+
+// ===== 心跳：鬼在 12 米内才有，越近越快越响，单音源不重叠 =====
+const Heart = (function(){
+  let a = window.__HEART_AUDIO || null;
+  let playing = false, fadeT = null, cur = 0;
+  const START = 0.0, LOOP_END = 3.30;      // 心跳声2：3.42 秒一段，无缝循环
+  function el(){
+    if(!a){
+      a = new Audio('素材/音频/' + encodeURIComponent('心跳声2-增强.mp3'));
+      a.loop = true; a.preload = 'auto'; a.volume = 0;
+      window.__HEART_AUDIO = a;
+    }
+    return a;
+  }
+  function fade(to, secs, done){
+    const e = el();
+    if(fadeT){ clearInterval(fadeT); fadeT = null; }
+    const steps = Math.max(1, Math.round(secs*1000/40));
+    let i2 = 0; const from = cur;
+    fadeT = setInterval(function(){
+      i2++; cur = from + (to-from)*(i2/steps);
+      try{ e.volume = Math.max(0, Math.min(1, cur)); }catch(err){}
+      if(i2 >= steps){ clearInterval(fadeT); fadeT = null; cur = to; if(done) done(); }
+    }, 40);
+  }
+  function start(){
+    const e = el();
+    if(playing) return;
+    playing = true;
+    try{ if(e.currentTime < START) e.currentTime = START; }catch(err){}
+    const pr = e.play();
+    if(pr && pr.catch) pr.catch(function(){ playing = false; });
+    cur = 0; fade(1.0, 0.3);
+  }
+  function stop(){
+    if(!playing) return;
+    playing = false;
+    fade(0, 0.3, function(){ try{ el().pause(); }catch(err){} });
+  }
+  function update(dt, dist, active){
+    const e = el();
+    const _evH = (window.LEVEL_DATA && LEVEL_DATA.音效 && LEVEL_DATA.音效.heart) || {};
+    const HR = (_evH.范围 !== undefined) ? _evH.范围 : 18;
+    const inRange = active && dist <= HR;
+    if(!inRange){ stop(); return; }
+    if(!playing) start();
+    // 跳过文件里的静音段，只在有鼓点的 1.05~20.2 秒之间循环
+    try{ if(e.currentTime > LOOP_END) e.currentTime = START; }catch(err){}
+    // 越近越快、越响
+    const k = Math.max(0, Math.min(1, (dist - 3) / 15));       // 3m→0，18m→1
+    try{ e.playbackRate = 1.45 - k * 0.45; }catch(err){}       // 3m 1.45x，18m 1.0x
+    try{ e.volume = Math.max(0, Math.min(1, 1.0 - k*0.55)); }catch(err){}
+    cur = e.volume;
+  }
+  return { update:update, get playing(){ return playing; }, _el:el };
+})();
+
+// 心跳的合成低频层：即使 mp3 声音小，也能保证"咚"一下听得见
+let _HEART_CTX = null;
+function heartThump(gain){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    if(!_HEART_CTX) _HEART_CTX = new AC();
+    const ctx = _HEART_CTX;
+    if(ctx.state === 'suspended') ctx.resume();
+    const t0 = ctx.currentTime;
+    for(const off of [0, 0.16]){
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(58, t0+off);
+      o.frequency.exponentialRampToValueAtTime(34, t0+off+0.13);
+      g.gain.setValueAtTime(0.0001, t0+off);
+      g.gain.exponentialRampToValueAtTime(0.55*(gain||1), t0+off+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0+off+0.18);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t0+off); o.stop(t0+off+0.20);
+    }
+  }catch(e){}
+}
+// ===== 水滴：只播一次、不重叠、音量减半 =====
+const Drip = (function(){
+  const _evD = (window.LEVEL_DATA && LEVEL_DATA.音效 && LEVEL_DATA.音效.drip) || {};
+  const DRIP_VOL = (_evD.音量 !== undefined) ? _evD.音量 : ((_evD.vol !== undefined) ? _evD.vol : 0.12);
+  const DRIP_GAP = (_evD.间隔 !== undefined) ? _evD.间隔 : 8;
+  let a = window.__DRIP_AUDIO || null, t = DRIP_GAP + Math.random()*4;
+  function el(){
+    if(!a){
+      a = new Audio('素材/音频/' + encodeURIComponent('走廊尽头的水滴上，或者有水管子漏了之后的那个水滴声.mp3'));
+      a.preload = 'auto'; a.volume = DRIP_VOL; window.__DRIP_AUDIO = a;
+    }
+    return a;
+  }
+  function update(dt, active){
+    if(!active) return;
+    t -= dt;
+    if(t <= 0){
+      t = DRIP_GAP + Math.random()*3;
+      const e = el();
+      try{ e.pause(); e.currentTime = 0; e.volume = DRIP_VOL; const pr = e.play(); if(pr && pr.catch) pr.catch(function(){}); }catch(err){}
+    }
+  }
+  return { update:update, force:function(){ t = 0; } };
+})();
+
 let stamina=1, sprintHeld=false, exhausted=false, idleTime=0, lastStamPct=-1;
+// ===== 喘息：只在体力 < 50% 期间发声，渐入 / 渐出，条件结束立即淡出停止 =====
+const Breath = (function(){
+  let a = window.__BREATH_AUDIO || null;      // 全局单例：绝不允许出现第二个喘息声源
+  let playing = false, timer = null, curVol = 0, tgtVol = 0, breathNoiseT = 0;
+  let lastStart = 0, lastUpdate = 0;
+  const _evB = (window.LEVEL_DATA && LEVEL_DATA.音效 && LEVEL_DATA.音效.breath) || {};
+  const BREATH_R = (_evB.范围 !== undefined) ? _evB.范围 : 1.65;   // 编辑器里可调
+  function el(){
+    if(!a){
+      a = new Audio('素材/音频/' + encodeURIComponent('玩家恢复体力时的呼吸声.mp3'));
+      a.loop = true;
+      a.preload = 'auto';
+      a.volume = 0;
+      window.__BREATH_AUDIO = a;
+    }
+    return a;
+  }
+  function ramp(to, secs, done){
+    const e = el();
+    if(timer){ clearInterval(timer); timer = null; }
+    const steps = Math.max(1, Math.round(secs*1000/40));
+    let i = 0;
+    const from = curVol;
+    timer = setInterval(function(){
+      i++;
+      curVol = from + (to - from) * (i/steps);
+      try{ e.volume = Math.max(0, Math.min(1, curVol)); }catch(err){}
+      if(i >= steps){
+        clearInterval(timer); timer = null; curVol = to;
+        if(done) done();
+      }
+    }, 40);
+  }
+  function start(){
+    const e = el();
+    // 已经在响 / 刚启动过 / 元素还在播放 → 一律不再触发（喘气只触发一次）
+    if(playing || !e.paused) return;
+    const now = performance.now();
+    if(now - lastStart < 1500) return;
+    lastStart = now;
+    window.__BREATH_PLAYS = (window.__BREATH_PLAYS||0) + 1;
+    playing = true;
+    try{ e.currentTime = 0; }catch(err){}
+    const pr = e.play();
+    if(pr && pr.catch) pr.catch(function(){ playing = false; });
+    curVol = 0; tgtVol = 0.55;
+    ramp(0.55, 0.35);
+  }
+  function stop(){
+    if(!playing) return;
+    playing = false;
+    const e = el();
+    ramp(0, 0.32, function(){ try{ e.pause(); e.currentTime = 0; }catch(err){} });
+  }
+  function update(stam, active){
+    // 每帧只处理一次（防止同一帧被多个更新点重复调用）
+    const nowMs = performance.now();
+    if(nowMs - lastUpdate < 12) return;
+    lastUpdate = nowMs;
+    if(active === false){ stop(); return; }
+    const want = stam < 0.5;                 // 关键判定：过半才喘，回到一半以上立刻停
+    if(want){
+      if(!playing) start();
+      // 喘息的"传播半径"只有一个身位：1.65 米内才可能被听见，越远越弱
+      breathNoiseT -= 0.016;
+      if(breathNoiseT <= 0){
+        breathNoiseT = 1.0;
+        try{ emitNoise('breath', player.x, player.z, BREATH_R); }catch(e){}
+      }
+      // 体力越低，喘得越响（0.5→0.35，0→0.85）
+      const v = 0.35 + (0.5 - Math.max(0, Math.min(0.5, stam))) / 0.5 * 0.50;
+      if(Math.abs(v - tgtVol) > 0.06){ tgtVol = v; ramp(v, 0.25); }
+    } else {
+      stop();
+    }
+  }
+  return { update:update, stop:stop, get playing(){ return playing; }, get vol(){ return +curVol.toFixed(2); }, _el:el };
+})();
+
 updateItemHud();          // 2.0：道具栏初值
 let crouchHeld=false, EYE_H=1.62;   // 蹲：速度减半、没有脚步声
 // 准心透明度（0–100，默认 25%）
@@ -3459,8 +4698,26 @@ const fpsEl=document.getElementById('fps');
 // Shift：按住加速，松开恢复走路（不再是开关）
 const JUMP_V=Math.max(5.9, CFG.玩家.跳跃初速), GRAV=CFG.玩家.重力;
 addEventListener('keydown',e=>{
+  if(e.code==='Escape' && !e.repeat && STARTED && !DEAD){
+    PAUSED = true;
+    try{ TAP_ACTIVE = false; const ov2=document.getElementById('tapToPlay'); if(ov2) ov2.classList.remove('on'); }catch(err){}
+    try{ if(document.pointerLockElement) document.exitPointerLock(); }catch(err){}
+    try{ ui.classList.remove('hide'); showView('pPause'); }catch(err){}
+    return;
+  }
+  if((e.code==='F8' || e.keyCode===119) && !e.repeat){
+    try{
+      RADAR = !RADAR;
+      if(elRadar) elRadar.style.opacity = RADAR ? '1' : '0';   // 立刻生效，不等下一帧
+      try{ drawRadar(); }catch(err){}
+      toastTip(RADAR ? '调试地图：开（再按 F8 关闭）' : '调试地图：关');
+    }catch(err){}
+    e.preventDefault();
+    return;
+  }
+  if(e.code==='F3' && !e.repeat){ try{ toggleStallPanel(); }catch(err){} return; }
   if(e.code==='ShiftLeft'||e.code==='ShiftRight'){ sprintHeld=true; }
-  if(e.code==='KeyZ'){ crouchHeld=true; }
+  if(e.code==='KeyZ' && !e.repeat){ crouchHeld = !crouchHeld; }   // 按一次蹲，再按一次站
   // 空格跳跃
   if(e.code==='Space'){
     e.preventDefault();
@@ -3468,6 +4725,23 @@ addEventListener('keydown',e=>{
   }
   // E 躲藏 / 出来
   if(e.code==='KeyE' && !e.repeat){
+    // —— 安全门：有钥匙才能撤离 ——
+    try{
+      if(!GV.on && window.EXIT_INFO){
+        const de = Math.hypot(player.x-EXIT_INFO.x, player.z-EXIT_INFO.z);
+        if(de < 2.6){
+          if(PLAYER_HAS_KEY){
+            HUMANS_WON = true;
+            try{ Sound.scream && Sound.scream(); }catch(err){}
+            try{ playWin(); }catch(e){}
+            showEndScreen('你逃出去了', '带着钥匙从安全门撤离');
+          }else{
+            toastTip('门已被锁上 · 需要先找到钥匙');
+          }
+          return;
+        }
+      }
+    }catch(err){}
     const gd = nearestGlass();
     if(gd) toggleGlass(gd);
     else if(GV.on){
@@ -3485,11 +4759,10 @@ addEventListener('keydown',e=>{
     else tryHide();
   }
   if(e.code==='KeyB' && !e.repeat){ toggleBag(); }
-  // P 切换鬼视角（联机前调试鬼那端用的）
-  if(e.code==='KeyP' && !e.repeat){ toggleGhostView(); return; }
   // F 开关手电
   if(e.code==='KeyF' && !e.repeat){
     flashOn=!flashOn;
+    try{ SFX.play(flashOn ? 'flashlightOn' : 'flashlightOff'); }catch(e){}
     flashTipT=3.0;
     Sound.click();
     if(!flashOn) flash.intensity=0;
@@ -3497,7 +4770,6 @@ addEventListener('keydown',e=>{
 });
 addEventListener('keyup',e=>{
   if(e.code==='ShiftLeft'||e.code==='ShiftRight'){ sprintHeld=false; }
-  if(e.code==='KeyZ'){ crouchHeld=false; }
 });
 // 切到后台时松开，避免"切回来还在冲刺"
 addEventListener('blur',()=>{ sprintHeld=false; crouchHeld=false; });
@@ -3511,7 +4783,8 @@ addEventListener('mousedown', e=>{
   if(document.pointerLockElement!==renderer.domElement) return;
   if(GV.on) ghostAttack();
   else if(HURT_LV>=2) toastTip('腿断了，扔不动东西');
-  else throwInk();
+  else if(INK_READY) throwInk();
+  else toastTip('背包里点一下墨水，才能投掷');
 });
 
 
@@ -3522,10 +4795,16 @@ const HEAR_R    = 2 * CUBE_SIZE;           // 鬼能听见开关门的半径
 const NOISE_LOG = [];
 
 // 门声事件：返回鬼有没有听见
-function emitNoise(kind, x, z){
+function emitNoise(kind, x, z, radius){
   const d = Math.hypot(ghost.position.x - x, ghost.position.z - z);
-  const heard = d <= HEAR_R;
-  NOISE_LOG.push({kind, x, z, d, heard});
+  const R = (radius && radius > 0) ? radius : HEAR_R;
+  // 自定义半径的事件（喘息）：0 米=1.0，1 米=0.5，1.65 米=0，之后听不见
+  let strength = 1;
+  if(radius && radius > 0){
+    strength = Math.max(0, Math.min(1, 1 - (d - 0.35) / 1.30));
+  }
+  const heard = (radius && radius > 0) ? (strength > 0.001) : (d <= R);
+  NOISE_LOG.push({kind, x, z, d, heard, strength:+strength.toFixed(2)});
   if(NOISE_LOG.length > 40) NOISE_LOG.shift();
   if(heard){ ghost.userData.pulse = 1.0; }   // 鬼听见了：立方体闪红
   window.LAST_NOISE = {kind, d, heard};
@@ -3595,6 +4874,7 @@ function nearestDoor(){
 
   let best=null, bestScore=-1;
   for(const d of DOORS){
+    if(d.kind === 'exit') continue;      // 出口门不是躲藏点
     const dx=d.x-px, dz=d.z-pz;
     const dist=Math.hypot(dx,dz);
     if(dist>2.4) continue;
@@ -3725,18 +5005,26 @@ function updateHide(dt){
       HIDE.on=false; HIDE.hidden=true;
       HIDE.cam=null;                                // ★ 镜头交还，用玩家的位置/朝向
       BODY.root.visible=false;
-      const dp2=atPath(pathD(HIDE.door.x,HIDE.door.z));
-      const md2 = MAP.doors.reduce((a2,b2)=>{
-        const q1=Math.hypot(a2.x-HIDE.door.x, a2.z-HIDE.door.z);
-        const q2=Math.hypot(b2.x-HIDE.door.x, b2.z-HIDE.door.z);
-        return q2<q1?b2:a2;
-      }, MAP.doors[0]);
+      let dp2, md2 = null;
+      if(MAZE){
+        // 迷宫模式：门自己带 rotY，直接算"朝走廊"的法线（pathD 是环廊的，会算反）
+        const rY = HIDE.door.rotY || 0;
+        dp2 = { nx: -Math.sin(rY), nz: -Math.cos(rY) };
+        HIDE.room = null;
+      } else {
+        dp2 = atPath(pathD(HIDE.door.x, HIDE.door.z));
+        md2 = MAP.doors.reduce((a2,b2)=>{
+          const q1=Math.hypot(a2.x-HIDE.door.x, a2.z-HIDE.door.z);
+          const q2=Math.hypot(b2.x-HIDE.door.x, b2.z-HIDE.door.z);
+          return q2<q1?b2:a2;
+        }, MAP.doors[0]);
+      }
       player.x = HIDE.door.x + dp2.nx*0.55;   // 贴近观察窗，看得更宽
       player.z = HIDE.door.z + dp2.nz*0.55;
       // 相机 forward = (-sin yaw, -cos yaw)；要看向走廊（-n 方向）
       player.yaw = Math.atan2(dp2.nx, dp2.nz);
       HIDE.baseYaw = player.yaw;
-      HIDE.room = (md2 && md2.box) ? md2.box : null;  // 柜内活动范围
+      if(!MAZE) HIDE.room = (md2 && md2.box) ? md2.box : null;  // 柜内活动范围
       player.pitch = 0.0;
       if(flashOn){ HIDE.flashBack = true; flashOn = false; flash.intensity = 0; }
       // 补光放到"人与门之间"，只照亮门和窗口，两侧柜壁留暗
@@ -3860,8 +5148,8 @@ function tryHide(){
   if(HIDE.hidden){ startExit(); return; }
   const aim = aimTarget();               // ① 准心对准的东西优先（柜子 / 道具）
   if(aim){
-    if(aim.kind==='cabinet'){ toggleDrawer(aim.ref); return; }
     if(aim.kind==='item'){ pickupItem(aim.ref); return; }
+    if(aim.kind==='cabinet'){ toggleDrawer(aim.ref); return; }
   }
   const rd = nearestRoomDoor();          // ② 房间门：E 键开关
   if(rd){ setRoomDoor(rd, !rd.open); Sound.click(); return; }
@@ -3896,6 +5184,41 @@ function updateHideUI(){
   elPrompt.style.color = '#bfe6da';
   elPrompt.style.borderColor = 'rgba(140,200,180,.55)';
   elPrompt.style.textShadow = '0 0 8px rgba(90,220,180,.5)';
+
+  // ① 安全门优先：有钥匙=可以撤离，没钥匙=门锁着
+  try{
+    if(window.EXIT_INFO && !GV.on){
+      const de = Math.hypot(player.x-EXIT_INFO.x, player.z-EXIT_INFO.z);
+      if(de < 3.0){
+        elPrompt.textContent = PLAYER_HAS_KEY
+          ? (LANG_CODE==='en' ? '[E] ESCAPE' : '按 E 逃离')
+          : (LANG_CODE==='en' ? 'LOCKED · NEED KEY' : '门已上锁 · 需要找钥匙');
+        elPrompt.style.opacity = '1';
+        return;
+      }
+    }
+  }catch(e){}
+
+  // ② 准心对着钥匙/道具：显示拾取
+  try{
+    const aimH = aimTarget();
+    if(aimH && aimH.kind==='item'){
+      const isKey = aimH.ref && aimH.ref.kind === 'key';
+      elPrompt.textContent = (LANG_CODE==='en')
+        ? (isKey ? '[E] TAKE KEY' : '[E] TAKE')
+        : (isKey ? '按 E 拾取钥匙' : '按 E 拾取');
+      elPrompt.style.opacity = '1';
+      return;
+    }
+    if(aimH && aimH.kind==='cabinet'){
+      elPrompt.textContent = (LANG_CODE==='en')
+        ? (aimH.ref.open ? '[E] CLOSE' : '[E] OPEN')
+        : (aimH.ref.open ? '按 E 关柜子' : '按 E 开抽屉');
+      elPrompt.style.opacity = '1';
+      return;
+    }
+  }catch(e){}
+
   if(dr){
     elPrompt.textContent = (LANG_CODE==='en') ? '[E] HIDE' : '按 E 躲进去';
     elPrompt.style.opacity='1';
@@ -3926,7 +5249,7 @@ const I18N = {
     title:'走 廊', sub:'程序化生成 · 零外部素材',
     start:'开始游戏', resume:'继续游戏', settings:'设置', controls:'说明',
     skin:'皮肤', quit:'退出游戏', lang:'English', back:'返回',
-    sens:'鼠标灵敏度', vol:'音量', qual:'画质', gpu:'显卡',
+    sens:'鼠标灵敏度', vol:'音量', xhair:'准星透明度', qual:'画质', gpu:'显卡',
     q0:'低（流畅）', q1:'中（推荐）', q2:'高（清晰）',
     hint:'调完点「返回」，再点「开始游戏」',
     kMove:'移动', kLook:'鼠标', kTurn:'转向', kShift:'按住加速', kSpace:'跳跃',
@@ -3938,7 +5261,7 @@ const I18N = {
     title:'C O R R I D O R', sub:'procedural · no external assets',
     start:'START GAME', resume:'RESUME', settings:'Settings', controls:'Info',
     skin:'Character', quit:'Quit', lang:'中文', back:'Back',
-    sens:'Mouse sensitivity', vol:'Volume', qual:'Quality', gpu:'GPU',
+    sens:'Mouse sensitivity', vol:'Volume', xhair:'Crosshair opacity', qual:'Quality', gpu:'GPU',
     q0:'Low', q1:'Medium', q2:'High',
     hint:'Press Back, then Start Game',
     kMove:'Move', kLook:'Mouse', kTurn:'Look', kShift:'Hold to sprint', kSpace:'Jump',
@@ -3994,20 +5317,20 @@ function applyLang(){
   const t = I18N[LANG_CODE];
   $id('uiTitle').textContent = t.title;
   $id('btnLang').textContent = t.lang;
-  $id('btnStart').textContent = STARTED ? t.resume : t.start;
+  $id('btnStart').textContent = t.start;   // 主菜单永远是开始游戏，继续游戏只在暂停页
   document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = T(el.dataset.i18n); });
   const row=(k,v)=>'<div class="row"><span class="key">'+k+'</span><span>'+v+'</span></div>';
   const H_LIST = [
     ['W A S D', '移动'], ['鼠标', '转视角'], ['Shift', '按住冲刺（消耗体力）'],
     ['空格', '跳跃'], ['Z', '蹲下（无脚步声）'], ['F', '开关手电'],
     ['E', '开门 / 抽屉 / 躲藏 / 拾取'], ['左键', '投掷墨水'],
-    ['B', '背包'], ['P', '切到鬼视角（调试）'], ['Esc', '暂停 / 菜单']
+    ['B', '背包'], ['F8', '调试地图'], ['Esc', '暂停 / 菜单']
   ];
   const G_LIST = [
     ['W A S D', '移动'], ['鼠标', '转视角'], ['Shift', '冲刺 3 秒 · 耗尽要喘气'],
     ['空格', '跳跃'], ['Z', '蹲下（无脚步声）'],
     ['E', '开门 / 开抽屉 / 检查假门'], ['左键', '挥刀攻击'],
-    ['P', '切回人类视角（调试）'], ['Esc', '暂停 / 菜单']
+    ['F8', '调试地图'], ['Esc', '暂停 / 菜单']
   ];
   const kh=$id('keyListHuman'), kg=$id('keyListGhost');
   if(kh) kh.innerHTML = H_LIST.map(function(x){return row(x[0],x[1]);}).join('');
@@ -4028,7 +5351,15 @@ function applyLang(){
 }
 
 function showView(id){
-  ['pMain','pMode','pCamp','pSettings','pControls','pSkin','pBye','pWin'].forEach(v=>{
+  try{ RADAR = false; }catch(e){}          // 进任何菜单都关掉调试地图，不带进下一局
+  // 菜单期间收起游戏内 HUD（HUD 是独立元素，不在 #ui 里，必须单独关）
+  try{
+    const h=document.getElementById('hud'); if(h) h.style.display='none';
+    const it=document.getElementById('items'); if(it) it.style.display='none';
+    const gt=document.getElementById('ghostTag'); if(gt) gt.style.opacity='0';
+    if(typeof elRadar!=='undefined' && elRadar) elRadar.style.opacity='0';
+  }catch(e){}
+  ['pMain','pMode','pCamp','pSettings','pControls','pSkin','pBye','pWin','pPause'].forEach(v=>{
     const el=$id(v); if(el) el.classList.toggle('on', v===id);
   });
   // 3.0：所有菜单页都透出同一张背景图（包括选择阵营、设置、按键说明）
@@ -4040,6 +5371,39 @@ function showView(id){
 }
 showView('pMain');
 
+$id('btnResume').onclick = ()=>{
+  PAUSED = false;       // 先解除暂停，否则 beginPlay 会以为还在菜单里
+  beginPlay();          // 再出"点击画面继续"，点一下才锁鼠标
+};
+
+// 重新上锁；浏览器刚退出鼠标锁时短时间内不允许再锁，
+// 那就兜底退回暂停菜单，绝不出现"菜单没了、世界冻住、也点不动"的死局
+let TAP_ACTIVE = false;
+function beginPlay(){
+  PAUSED = false;
+  try{ ui.classList.add('hide'); }catch(e){}
+  // 关键：把"吊死鬼照片"背景关掉，否则游戏在跑，但照片一直盖在上面（就是那个卡住的界面）
+  try{ const ma = document.getElementById('menuArt'); if(ma) ma.style.opacity = '0'; }catch(e){}
+  try{ ui.classList.remove('menuBg'); }catch(e){}
+  try{ const lm = document.getElementById('loadMask'); if(lm) lm.classList.remove('on'); }catch(e){}
+  try{ const ov = document.getElementById('tapToPlay'); if(ov) ov.classList.remove('on'); }catch(e){}
+  relockPointer();
+}
+function relockPointer(){
+  const d = renderer.domElement;
+  let p = null;
+  try{ p = d.requestPointerLock(); }catch(e){}
+  if(p && p.catch) p.catch(function(){});
+  setTimeout(function(){
+    if(STARTED && !DEAD && document.pointerLockElement !== d){
+      // 锁不上也照样进游戏：世界不冻结，玩家用键盘能走，点一下画面再锁鼠标
+      PAUSED = false;
+      try{ ui.classList.add('hide'); }catch(e){}
+      try{ toastTip('点一下画面锁定鼠标（浏览器刚放开，需要等一下）'); }catch(e){}
+    }
+  }, 700);
+}
+$id('btnToMenu').onclick = ()=>{ backToMenu(); };
 $id('btnSettings').onclick = ()=>showView('pSettings');
 $id('btnControls').onclick = ()=>showView('pControls');
 $id('btnSkin').onclick     = ()=>{ showView('pSkin'); drawSkin(); };
@@ -4061,20 +5425,192 @@ paintMenuBackdrop();
 
 // 只有「开始游戏」按钮才进入游戏（先选阵营）
 let CAMP='human';
+
+// 整个程序只编译一次着色器：放在"加载中"遮罩后面做，做完再进游戏
+window.__BOOT = [];
+function bootMark(n){ try{ window.__BOOT.push([n, +performance.now().toFixed(0)]); }catch(e){} }
+let _warmedOnce = false;
+let _warming = false;
+const _afterWarm = [];
+
+// 立刻把加载页亮出来（先让浏览器画一帧，再做后面的重活），
+// 避免"点完之后先卡 1~2 秒才看到加载页"
+function showLoadingNow(text){
+  const mask = document.getElementById('loadMask');
+  if(!mask) return;
+  mask.classList.add('on');
+  const lb = mask.querySelector('div');
+  if(lb && text) lb.textContent = text;
+}
+function afterPaint(fn){
+  requestAnimationFrame(function(){ requestAnimationFrame(fn); });
+}
+
+function warmupOnce(cb, silent){
+  bootMark(silent ? 'silent-warm-start' : 'warm-start');
+  const mask = document.getElementById('loadMask');
+  const label = mask ? mask.querySelector('div') : null;
+  if(_warming){
+    _afterWarm.push(function(){ warmupOnce(cb, silent); });
+    return;
+  }
+  if(_warmedOnce){
+    // 第二局起：已经编译过，不用再等，但加载页必须收掉（以前没收 → 看着像卡死）
+    cb && cb();
+    try{ renderer.render(scene, camera); }catch(e){}
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        if(mask) mask.classList.remove('on');
+        try{ beginPlay(); }catch(e){}
+      });
+    });
+    return;
+  }
+  if(mask && !silent) mask.classList.add('on');
+  if(label && !silent) label.textContent = '预 加 载 资 源';
+  const t0 = performance.now();
+
+  // 需要预加载的图片（鬼脸、菜单背景等）
+  const imgs = [];
+  try{ if(typeof FACE_IMG !== 'undefined' && FACE_IMG) imgs.push(FACE_IMG); }catch(e){}
+  try{ if(typeof MENU_BG !== 'undefined' && MENU_BG) imgs.push(MENU_BG); }catch(e){}
+  try{ if(typeof MENU_BG2 !== 'undefined' && MENU_BG2) imgs.push(MENU_BG2); }catch(e){}
+
+  let started = false;
+  const boot = function(){
+    if(started) return;            // 图片超时和加载完成只走一次
+    started = true;
+    if(label) label.textContent = '正 在 准 备 场 景';
+    // 先让"加载中"这一帧画出来，再进游戏，再编译着色器
+    requestAnimationFrame(function(){
+      try{ cb && cb(); }catch(e){}
+      requestAnimationFrame(function(){
+        _warming = true;
+        // 玩鬼的话，先把鬼视角切好再编译，否则鬼视角那套材质要等进游戏才编，还是会卡
+        let _gvWasOff = false;
+        try{
+          if(typeof GV !== 'undefined'){
+            if(typeof CAMP !== 'undefined' && CAMP === 'ghost' && !GV.on){ toggleGhostView(); }
+            else if(silent && !GV.on){ toggleGhostView(); _gvWasOff = true; }   // 静默预热：顺手编鬼视角
+          }
+        }catch(e){}
+        const tmp = [];
+        const show = function(o){ if(o && o.visible === false){ tmp.push([o, false]); o.visible = true; } };
+        try{ show(BODY.root); }catch(e){}
+        try{ show(ghost); }catch(e){}
+        try{ (AI.humans||[]).forEach(function(h){ show(h.person.root); }); }catch(e){}
+
+        // 把 4 个 AI 人类临时搬到镜头正前方，强制它们真正被"画"一次
+        // （只改 visible 不够，渲染器会跳过不在视野里的物体，材质照样没编译）
+        const _aiSaved = [];
+        try{
+          const _dir = new THREE.Vector3(); camera.getWorldDirection(_dir);
+          const _base = camera.position.clone().add(_dir.multiplyScalar(3.2));
+          (AI.humans||[]).forEach(function(h, i){
+            const p = h.person.root.position;
+            _aiSaved.push([h.person.root, p.x, p.z, h.person.root.visible]);
+            h.person.root.position.set(_base.x + (i-1.5)*0.85, 0, _base.z + (i%2)*0.4);
+            h.person.root.visible = true;
+          });
+        }catch(e){}
+        try{
+          // 所有灯临时点一次（含影子）：把"灯光+影子"版本的材质也提前编好，
+          // 否则游戏中途第一次开灯/开影子会突然编译，卡死好几秒
+          const lampSave = [];
+          try{
+            scene.traverse(function(o){
+              if(!o.isLight) return;
+              lampSave.push([o, o.intensity, o.castShadow]);
+              if(o.intensity === 0) o.intensity = 1.0;
+              // 不给额外的灯强开影子：影子变体会让编译量翻倍，卡得更久
+            });
+          }catch(e){}
+          try{
+            if(label) label.textContent = '编 译 场 景';
+            // 原地转一圈渲染 8 个方向：把"出生点附近真正会看到的材质"全部编掉，
+            // 既不像全量 compile 那样卡十几秒，也不会进游戏后走两步就新编一次。
+            const _yaw0 = (typeof player !== 'undefined') ? player.yaw : 0;
+            for(let i=0;i<8;i++){
+              try{ if(typeof player !== 'undefined'){ player.yaw = _yaw0 + i*Math.PI/4; camera.rotation.y = -player.yaw; } }catch(e){}
+              renderer.render(scene, camera);
+            }
+            try{ if(typeof player !== 'undefined') player.yaw = _yaw0; }catch(e){}
+            renderer.render(scene, camera);
+          }finally{
+            lampSave.forEach(function(r){ r[0].intensity = r[1]; r[0].castShadow = r[2]; });
+          }
+        }catch(e){}
+        tmp.forEach(function(pair){ pair[0].visible = pair[1]; });
+        try{ _aiSaved.forEach(function(r){ r[0].position.set(r[1], 0, r[2]); r[0].visible = r[3]; }); }catch(e){}
+        try{ if(_gvWasOff && GV.on) toggleGhostView(); }catch(e){}
+        _warmedOnce = true;
+        _warming = false;
+        try{ const q = _afterWarm.splice(0); q.forEach(function(f){ try{ f(); }catch(e){} }); }catch(e){}
+        if(silent){ return; }
+        // 加载页至少停 0.9 秒，避免一闪而过
+        const wait = Math.max(0, 900 - (performance.now()-t0));
+        setTimeout(function(){
+          if(mask) mask.classList.remove('on');
+          try{ beginPlay(); }catch(e){}     // 场景就绪 → 出"点击画面开始"
+        }, wait);
+      });
+    });
+  };
+
+  if(!imgs.length){ boot(); return; }
+  let pending = imgs.length;
+  const one = function(){ if(--pending <= 0) boot(); };
+  imgs.forEach(function(im){
+    if(im.complete && im.naturalWidth) one();
+    else{
+      im.addEventListener('load', one, { once:true });
+      im.addEventListener('error', one, { once:true });
+    }
+  });
+  setTimeout(boot, 2500);      // 图片卡住也不许拦住开局
+}
+
+
 function startGame(camp){
+  window.__MAZE_REGION = null;      // 出口/柜子都建好了，重新算一次连通区（带出口加权）
   CAMP = camp || CAMP;
   STARTED = true;
-  const _ui0 = document.getElementById('ui'); if(_ui0) _ui0.classList.remove('menuBg');
+  const _ui0 = document.getElementById('ui');
+  if(_ui0){ _ui0.classList.remove('menuBg'); _ui0.classList.add('hide'); }
+  PAUSED = false;
   const _ma = document.getElementById('menuArt');
   if(_ma) _ma.style.opacity = '0';
   fadeIntoGame();
+  bootMark('startGame');
+  try{
+    if(window.Net && location.search.indexOf('mp=1') >= 0 && !Net.connected){
+      const nm = (new URLSearchParams(location.search)).get('name') || '玩家';
+      Net.connect(nm);
+      const t=setTimeout(()=>{ try{ Net.attach(scene, THREE); }catch(e){} }, 800);
+    }
+  }catch(e){}
+  try{
+    SFX.music('menuMusic', false);
+    const amb = (LEVEL_DATA && LEVEL_DATA.环境底噪) || {};
+    if(amb.on !== false) SFX.music('ambience', true);
+  }catch(e){}
   const it=document.getElementById('items'); if(it) it.style.display='block';
+  try{
+    const R2 = CFG.刷新 || {};
+    const lo = (typeof R2.钥匙最少 === 'number') ? R2.钥匙最少 : ((typeof R2.钥匙数量 === 'number') ? R2.钥匙数量 : 3);
+    const hi = (typeof R2.钥匙最多 === 'number') ? R2.钥匙最多 : lo;
+    const n  = Math.max(1, Math.min(6, lo + Math.floor(Math.random()*(Math.max(lo,hi)-lo+1))));
+    spawnKeys(AI.role === 'ghost' ? n : 1);
+  }catch(e){}
+  const hh=document.getElementById('hud'); if(hh) hh.style.display='';
   Sound.init();
-  const p = renderer.domElement.requestPointerLock();
-  if(p && p.catch) p.catch(()=>{});
-  if(camp==='ghost' && !GV.on) setTimeout(()=>{ if(!GV.on) toggleGhostView(); }, 80);
+  if(camp==='human'){ try{ aiGhostInit(); AI.ghostOn = true; }catch(e){ console.warn('aiGhostInit', e); } }
+  if(camp==='ghost' && !GV.on) setTimeout(()=>{ if(!GV.on && STARTED && !PAUSED) toggleGhostView(); }, 80);
 }
-$id('btnStart').onclick = ()=> STARTED ? startGame(CAMP) : playMenuIntro(()=>showView('pMode'));
+$id('btnStart').onclick = ()=>{
+  try{ SFX.music('menuMusic', true); }catch(e){}      // 首次点击后才能出声
+  playMenuIntro(()=>showView('pMode'));
+};
 $id('pickSingle').onclick = ()=> showView('pCamp');
 $id('pickMulti').onclick  = ()=> toastTip('联机开发中，先玩单人模式');
 // 新开一局：刷新出生点（位置不再沿用上一次退出时的位置）
@@ -4082,6 +5618,25 @@ function respawnPlayer(){
   const sp = pickSpawns();
   player.x = sp.player.x; player.z = sp.player.z; player.y = 0; player.vy = 0;
   player.yaw = Math.atan2(sp.ghost.x - sp.player.x, sp.ghost.z - sp.player.z);
+  if(MAZE){
+    // 面朝最开阔的方向，避免开局贴脸墙
+    const freeAhead = function(a){
+      for(let d=1; d<=7; d+=0.5){
+        const x = player.x + Math.sin(a)*d, z = player.z + Math.cos(a)*d;
+        for(const w of WALLS){
+          if(x > w.x0-0.35 && x < w.x1+0.35 && z > w.z0-0.35 && z < w.z1+0.35) return d;
+        }
+      }
+      return 7;
+    };
+    let best = player.yaw, bd = -1;
+    for(let i=0;i<16;i++){
+      const a = i*Math.PI/8;
+      const d = freeAhead(a);
+      if(d > bd){ bd = d; best = a; }
+    }
+    player.yaw = best;
+  }
   player.pitch = -0.02;
   HIDE.on = false; HIDE.hidden = false; HIDE.cam = null; HIDE.room = null;
   HURT_LV = 0; DEAD = false; HURT = false;
@@ -4096,40 +5651,34 @@ function respawnPlayer(){
     if(h.person.arms && h.person.arms[1]) h.person.arms[1].sh.visible = true;
     const p = atPath(h.d);
     h.person.root.position.set(p.x, 0, p.z);
+    try{ snapEntityToWalkable(h.person.root); }catch(e){}
     h.target = (h.d + rr(8,18)) % RING_LEN;
   }
   stamina = 1; STAM_MAX = CFG.玩家.疾跑上限秒;
-  GAI.lane = 0; GAI.homeLane = 0; GAI.hopY = 0; GAI.lostT = 0; GAI.lastSeen = null; GAI.stam = 1; GAI.slowT = 0; GAI.pendingSlow = 0;
+  GAI.lane = 0; GAI.homeLane = 0; GAI.hopY = 0; GAI.lostT = 0; GAI.lastSeen = null; GAI.stam = 1; GAI.slowT = 0; GAI.pendingSlow = 0; GAI.inkSlowT = 0; GV.inkSlowT = 0;
   ghost.position.set(sp.ghost.x, 0, sp.ghost.z);
+  try{ if(!NAV.built) navBuild(); snapEntityToWalkable(ghost); GAI.path=null; GAI.repathT=0; }catch(e){}
   if(GV.on) toggleGhostView();     // 强制回到人类视角
 }
 $id('pickHuman').onclick = ()=>{
-  const _m=document.getElementById('loadMask'); if(_m) _m.classList.add('on');
-  setTimeout(function(){ if(_m) _m.classList.remove('on'); }, 260);
   AI.mode='single'; AI.role='human';
-  respawnPlayer(); aiGhostInit();
-  AI.humans.forEach(h=>{ h.person.root.visible=false; });
-  startGame('human');
+  showLoadingNow('预 加 载 资 源');
+  afterPaint(function(){
+    try{ respawnPlayer(); aiGhostInit(); }catch(e){}
+    try{ AI.humans.forEach(h=>{ h.person.root.visible=false; }); }catch(e){}
+    warmupOnce(function(){ startGame('human'); });
+  });
 };
 $id('pickGhost').onclick = ()=>{
-  const mask=document.getElementById('loadMask');
-  if(mask) mask.classList.add('on');
-  // 先让浏览器把"加载中"画出来，再做重活，避免页面假死
-  requestAnimationFrame(function(){ requestAnimationFrame(function(){
-    try{
-      AI.mode='single'; AI.role='ghost';
-      respawnPlayer();
-      AI.ghostOn=false;
-      if(!AI.humans.length) aiSpawnHumans(4);
-      startGame('ghost');
-      // 把鬼视角要用的材质全部先编译，别等玩到一半才卡
-      try{ renderer.compile(scene, camera); renderer.render(scene, camera); }catch(e){}
-    }catch(e){ console.error(e); }
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){
-      if(mask) mask.classList.remove('on');
-    }); });
-  }); });
+  AI.mode='single'; AI.role='ghost';
+  showLoadingNow('预 加 载 资 源');            // 先出加载页
+  afterPaint(function(){
+    try{ respawnPlayer(); AI.ghostOn=false; }catch(e){}
+    try{ if(!AI.humans.length) aiSpawnHumans(4); }catch(e){}   // 造 4 个 AI（重活，藏在加载页后面）
+    warmupOnce(function(){ startGame('ghost'); });
+  });
 };
+
 /* —— 画质档位：低/中/高，改渲染倍率和阴影精度 —— */
 let QUALITY = 1;
 function applyQuality(q){
@@ -4191,12 +5740,22 @@ window.applyQuality = applyQuality;
 }
 
 let PAUSED = false;
+window.addEventListener('mousedown', function(){
+  if(!STARTED || DEAD || BAG) return;
+  if(document.pointerLockElement === renderer.domElement) return;
+  const uiEl = document.getElementById('ui');
+  if(uiEl && !uiEl.classList.contains('hide')) return;   // 菜单开着就交给按钮
+  const ov = document.getElementById('tapToPlay');
+  if(ov && ov.classList.contains('on')) return;          // 点画面遮罩自己会处理
+  relockPointer();
+}, true);
+
 document.addEventListener('pointerlockchange',()=>{
   const locked = document.pointerLockElement===renderer.domElement;
-  ui.classList.toggle('hide', locked);
-  PAUSED = !locked && STARTED;
+  ui.classList.toggle('hide', locked || BAG);
+  PAUSED = !locked && STARTED && !BAG && !TAP_ACTIVE;   // 点击遮罩/背包期间不算暂停
   if(PAUSED){
-    showView('pMain');        // 永远回到主菜单，不回上一个面板
+    showView('pPause');       // 先给暂停页：继续 / 返回主菜单
     applyLang();
     if(HIDE.on || HIDE.hidden){                // 暂停时别卡在躲藏动画里
       HIDE.on=false; HIDE.hidden=false; HIDE.cam=null;
@@ -4289,6 +5848,50 @@ function collide(p){
 
 // 自适应画质：连续两次（约 2 秒）帧时超过 45ms 就降一档；最低档还卡就关手电阴影
 let _ftAcc = 0, _ftN = 0, _ftLow = 0, _ftDone = false;
+
+/* ============ 卡顿记录（按 F3 看）============
+   每次卡超过 0.25 秒记一条，并记下当时的着色器/贴图/几何体数量。
+   数量突然变多 = 现场编译/上传；数量不变 = 垃圾回收或算力不够。 */
+const STALLS = [];
+let _stallPrev = null;
+function stallLog(ms){
+  let info = null;
+  try{
+    info = {
+      p: renderer.info.programs ? renderer.info.programs.length : -1,
+      t: renderer.info.memory.textures,
+      g: renderer.info.memory.geometries,
+      c: Math.round(renderer.info.render.calls),
+      tri: Math.round(renderer.info.render.triangles)
+    };
+  }catch(e){}
+  STALLS.push({ at: +(performance.now()/1000).toFixed(1), ms: Math.round(ms*1000), info, prev: _stallPrev });
+  if(STALLS.length > 12) STALLS.shift();
+  _stallPrev = info;
+}
+function toggleStallPanel(){
+  let el = document.getElementById('stallPanel');
+  if(el){ el.style.display = el.style.display === 'none' ? 'block' : 'none'; return; }
+  el = document.createElement('div');
+  el.id = 'stallPanel';
+  el.style.cssText = 'position:fixed;left:12px;top:12px;z-index:99999;background:rgba(0,0,0,.86);color:#7CFFB2;' +
+    'font:12px/1.5 Consolas,monospace;padding:10px 12px;border:1px solid #2c5;border-radius:8px;max-width:460px;white-space:pre-wrap';
+  document.body.appendChild(el);
+  el.textContent = '（暂无卡顿记录，玩一会儿再按 F3）';
+}
+function refreshStallPanel(){
+  const el = document.getElementById('stallPanel');
+  if(!el || el.style.display === 'none') return;
+  if(!STALLS.length){ el.textContent = '（暂无卡顿记录）'; return; }
+  el.textContent = STALLS.slice(-8).map(function(x, i){
+    const a = x.info || {}, b = x.prev || {};
+    const d = (k) => (b[k] === undefined ? '?' : (a[k] - b[k]));
+    return (i+1) + '. ' + x.ms + 'ms  程序+' + d('p') + ' 贴图+' + d('t') + ' 几何+' + d('g') +
+           '  绘制' + a.c + ' 面' + a.tri;
+  }).join('\n');
+}
+window.toggleStallPanel = toggleStallPanel;
+
 function perfGuard(rawDt){
   if(!STARTED || _ftDone) return;
   _ftAcc += rawDt; _ftN++;
@@ -4306,6 +5909,31 @@ function perfGuard(rawDt){
 }
 
 let _shadowFlip = false;
+
+// —— 通用走路动画：按实际位移推腿和手臂（AI 鬼 / 玩家鬼 / 人类身体 都用这套）——
+const _walkPrev = new WeakMap();
+// 让某个角色"盯着"目标点：取最短夹角平滑转过去
+function faceTarget(obj, tx, tz, rate, dt){
+  if(!obj) return;
+  const want = Math.atan2(tx - obj.position.x, tz - obj.position.z);
+  let d = want - obj.rotation.y;
+  while(d >  Math.PI) d -= Math.PI*2;
+  while(d < -Math.PI) d += Math.PI*2;
+  obj.rotation.y += d * Math.min(1, (rate || 8) * dt);
+}
+
+function driveWalk(person, obj, dt){
+  if(!person || !person.update || !obj || !(dt > 0)) return;
+  const p = obj.position;
+  let prev = _walkPrev.get(person);
+  if(!prev){ _walkPrev.set(person, {x:p.x, z:p.z, phase:0}); return; }
+  const dist = Math.hypot(p.x-prev.x, p.z-prev.z);
+  const speed = dist / Math.max(dt, 1e-4);
+  prev.phase += dt * (2.6 + speed*2.2);
+  prev.x = p.x; prev.z = p.z;
+  person.update(prev.phase, Math.min(2.4, speed/1.35), speed > 2.6);
+}
+
 function loop(){
   requestAnimationFrame(loop);
   const _rawDt = clock.getDelta();
@@ -4314,9 +5942,29 @@ function loop(){
     _shadowFlip = !_shadowFlip;
     if(flash.shadow){ flash.shadow.autoUpdate = _shadowFlip; }
   }catch(e){}
+  try{ if(STARTED && _rawDt > 0.25) stallLog(_rawDt); }catch(e){}
   let dt=Math.min(_rawDt,0.05);
   try{ perfGuard(_rawDt); }catch(e){}
-  if(PAUSED || BAG || !STARTED || (STARTED && !document.pointerLockElement && !BAG)) dt=0;   // 菜单/背包里世界冻结
+  try{ if(GV.hitCd > 0) GV.hitCd = Math.max(0, GV.hitCd - dt); }catch(e){}
+  try{ navTick(dt); }catch(e){}
+  try{ updateGhostAura(dt, performance.now()*0.001); }catch(e){}
+  // —— 状态兜底：躲藏动画如果被打断（切换/被砍/暂停），这里会把身体和手电复位 ——
+  try{
+    if(!HIDE.on && BODY.root.visible) BODY.root.visible = false;
+    if(!HIDE.on && Math.abs(flash.position.z - 0.06) > 0.01){
+      flash.position.set(0.16, -0.14, 0.06);
+    }
+  }catch(e){}
+  try{ if((_stallTick=(_stallTick||0)+_rawDt) > 0.5){ _stallTick = 0; refreshStallPanel(); } }catch(e){}
+  // 鼠标没锁住时给个提示（此时游戏照常跑，点一下画面就能锁回来）
+  try{
+    const _lh = document.getElementById('lockHint');
+    if(_lh){
+      const need = STARTED && !PAUSED && !DEAD && document.pointerLockElement !== renderer.domElement;
+      _lh.style.display = need ? 'block' : 'none';
+    }
+  }catch(e){}
+  if(PAUSED || !STARTED) dt=0;   // 只有暂停/菜单才冻结；鼠标锁没拿到也照常跑，避免卡成死局
   const t=clock.elapsedTime;
 
   // —— 移动 ——
@@ -4326,6 +5974,7 @@ function loop(){
   if(keys.KeyA||keys.ArrowLeft) sd-=1;
   if(keys.KeyD||keys.ArrowRight)sd+=1;
   if((HIDE.on || HIDE.hidden) && !GV.on){ fw=0; sd=0; } // 只锁人类
+  if(BAG){ fw=0; sd=0; }                               // 看背包时站住不动，但世界继续
 
   // —— 鬼视角：鬼自己走，人类不动 ——
   if(GV.on && dt>0 && !CHECK.on && !ATK.on){
@@ -4333,7 +5982,9 @@ function loop(){
     if(glen > 0){
       const nf=fw/glen, ns=sd/glen;
       // —— 鬼的体力：3 秒冲刺，耗尽后 0.5 秒缓慢减速（像跑完喘气），1 秒回满 ——
-      const G_WALK = cfgNum('鬼AI','走路速度',1.80), G_SPRINT = CFG.鬼.速度*cfgNum('鬼AI','冲刺倍率',1.5);
+      const _humanSprint = (CFG.玩家 && CFG.玩家.疾跑速度) ? CFG.玩家.疾跑速度 : 5.05;
+      const G_WALK = cfgNum('鬼AI','走路速度',1.80);
+      const G_SPRINT = Math.min(CFG.鬼.速度*cfgNum('鬼AI','冲刺倍率',1.5), _humanSprint - 0.8);   // 永远追不上人类疾跑
       if(GV.exhaustT === undefined) GV.exhaustT = 0;
       if(GV.stam === undefined) GV.stam = 1;
       let gspeed;
@@ -4345,16 +5996,19 @@ function loop(){
       } else if(sprintHeld && GV.stam > 0.02 && !GV.gassed){
         gspeed = G_SPRINT;
         GV.stam = Math.max(0, GV.stam - dt/cfgNum('鬼AI','冲刺秒',3));    // 3 秒耗尽
-        if(GV.stam <= 0.02){ GV.exhaustT = cfgNum('鬼AI','力竭减速秒',0.5); GV.gassed = true; } // 力竭减速
+        if(GV.stam <= 0.02){ GV.exhaustT = cfgNum('鬼AI','力竭减速秒',1.2); GV.gassed = true; } // 力竭减速
       } else {
         gspeed = G_WALK;
-        GV.stam = Math.min(1, GV.stam + dt/1.0);  // 1 秒回满
+        GV.stam = Math.min(1, GV.stam + dt/cfgNum('鬼AI','体力恢复秒',6));  // 恢复要 6 秒，比冲刺长一倍
       }
       // 力竭后必须松开 Shift 才能再次冲刺（像人喘完气才跑得动）
       if(GV.gassed && !sprintHeld) GV.gassed = false;
       GV.speedNow = gspeed;
       // 龟速惩罚：砍完人 5 秒内不能冲刺
-      if(GV.slowT > 0){ gspeed = cfgNum('鬼AI','砍人后速度',0.80); GV.slowT = Math.max(0, GV.slowT - dt); GV.stam = Math.min(1, GV.stam + dt); }
+      if(GV.inkSlowT > 0){
+        gspeed = cfgNum('鬼AI','墨水减速速度',0.40);      // 墨水：蹲速的一半
+        GV.inkSlowT = Math.max(0, GV.inkSlowT - dt);
+      } else if(GV.slowT > 0){ gspeed = cfgNum('鬼AI','砍人后速度',0.80); GV.slowT = Math.max(0, GV.slowT - dt); GV.stam = Math.min(1, GV.stam + dt); }
       const gspd = gspeed*dt;
       const gsin=Math.sin(GV.yaw), gcos=Math.cos(GV.yaw);
       GV.x += (nf*-gsin + ns*gcos)*gspd;
@@ -4433,10 +6087,7 @@ function loop(){
   updateCabinets(dt);
   updateProjectiles(dt);
   updateBlind(dt);
-  if(HANG){
-    HANG.group.visible = (!STARTED || PAUSED);      // 游玩时藏起来，别再出现在走廊里
-    if(!STARTED || PAUSED) HANG.group.rotation.z = Math.sin(t*0.55)*0.016;
-  }
+  // 吊死鬼模型已删除，这里不再需要更新
   // —— 准心 / 交互提示 ——
   elXh.style.opacity = STARTED ? '1' : '0';
   if(tipT>0){
@@ -4450,7 +6101,11 @@ function loop(){
       elXh.classList.add('hot');
     } else {
     const aim=aimTarget();
-    if(aim){
+    if(aim && aim.kind==='item'){
+      elAimTip.textContent = 'E  拾取 ' + (aim.ref.kind==='ink' ? '墨水炸弹' : '皮鞋');
+      elAimTip.style.opacity='1';
+      elXh.classList.add('hot');
+    } else if(aim){
       elAimTip.textContent = aim.kind==='cabinet'
         ? (GV.on ? (aim.ref.open ? 'E  关上柜子' : 'E  检查柜子')
                  : (aim.ref.open ? 'E  关上柜子' : 'E  打开柜子'))
@@ -4464,6 +6119,13 @@ function loop(){
   const bobY = moving ? Math.sin(player.bob)*0.022 : Math.sin(player.bob)*0.006;
   const eyeTarget = (HURT_LV>=2) ? 0.42 : (crouchHeld ? 1.12 : 1.62);   // 断腿：趴在地上看
   EYE_H += (eyeTarget - EYE_H) * Math.min(1, dt*9);
+  // 走路动画：鬼（AI 或玩家）和人类身体都按实际速度迈腿
+  try{
+    const gp = ghost.userData && ghost.userData.person;
+    if(gp) driveWalk(gp, ghost, dt);
+    if(typeof BODY !== 'undefined' && BODY.root && BODY.root.visible) driveWalk(BODY, BODY.root, dt);
+  }catch(e){}
+
   camera.position.set(player.x, EYE_H+bobY+player.y, player.z);
   camera.rotation.y=player.yaw;
   camera.rotation.x=player.pitch + (moving?Math.sin(player.bob*0.5)*0.004:0);
@@ -4499,7 +6161,7 @@ function loop(){
   // —— 角色可见性：每帧统一决定，绝不留残影 ——
   if(ghost.userData && ghost.userData.body)
     ghost.userData.body.root.visible = !GV.on || CHECK.on || ATK.on;   // 检查/擦刀时能看见鬼自己
-  BODY.root.visible = HIDE.on || (GV.on && (!HIDE.hidden || (CHECK.on && CHECK.victim)));
+  BODY.root.visible = HIDE.on;   // 玩鬼时不再显示"玩家自己的身体"（那是 P 键切换时代留下的）
   // 鬼检查到人所在的那扇门时，人是可见的；其余时间躲着不可见
 
   if(GV.on){
@@ -4569,7 +6231,12 @@ function loop(){
       // —— ③ 挥刀砍中（0.55s）——
       if(CHECK.victim && !CHECK.hit && CHECK.t >= 0.55){
         CHECK.hit = true;
-        hitPlayer();                              // 人类掉体力 + 屏幕红
+        if(CHECK.npc){
+          // 砍到 AI 人类：掉一条胳膊 → 强制出门 → 掉头就跑
+          aiHurtHuman(CHECK.npc);
+        } else {
+          hitPlayer();                            // 砍到真人玩家
+        }
         Sound.heart();
       }
 
@@ -4579,7 +6246,16 @@ function loop(){
       // —— ⑤ 把人拖出来（2.20s）——
       if(CHECK.victim && !CHECK.out && CHECK.t >= 2.20){
         CHECK.out = true;
-        forceOutOfHide();                         // 人落到走廊，立刻能跑
+        if(CHECK.npc){
+          CHECK.npc.state = 'flee';
+          CHECK.npc.hideDoor = null;
+          CHECK.npc.person.root.visible = true;
+          CHECK.npc.timer = 4.5;
+          const pp = ghost.position;
+          CHECK.npc.target = (pathD(pp.x, pp.z) + 26) % RING_LEN;   // 朝远处跑
+        } else {
+          forceOutOfHide();                       // 人落到走廊，立刻能跑
+        }
       }
 
       // —— ⑥ 关门（2.32s）——
@@ -4759,14 +6435,19 @@ function loop(){
     }
   }
   breathAcc += dt;
-  const bInt = stamina<0.3 ? 1.05 : (running ? 1.75 : 3.4);
-  if(breathAcc > bInt){ breathAcc=0; Sound.breath(stamina<0.3); }
+  // 喘息：只跟体力判定，连续播放 + 渐入渐出（不再一下一下地响）
+  try{ Breath.update(stamina, !PAUSED && !GV.on && !DEAD); }catch(e){}
+  try{ Heart.update(dt, Math.hypot(player.x-ghost.position.x, player.z-ghost.position.z), !PAUSED && !GV.on && !DEAD); }catch(e){}
+  try{ Drip.update(dt, !PAUSED); }catch(e){}
   if(stamina < 0.28){
     heartAcc += dt;
     if(heartAcc > 0.88){ heartAcc=0; Sound.heart(); }
   }
   eventAcc += dt;
   // 随机事件已关闭（只留电流滋滋 + 水滴，其余交给环境音调度）
+
+  // 拾取提示淡出
+  if(_toastT > 0){ _toastT -= dt; if(_toastT <= 0) elToast.style.opacity = '0'; }
 
   // —— 体力条 + 缺氧感 ——
   const _cur = GV.on ? (GV.stam===undefined?1:GV.stam) : stamina;
@@ -4777,13 +6458,8 @@ function loop(){
     stamEl.classList.toggle('on', GV.on ? (_cur<0.995 || sprintHeld) : (sprintHeld||stamina<0.995));
     lastStamPct=pct;
   }
-  // AI 鬼的体力条（玩家当人类时才显示）
-  if(stamAIEl){
-    const showAI = AI.ghostOn && !GV.on && STARTED;
-    const gs = (GAI.stam===undefined) ? 1 : GAI.stam;
-    stamAIEl.classList.toggle('on', showAI && (gs < 0.995 || GAI.state==='chase'));
-    stamAIFill.style.width = Math.round(gs*100) + '%';
-  }
+  // 鬼的体力只有鬼自己看得到：人类视角把这条藏起来
+  if(stamAIEl) stamAIEl.classList.remove('on');
   ovUni.uStress.value = stamina<0.3 ? (0.3-stamina)/0.3 : 0;
 
   // —— 自适应画质：实测不够流畅就自动往下调 ——
@@ -4834,6 +6510,16 @@ function aiShortest(a, b){
   return diff;
 }
 function aiGhostInit(){
+  // 迷宫模式：把鬼放到真正站得住的地方（避免生成在柜子/墙缝里被卡死）
+  if(MAZE){
+    // 鬼也放在同一片连通区里，且离玩家至少 14 米
+    const gp = mazePickInRegion(14, player.x, player.z) || mazePickInRegion();
+    if(gp){
+      const q = {x:gp.x, y:0, z:gp.z};
+      try{ collide(q); }catch(e){}
+      ghost.position.set(q.x, 0, q.z);
+    }
+  }
   GAI.state='patrol'; GAI.t=0; GAI.wipe=0; GAI.door=null; GAI.doorT=0;
   GAI.d = pathD(ghost.position.x, ghost.position.z);
   GAI.target = (GAI.d + 18) % RING_LEN;
@@ -4915,8 +6601,246 @@ function aiGhostSeek(tx, tz, speed, dt){
   }
 }
 
+
+/* ================= 网格寻路（NAV） =================
+   0.45 米一格，从 WALLS 生成可走网格；A* 用于追人/回家，
+   随机漫游用于"瞎走"，撞墙自动换方向。 */
+const NAV = { cell: 0.45, x0: 0, z0: 0, nx: 0, nz: 0, g: null, built: false };
+
+function navBuild(){
+  // 网格范围按"真实墙体的包围盒"算，不用 config 的数字（否则会走出地图外）
+  let minX=1e9, maxX=-1e9, minZ=1e9, maxZ=-1e9;
+  for(const w of WALLS){
+    if(w.top != null) continue;                 // 只看墙，不看矮家具
+    if(w.x0 < minX) minX = w.x0;
+    if(w.x1 > maxX) maxX = w.x1;
+    if(w.z0 < minZ) minZ = w.z0;
+    if(w.z1 > maxZ) maxZ = w.z1;
+  }
+  if(minX > maxX){ minX=-24; maxX=24; minZ=-19; maxZ=19; }
+  const pad = 0.6;
+  NAV.x0 = minX - pad; NAV.z0 = minZ - pad;
+  NAV.bx0 = minX; NAV.bx1 = maxX; NAV.bz0 = minZ; NAV.bz1 = maxZ;
+  NAV.nx = Math.ceil((maxX-minX+pad*2)/NAV.cell);
+  NAV.nz = Math.ceil((maxZ-minZ+pad*2)/NAV.cell);
+  const N = NAV.nx*NAV.nz;
+  const g = new Uint8Array(N);
+  const R = 0.34;                       // 人半径
+  // 门的碰撞盒要排除掉：门是可以打开的，寻路必须能规划"穿过门"的路线，
+  // 否则房间会被判定成不可达，鬼就只会朝玩家直线撞墙
+  const DOOR_COL = new Set();
+  try{ for(const d of ROOM_DOORS) if(d && d.col) DOOR_COL.add(d.col); }catch(e){}
+  for(let iz=0; iz<NAV.nz; iz++){
+    for(let ix=0; ix<NAV.nx; ix++){
+      const x = NAV.x0 + (ix+0.5)*NAV.cell;
+      const z = NAV.z0 + (iz+0.5)*NAV.cell;
+      let blocked = (x < NAV.bx0-0.05 || x > NAV.bx1+0.05 || z < NAV.bz0-0.05 || z > NAV.bz1+0.05);
+      if(!blocked){
+        for(const w of WALLS){
+          if(w.top != null && w.top <= 0.75) continue;    // 矮家具可以跨过去
+          if(DOOR_COL.has(w)) continue;                   // 门不算障碍（走过去再推开）
+          if(x > w.x0-R && x < w.x1+R && z > w.z0-R && z < w.z1+R){ blocked = true; break; }
+        }
+      }
+      g[iz*NAV.nx + ix] = blocked ? 1 : 0;
+    }
+  }
+  NAV.g = g; NAV.built = true;
+}
+
+
+// 找最近的可走点（防止刷在墙里/卡在角落）
+function navNearestFree(x, z){
+  if(!NAV.built) navBuild();
+  if(navWalkableAt(x, z)) return {x, z};
+  const c = navCell(x, z);
+  const cx = c ? c.ix : Math.round((x-NAV.x0)/NAV.cell);
+  const cz = c ? c.iz : Math.round((z-NAV.z0)/NAV.cell);
+  for(let r=1; r<=24; r++){
+    let best = null, bd = 1e9;
+    for(let dz=-r; dz<=r; dz++) for(let dx=-r; dx<=r; dx++){
+      if(Math.max(Math.abs(dx),Math.abs(dz)) !== r) continue;
+      const ix = cx+dx, iz = cz+dz;
+      if(!navWalkable(ix, iz)) continue;
+      const p = navCellCenter(ix, iz);
+      const d = Math.hypot(p.x-x, p.z-z);
+      if(d < bd){ bd = d; best = p; }
+    }
+    if(best) return best;
+  }
+  return null;
+}
+function snapEntityToWalkable(obj){
+  if(!obj) return;
+  const p = navNearestFree(obj.position.x, obj.position.z);
+  if(p && (Math.abs(p.x-obj.position.x) > 0.05 || Math.abs(p.z-obj.position.z) > 0.05)){
+    obj.position.set(p.x, 0, p.z);
+  }
+}
+
+function navCell(x, z){
+  const ix = Math.floor((x - NAV.x0)/NAV.cell);
+  const iz = Math.floor((z - NAV.z0)/NAV.cell);
+  if(ix < 0 || iz < 0 || ix >= NAV.nx || iz >= NAV.nz) return null;
+  return { ix, iz };
+}
+function navWalkable(ix, iz){
+  if(ix < 0 || iz < 0 || ix >= NAV.nx || iz >= NAV.nz) return false;
+  return NAV.g[iz*NAV.nx + ix] === 0;
+}
+function navCellCenter(ix, iz){
+  return { x: NAV.x0 + (ix+0.5)*NAV.cell, z: NAV.z0 + (iz+0.5)*NAV.cell };
+}
+function navWalkableAt(x, z){
+  const c = navCell(x, z);
+  return c ? navWalkable(c.ix, c.iz) : false;
+}
+
+// A*：从世界坐标到世界坐标，返回路点数组（不含起点）
+// 用二叉堆 + 迭代上限，避免大地图上一次寻路卡几十毫秒
+const NB8 = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+let _navBudget = 6;
+function navTick(dt){ _navBudget = Math.min(6, _navBudget + dt*6); }
+function navPath(sx, sz, tx, tz){
+  if(_navBudget <= 0) return null;      // 这一帧的寻路额度用完了
+  const _nt0 = performance.now();
+  _navBudget -= 1;
+  if(!NAV.built) navBuild();
+  const s0 = navCell(sx, sz), t0 = navCell(tx, tz);
+  if(!s0 || !t0) return null;
+  let start = s0, goal = t0;
+  if(!navWalkable(goal.ix, goal.iz)){
+    let best = null, bd = 1e9;
+    for(let r=1; r<=14 && !best; r++){
+      for(let dz=-r; dz<=r; dz++) for(let dx=-r; dx<=r; dx++){
+        const ix = goal.ix+dx, iz = goal.iz+dz;
+        if(!navWalkable(ix, iz)) continue;
+        const c = navCellCenter(ix, iz), d = Math.hypot(c.x-tx, c.z-tz);
+        if(d < bd){ bd = d; best = {ix, iz}; }
+      }
+    }
+    if(!best) return null;
+    goal = best;
+  }
+  if(!navWalkable(start.ix, start.iz)){
+    let best = null, bd = 1e9;
+    for(let r=1; r<=14 && !best; r++){
+      for(let dz=-r; dz<=r; dz++) for(let dx=-r; dx<=r; dx++){
+        const ix = start.ix+dx, iz = start.iz+dz;
+        if(!navWalkable(ix, iz)) continue;
+        const c = navCellCenter(ix, iz), d = Math.hypot(c.x-sx, c.z-sz);
+        if(d < bd){ bd = d; best = {ix, iz}; }
+      }
+    }
+    if(!best) return null;
+    start = best;
+  }
+
+  const W = NAV.nx, H = NAV.nz;
+  const idx = (ix, iz) => iz*W + ix;
+  const total = W * H;
+  // 复用缓冲区：以前每次寻路都 new 三个大数组，4 个 AI 一起来就疯狂 GC → 卡顿
+  if(!NAV.buf || NAV.buf.total !== total){
+    NAV.buf = { total, prev: new Int32Array(total), seen: new Uint8Array(total), queue: new Int32Array(total) };
+  }
+  const prev = NAV.buf.prev, seen = NAV.buf.seen, queue = NAV.buf.queue;
+  prev.fill(-1); seen.fill(0);
+  const sId = idx(start.ix, start.iz), gId = idx(goal.ix, goal.iz);
+
+  // BFS：格子上没有地形代价差异，BFS 比 A* 更稳、更快，永远不会因为启发式算错而失败
+  let head = 0, tail2 = 0;
+  queue[tail2++] = sId; seen[sId] = 1;
+  let found = false;
+  while(head < tail2){
+    const cur = queue[head++];
+    if(cur === gId){ found = true; break; }
+    const cix = cur % W, ciz = (cur - (cur % W)) / W;
+    // 8 邻域（斜角要求两侧都通，避免贴墙角穿模）
+    for(let i=0;i<8;i++){
+      const dx = NB8[i][0], dz = NB8[i][1];
+      const nix = cix+dx, niz = ciz+dz;
+      if(!navWalkable(nix, niz)) continue;
+      if(dx && dz && (!navWalkable(cix+dx, ciz) || !navWalkable(cix, ciz+dz))) continue;
+      const id = idx(nix, niz);
+      if(seen[id]) continue;
+      seen[id] = 1; prev[id] = cur;
+      queue[tail2++] = id;
+    }
+  }
+  const _nms = performance.now() - _nt0;
+  try{ const P=window.__AI_PROF; P.navN++; P.navMs+=_nms; if(_nms>P.navMax) P.navMax=_nms; }catch(e){}
+  if(!found) return null;
+
+  // 回溯 → 路点
+  const path = [];
+  let n = gId;
+  while(n !== sId && n !== -1){
+    path.push(navCellCenter(n % W, (n - (n % W)) / W));
+    n = prev[n];
+  }
+  path.reverse();
+  return path;
+}
+// 沿着路点走一步（会被墙挡住的那种）
+function navFollow(ent, obj, speed, dt){
+  if(!ent.path || !ent.path.length){
+    return false;
+  }
+  const wp = ent.path[0];
+  const dx = wp.x - obj.position.x, dz = wp.z - obj.position.z;
+  const dist = Math.hypot(dx, dz);
+  if(dist < 0.35){
+    ent.path.shift();
+    return true;
+  }
+  const step = Math.min(dist, speed*dt);
+  const p = {x: obj.position.x + dx/dist*step, z: obj.position.z + dz/dist*step, y: obj.position.y||0};
+  collide(p);
+  obj.position.set(p.x, p.y||0, p.z);
+  obj.rotation.y = Math.atan2(dx, dz);
+  return true;
+}
+
 let AI_CLOCK = 0;
 function aiGhostStep(dt, speed){
+  if(MAZE){
+    if(!NAV.built){ try{ navBuild(); }catch(e){} }
+    GAI.repathT = (GAI.repathT || 0) - dt;
+    const chase = (GAI.state === 'chase');
+    if(!GAI.path || !GAI.path.length || GAI.repathT <= 0){
+      let tx = null, tz = null;
+      if(chase){ tx = player.x; tz = player.z; }
+      else {
+        if(!GAI.wanderTarget ||
+           Math.hypot(GAI.wanderTarget.x - ghost.position.x, GAI.wanderTarget.z - ghost.position.z) < 1.5){
+          const b = window.MAZE_BOUNDS || {x0:-25,x1:25,z0:-20,z1:20};
+          GAI.wanderTarget = null;
+          for(let i=0;i<240;i++){
+            const x = rr(b.x0+1.6, b.x1-1.6), z = rr(b.z0+1.6, b.z1-1.6);
+            if(navWalkableAt(x,z) && Math.hypot(x-ghost.position.x, z-ghost.position.z) > 9){ GAI.wanderTarget = {x:x, z:z}; break; }
+          }
+          // 保底：实在挑不到远处的点，就随便给一个远点，navPath 会吸附到最近可走格
+          if(!GAI.wanderTarget){
+            for(let i=0;i<120;i++){
+              const x = rr(b.x0+1.6, b.x1-1.6), z = rr(b.z0+1.6, b.z1-1.6);
+              if(Math.hypot(x-ghost.position.x, z-ghost.position.z) > 12){ GAI.wanderTarget = {x:x, z:z}; break; }
+            }
+          }
+        }
+        if(GAI.wanderTarget){ tx = GAI.wanderTarget.x; tz = GAI.wanderTarget.z; }
+      }
+      if(tx !== null){
+        const np = navPath(ghost.position.x, ghost.position.z, tx, tz);
+        if(np && np.length) GAI.path = np;
+      }
+      GAI.repathT = chase ? 0.55 : 1.4;
+    }
+    const moved = navFollow(GAI, ghost, speed, dt);
+    if(moved){
+      try{ if(ghost.userData && ghost.userData.body && ghost.userData.body.root) driveWalk(ghost.userData.body.root, ghost, dt); }catch(e){}
+    }
+    return;
+  }
   const r = aiStepPath(GAI, speed, dt);
   if(!r.moved) return;
   ghost.position.set(r.x, r.y || 0, r.z);
@@ -4940,32 +6864,298 @@ function aiBladeWipe(){
   for(const a of gb.userData.arms) a.grp.rotation.x = a.base + (a.side>0 ? sw : sw*0.3);
   if(gb.userData.blade) gb.userData.blade.rotation.x = 1.3 + Math.sin(GAI.wipe*8)*0.12;
 }
+
+// ---------- 迷宫模式：鬼 AI（巡逻 / 警戒 / 追击 / 搜寻 四态） ----------
+function mazePickFarPoint(gx, gz, minD){
+  const b = window.MAZE_BOUNDS || {x0:-25,x1:25,z0:-20,z1:20};
+  let best=null, bd=-1;
+  for(let i=0;i<200;i++){
+    const x = rr(b.x0+1.6,b.x1-1.6), z = rr(b.z0+1.6,b.z1-1.6);
+    if(!navWalkableAt(x,z)) continue;
+    const d = Math.hypot(x-gx,z-gz);
+    if(d > bd && d >= (minD||0)){ bd=d; best={x:x,z:z}; }
+    if(bd > 30) break;
+  }
+  return best;
+}
+function mazePickDoor(){
+  const list = (ROOM_DOORS||[]).filter(function(d){ return !d.open; });
+  if(!list.length) return null;
+  return list[(Math.random()*list.length)|0];
+}
+function mazeSamplesAround(x,z,n){
+  const out=[];
+  for(let i=0;i<60 && out.length<n;i++){
+    const a = Math.random()*Math.PI*2, r = 3.5 + Math.random()*6;
+    const sx = x + Math.cos(a)*r, sz = z + Math.sin(a)*r;
+    if(navWalkableAt(sx,sz)) out.push({x:sx,z:sz});
+  }
+  return out;
+}
+function gsFace(tx,tz,dt){ try{ faceTarget(ghost, tx, tz, 20, dt); }catch(e){} }
+function gsWalk(tx,tz,spd,dt){
+  window.__GS=(window.__GS||0)+1; window.__GS_LAST=[+tx.toFixed(1),+tz.toFixed(1)];
+  GAI.repathT = (GAI.repathT||0) - dt;
+  if(GAI.repathT<=0 || !GAI.path || !GAI.path.length){
+    const np = navPath(ghost.position.x, ghost.position.z, tx, tz);
+    if(np && np.length){ GAI.path = np; }
+    else {
+      // 寻路失败：直接朝目标迈一步（有碰撞兜底），绝不站着不动
+      const dx = tx - ghost.position.x, dz = tz - ghost.position.z;
+      const d = Math.hypot(dx,dz) || 1;
+      const q = { x: ghost.position.x + dx/d*spd*dt, z: ghost.position.z + dz/d*spd*dt, y:0 };
+      try{ collide(q); }catch(e){}
+      ghost.position.set(q.x, 0, q.z);
+      ghost.rotation.y = Math.atan2(dx, dz);
+      GAI.repathT = 0.5;
+      return;
+    }
+    GAI.repathT = 0.45;
+  }
+  navFollow(GAI, ghost, spd, dt);
+  try{ driveWalk(ghost.userData.body.root, ghost, dt); }catch(e){}
+}
+function aiGhostUpdateMaze(dt, distP, canSeeRaw){
+  try{ return aiGhostMazeInner(dt, distP, canSeeRaw); }
+  catch(e){ window.__GAI_ERR2 = e.message + ' @ ' + String((e.stack||'')).split(String.fromCharCode(10))[1]; }
+}
+function aiGhostMazeInner(dt, distP, canSeeRaw){
+  window.__MI = (window.__MI||0)+1;
+  if(!(dt > 0) || dt > 0.5) dt = 1/60;   // 兜底：切后台/掉帧时 dt 可能是 0，会让鬼站着不动
+  window.__DT = dt;
+  if(!GAI.st){
+    GAI.st = { state:'PATROL', t:0, wait:0, lastSeen:null, target:null,
+               samples:[], si:0, lostT:0, heardT:0, noise:null, cool:0 };
+  }
+  const S = GAI.st;
+  S.t += dt;  S.cool = Math.max(0, S.cool - dt);
+  GAI.hitCd = Math.max(0, (GAI.hitCd||0) - dt);
+
+  // ---- 感知：视觉 ----
+  const dx = player.x - ghost.position.x, dz = player.z - ghost.position.z;
+  const dist = Math.hypot(dx, dz);
+  const yaw  = ghost.rotation.y;
+  let ang = Math.atan2(dx, dz) - yaw;
+  while(ang >  Math.PI) ang -= Math.PI*2;
+  while(ang < -Math.PI) ang += Math.PI*2;
+  const FOV_HALF = Math.PI * 0.42;              // ±75°
+  const lit = (typeof flashOn!=='undefined' && flashOn && !HIDE.hidden) ? 1.45 : 1.0;
+  const seeDist = 9.75 * lit;        // 追击判定范围缩小 1/4（13 → 9.75）
+  const see = !HIDE.hidden && dist < seeDist &&
+              (Math.abs(ang) < FOV_HALF || dist < 3.2) &&
+              !losBlocked(ghost.position.x, ghost.position.z, player.x, player.z);
+  if(see){ S.lastSeen = {x:player.x, z:player.z}; S.lostT = 0; }
+  else   { S.lostT += dt; }
+
+  // ---- 感知：听觉 ----
+  let heardAt = null;
+  const lastN = NOISE_LOG.length ? NOISE_LOG[NOISE_LOG.length-1] : null;
+  if(lastN && lastN !== S._lastN){
+    S._lastN = lastN;
+    if(lastN.heard){
+      const st = (lastN.strength === undefined) ? 1 : lastN.strength;
+      // 强度就是"被听见的概率"：贴着（0m）必被发现，1 米一半机会
+      if(Math.random() < st) heardAt = {x:lastN.x, z:lastN.z};
+    }
+  }
+  // 玩家奔跑：自身也在制造噪音
+  if(!GAI._pp){ GAI._pp = {x:player.x, z:player.z}; }
+  const pSpeed = Math.hypot(player.x-GAI._pp.x, player.z-GAI._pp.z) / Math.max(dt,0.0001);
+  GAI._pp.x = player.x; GAI._pp.z = player.z;
+  S.heardT = Math.max(0, S.heardT - dt);
+  if(!heardAt && pSpeed > 3.2 && S.heardT <= 0 && dist < 11 && !HIDE.hidden){
+    heardAt = {x:player.x, z:player.z}; S.heardT = 1.1;
+  }
+
+  // ---- 砍人 ----
+  if(see && dist < 1.6 && GAI.hitCd <= 0){
+    GAI.hitCd = cfgNum('鬼AI','砍人间隔秒',3);
+    GAI.state='wipe'; GAI.wipe=0; GAI.path=null; GAI.pendingSlow=5;
+    S.state='CHASE'; S.lostT=0;
+    try{ applyHit(); }catch(e){}
+    return;
+  }
+  // 擦刀
+  if(GAI.state === 'wipe'){
+    GAI.wipe = (GAI.wipe||0) + dt;
+    try{ aiBladeWipe(); }catch(e){}
+    if(GAI.wipe > 2.4){
+      GAI.wipe = 0; GAI.path = null; GAI.state = 'chase';
+      S.state = see ? 'CHASE' : 'SEARCH';
+      if(GAI.pendingSlow){ GAI.slowT = GAI.pendingSlow; GAI.pendingSlow = 0; }
+    }
+    return;
+  }
+
+  const spd = (GAI.slowT > 0) ? 0.85 : (S.state==='CHASE' ? 4.10 : (S.state==='PATROL' ? 1.80 : 2.30));
+  if(GAI.slowT > 0) GAI.slowT = Math.max(0, GAI.slowT - dt);
+
+  const setState = function(n){
+    if(S.state === n || S.cool > 0) return;
+    S.state = n; S.t = 0; S.cool = 0.35; GAI.path = null; GAI.repathT = 0;
+  };
+
+  // ---- 状态机 ----
+  if(see){ setState('CHASE'); }
+  else if(heardAt && S.state !== 'CHASE'){ S.noise = heardAt; setState('ALERT'); }
+
+  try {
+  switch(S.state){
+    case 'CHASE': {
+      // 看得见就一直追；丢了先去最后看见的位置
+      if(see){
+        gsWalk(player.x, player.z, spd, dt);
+        gsFace(player.x, player.z, dt);
+      } else if(S.lostT > 0.55 || dist > 20){
+        const p = S.lastSeen || {x:player.x, z:player.z};
+        S.target = p; S.state = 'SEARCH'; S.t = 0;
+        S.samples = []; S.si = 0; S.wait = 0;
+      } else {
+        gsWalk(S.lastSeen ? S.lastSeen.x : player.x, S.lastSeen ? S.lastSeen.z : player.z, spd, dt);
+      }
+      break;
+    }
+    case 'ALERT': {
+      const t = S.noise || S.lastSeen || {x:player.x, z:player.z};
+      gsWalk(t.x, t.z, spd, dt);
+      gsFace(t.x, t.z, dt);
+      if(Math.hypot(ghost.position.x-t.x, ghost.position.z-t.z) < 1.8 || S.t > 12){
+        S.target = t; S.samples = []; S.si = 0; S.wait = 0;
+        S.state = 'SEARCH'; S.t = 0;
+      }
+      break;
+    }
+    case 'SEARCH': {
+      // 1) 先去最后的位置，站 2~4 秒
+      if(!S.samples.length && S.si === 0){
+        const t = S.target || S.lastSeen || {x:ghost.position.x, z:ghost.position.z};
+        const d = Math.hypot(ghost.position.x-t.x, ghost.position.z-t.z);
+        if(d > 1.6){ gsWalk(t.x, t.z, spd, dt); gsFace(t.x, t.z, dt); }
+        else {
+          if(S.wait <= 0) S.wait = rr(2.0, 4.0);
+          S.wait -= dt;
+          gsFace(ghost.position.x + Math.sin(S.t*1.7)*3, ghost.position.z + Math.cos(S.t*1.3)*3, dt);
+          if(S.wait <= 0){
+            S.samples = mazeSamplesAround(t.x, t.z, 3 + (Math.random()*3|0));
+            S.si = 0;
+          }
+        }
+        break;
+      }
+      // 2) 依次探查采样点
+      const sp = S.samples[S.si];
+      if(!sp){ S.state = 'PATROL'; S.t = 0; S.samples = []; S.target = null; break; }
+      gsWalk(sp.x, sp.z, spd, dt);
+      gsFace(sp.x, sp.z, dt);
+      if(Math.hypot(ghost.position.x-sp.x, ghost.position.z-sp.z) < 1.5){
+        S.si++;
+        if(S.si >= S.samples.length){
+          S.state = 'PATROL'; S.t = 0; S.samples = []; S.si = 0; S.target = null;
+        }
+      }
+      if(S.t > 26){ S.state = 'PATROL'; S.t = 0; S.samples = []; S.si = 0; }
+      break;
+    }
+    default: {
+      // PATROL：全图跑点，点与点之间停 1~3 秒；偶尔去翻一扇门
+      if(S.wait > 0){
+        S.wait -= dt;
+        break;
+      }
+      if(!S.target || Math.hypot(ghost.position.x-S.target.x, ghost.position.z-S.target.z) < 1.8){
+        S.target = mazePickFarPoint(ghost.position.x, ghost.position.z, 14) ||
+                   {x:ghost.position.x, z:ghost.position.z};
+        if(Math.random() < 0.28){
+          const rd = mazePickDoor();
+          if(rd) S.target = {x:rd.x, z:rd.z, door:rd};
+        }
+        S.wait = rr(1.0, 3.0);
+        GAI.path = null;
+      }
+      if(S.target){
+        gsWalk(S.target.x, S.target.z, spd, dt);
+        gsFace(S.target.x, S.target.z, dt);
+        if(S.target.door && Math.hypot(S.target.door.x-ghost.position.x, S.target.door.z-ghost.position.z) < 2.0){
+          const rd = S.target.door;
+          try{
+            setRoomDoor(rd, true);
+            try{ (Sound.doorOpen||Sound.creak||Sound.click).call(Sound); }catch(e){}
+            setTimeout(function(){ try{ setRoomDoor(rd, false); }catch(e){} }, 2000);
+          }catch(e){}
+          S.target = null;
+        }
+      }
+      break;
+    }
+  }
+
+  }catch(err){ window.__GAI_ERR = err.message + ' @ ' + String(err.stack||'').split(String.fromCharCode(10))[1]; }
+
+  // 卡住自救
+  if(!GAI._mz) GAI._mz = {x:ghost.position.x, z:ghost.position.z, t:0};
+  GAI._mz.t += dt;
+  if(GAI._mz.t > 1.0){
+    if(Math.hypot(ghost.position.x-GAI._mz.x, ghost.position.z-GAI._mz.z) < 0.3){
+      GAI.path = null; GAI.repathT = 0;
+      if(S.state === 'PATROL') S.target = null;
+      // 贴着墙/家具卡住：直接吸附到最近的可走格，别在原地耗
+      try{ if(typeof snapEntityToWalkable === 'function') snapEntityToWalkable(ghost); }catch(e){}
+    }
+    GAI._mz.x = ghost.position.x; GAI._mz.z = ghost.position.z; GAI._mz.t = 0;
+  }
+}
 function aiGhostUpdate(dt){
-  if(!AI.ghostOn || GV.on || DEAD) return;
+  window.__GAI_ENTRY = (window.__GAI_ENTRY||0) + 1;
+  // 巡逻/追击路上遇到关着的房间门 → 推开（不然会顶着门站着不动）
+  try{
+    for(const rd of ROOM_DOORS){
+      if(rd.open) continue;
+      if(Math.hypot(rd.x - ghost.position.x, rd.z - ghost.position.z) < 1.9){
+        setRoomDoor(rd, true);
+        GAI.path = null; GAI.repathT = 0;
+        try{ (Sound.doorOpen||Sound.creak||Sound.click).call(Sound); }catch(e){}
+        break;
+      }
+    }
+  }catch(e){}
+  if((!AI.ghostOn && !MAZE) || GV.on || DEAD) return;
   if(GAI.lane === undefined){ GAI.lane = 0; GAI.homeLane = 0; GAI.hopY = 0; }
   AI_CLOCK += dt;
 
-  // AI 鬼路过玻璃门：自己滑开，走远再关上（否则会被卡住）
+  // AI 鬼路过玻璃门：只有要穿过去才开，过去后关上（不跟玩家抢门）
   try{
-    for(const gd of GLASS){
-      const dg = Math.hypot(gd.x - ghost.position.x, gd.z - ghost.position.z);
-      if(!gd.open && dg < 2.8){ toggleGlass(gd); }
-      else if(gd.open && dg > 5.0){ toggleGlass(gd); }
+    GAI.glassT = (GAI.glassT||0) + dt;
+    if(GAI.glassT > 0.2){
+      GAI.glassT = 0;
+      for(const gd of GLASS){
+        const dg = Math.hypot(gd.x - ghost.position.x, gd.z - ghost.position.z);
+        const playerNear = Math.hypot(gd.x - player.x, gd.z - player.z) < 3.2;
+        if(!gd.open && dg < 2.4){ toggleGlass(gd); gd.__aiOpened = AI_CLOCK; }   // 追人时一定开，不能被门卡住
+        else if(gd.open && gd.__aiOpened && AI_CLOCK - gd.__aiOpened > 2.5 && dg > 3.0 && !playerNear){
+          toggleGlass(gd); gd.__aiOpened = 0;
+        }
+      }
     }
   }catch(e){}
 
   // 砍人之后的减速惩罚（人类蹲走速度，5 秒）
   if(GAI.slowT > 0) GAI.slowT = Math.max(0, GAI.slowT - dt);
+  if(GAI.hitCd === undefined) GAI.hitCd = 0;
+  if(GAI.hitCd > 0) GAI.hitCd = Math.max(0, GAI.hitCd - dt);
+  if(GAI.inkSlowT > 0) GAI.inkSlowT = Math.max(0, GAI.inkSlowT - dt);
 
   const px=player.x, pz=player.z;
   const distP = Math.hypot(px-ghost.position.x, pz-ghost.position.z);
   const canSee = !HIDE.hidden && distP < 13.0;
+  if(MAZE){ window.__GAI_MAZE = (window.__GAI_MAZE||0) + 1; aiGhostUpdateMaze(dt, distP, canSee); return; }
 
   if(GAI.state === 'wipe'){
     GAI.wipe += dt;
     aiBladeWipe();
     if(GAI.wipe > 2.4){
-      GAI.state='patrol'; GAI.target=(GAI.d+14)%RING_LEN;
+      GAI.path = null;
+      GAI.state = canSee ? 'chase' : 'patrol';
+      GAI.target=(GAI.d+14)%RING_LEN;
       if(GAI.pendingSlow){ GAI.slowT = GAI.pendingSlow; GAI.pendingSlow = 0; }
     }
     return;
@@ -4979,7 +7169,7 @@ function aiGhostUpdate(dt){
       return;
     }
     // 视野判定：看得到才冲刺，跟丢就恢复走路
-    const gfx = -Math.sin(ghost.rotation.y), gfz = -Math.cos(ghost.rotation.y);
+    const gfx = Math.sin(ghost.rotation.y), gfz = Math.cos(ghost.rotation.y);   // 模型朝向 = (sin,cos)
     const gdx = px - ghost.position.x, gdz = pz - ghost.position.z;
     const gdist = Math.hypot(gdx, gdz) || 1e-3;
     const gdot = (gdx*gfx + gdz*gfz)/gdist;
@@ -5000,7 +7190,10 @@ function aiGhostUpdate(dt){
 
     if(GAI.stam === undefined) GAI.stam = 1;
     let gsp = cfgNum('鬼AI','走路速度',1.80);        // 看不到：正常走路
-    if(GAI.slowT > 0){
+    if(GAI.inkSlowT > 0){
+      gsp = cfgNum('鬼AI','墨水减速速度',0.40);        // 被墨水黏住：蹲速的一半
+      GAI.stam = Math.min(1, GAI.stam + dt);
+    } else if(GAI.slowT > 0){
       gsp = cfgNum('鬼AI','砍人后速度',0.80);                                  // 砍完人：5 秒内只有人类蹲着走的速度
       GAI.stam = Math.min(1, GAI.stam + dt/1.0);
     } else if(seeing){
@@ -5013,13 +7206,70 @@ function aiGhostUpdate(dt){
     } else {
       GAI.stam = Math.min(1, GAI.stam + dt/1.0);
     }
-    // 看得见 / 离得近：直接扑向玩家真实位置（不再只在外圈绕）
-    if(seeing || gdist < 9){
-      aiGhostSeek(px, pz, gsp, dt);
+    // —— 网格寻路追人（会绕墙，不会怼墙）——
+    GAI.repathT = (GAI.repathT || 0) - dt;
+    if(GAI.repathT <= 0 || !GAI.path || !GAI.path.length){
+      GAI.path = navPath(ghost.position.x, ghost.position.z, px, pz) || [];
+      GAI.repathT = 0.35;
+      if(!GAI.path.length) GAI.repathT = 0.8;
+    }
+    if(GAI.path && GAI.path.length){
+      navFollow(GAI, ghost, gsp, dt);
+      GAI.walkSpeed = gsp;
+      GAI.d = pathD(ghost.position.x, ghost.position.z);
+    } else if(seeing || gdist < 9){
+      // 没有可用路线又隔着墙：先想办法开门，不要直撞墙
+      if(losBlocked(ghost.position.x, ghost.position.z, px, pz)){
+        const dr = doorBetweenGhostAndPlayer();
+        if(dr){ setRoomDoor(dr, true); GAI.path = null; GAI.repathT = 0; }
+      } else {
+        aiGhostSeek(px, pz, gsp, dt);
+      }
     } else {
       aiGhostStep(dt, gsp);
     }
-    if(distP < 1.6){
+    // 门挡在中间：先推开这扇门（玩家会听到开门声，这才对）
+    if(losBlocked(ghost.position.x, ghost.position.z, player.x, player.z)){
+      const dr = doorBetweenGhostAndPlayer();
+      if(dr){
+        setRoomDoor(dr, true);
+        try{ (Sound.doorOpen||Sound.creak||Sound.click).call(Sound); }catch(e){}
+        GAI.path = null; GAI.repathT = 0;
+      }
+    }
+
+    // 追击时眼睛始终盯着玩家：朝向直接对准玩家，而不是寻路拐弯的方向
+    try{ faceTarget(ghost, player.x, player.z, 22, dt); }catch(e){}
+
+    // —— 卡住自救：0.7 秒没挪动就重新找路 / 挪出死角 ——
+    const _gx = ghost.position.x, _gz = ghost.position.z;
+    const _dm = Math.hypot(_gx - (GAI._lx===undefined?_gx:GAI._lx), _gz - (GAI._lz===undefined?_gz:GAI._lz));
+    if(_dm < 0.02) GAI._stuck = (GAI._stuck||0) + dt; else GAI._stuck = 0;
+    GAI._lx = _gx; GAI._lz = _gz;
+    if(GAI._stuck > 1.5){      // 卡住判定：1.5 秒没动才换路线（0.7 太急，会频繁改道）
+      GAI._stuck = 0;
+      GAI.path = null; GAI.repathT = 0;
+      const nf = navNearestFree(_gx, _gz);
+      if(nf && Math.hypot(nf.x-_gx, nf.z-_gz) > 0.12){
+        ghost.position.set(nf.x, 0, nf.z);
+        GAI.d = pathD(nf.x, nf.z);
+      }
+      // 连续被同一个东西卡住（比如带角的造型件）→ 直接挪到玩家附近能走的格子，
+      // 宁可"闪现"一下，也不要站着一直卡
+      GAI._unstuckN = (GAI._unstuckN || 0) + 1;
+      if(GAI._unstuckN >= 3){
+        GAI._unstuckN = 0;
+        const c = navNearestFree(player.x + (Math.random()-0.5)*4, player.z + (Math.random()-0.5)*4);
+        if(c){ ghost.position.set(c.x, 0, c.z); GAI.d = pathD(c.x, c.z); }
+        GAI.path = null; GAI.repathT = 0;
+      }
+    } else {
+      GAI._unstuckN = 0;
+    }
+
+    // 砍中一次后有冷却（默认 3 秒），期间不能再出刀
+    if(distP < 1.6 && GAI.hitCd <= 0 && !losBlocked(ghost.position.x, ghost.position.z, player.x, player.z)){
+      GAI.hitCd = cfgNum('鬼AI','砍人间隔秒',3);
       applyHit();
       GAI.state='wipe'; GAI.wipe=0;
       GAI.pendingSlow = cfgNum('鬼AI','砍人减速秒',5);   // 擦完刀再开始减速
@@ -5083,8 +7333,25 @@ function aiGhostUpdate(dt){
     GAI.state='chase';
     return;
   }
-  const arrived = Math.abs(aiShortest(GAI.d, GAI.target)) < 0.6;
-  aiGhostStep(dt, GAI.slowT > 0 ? 0.80 : 1.05);
+  // 巡逻：网格里随机挑一个能走的点过去，到了再换
+  if(!GAI.path || !GAI.path.length){
+    let tx = ghost.position.x, tz = ghost.position.z;
+    for(let i=0;i<12;i++){
+      const a = Math.random()*Math.PI*2, r = 6 + Math.random()*10;
+      const cx2 = ghost.position.x + Math.cos(a)*r, cz2 = ghost.position.z + Math.sin(a)*r;
+      if(navWalkableAt(cx2, cz2)){ tx = cx2; tz = cz2; break; }
+    }
+    GAI.path = navPath(ghost.position.x, ghost.position.z, tx, tz) || [];
+  }
+  const patrolSpeed = GAI.inkSlowT > 0 ? 0.40 : (GAI.slowT > 0 ? 0.80 : 1.05);
+  if(GAI.path && GAI.path.length){
+    navFollow(GAI, ghost, patrolSpeed, dt);
+    GAI.walkSpeed = patrolSpeed;
+    GAI.d = pathD(ghost.position.x, ghost.position.z);
+  } else {
+    aiGhostStep(dt, patrolSpeed);
+  }
+  const arrived = !GAI.path || GAI.path.length === 0;
   if(arrived){
     GAI.t += dt;
     if(GAI.t > 1.2){
@@ -5102,8 +7369,10 @@ function aiSpawnHumans(n){
   for(let i=0;i<n;i++){
     const person = makePerson({cloth: AI_CLOTH[i % AI_CLOTH.length]});
     const d = (i * RING_LEN / n + rr(-2,2) + RING_LEN) % RING_LEN;
-    const p = atPath(d);
+    // 迷宫模式：AI 人类也只放在"可玩连通区"里，免得被关在小房间
+    const p = MAZE ? (mazePickInRegion() || {x:0, z:0}) : atPath(d);
     person.root.position.set(p.x, 0, p.z);
+    try{ if(!NAV.built) navBuild(); snapEntityToWalkable(person.root); }catch(e){}
     person.root.traverse(function(o){ if(o.isMesh){ o.castShadow=false; o.receiveShadow=false; } });
     scene.add(person.root);
     const lane0 = (i%2===0 ? 1 : -1) * (0.35 + Math.random()*0.5);
@@ -5121,6 +7390,7 @@ function aiDamageHiddenInDoor(dr){
 function aiHurtHuman(h){
   if(h.state === 'out' || h.state === 'dead') return;
   h.hp++;
+  h.stam = 1;                          // 挨一刀 → 体力立刻回满，起身就跑
 
   if(h.hp >= 2){
     // 第二刀：直接倒地死亡（趴在血泊里，不再动）
@@ -5133,8 +7403,10 @@ function aiHurtHuman(h){
     return;
   }
 
-  // 第一刀：断右臂 → 从门里滚出来 → 加速逃开一段
+  // 第一刀：断右臂 → 冲刺更快，但冲刺时长减半（体力上限砍一半）
   if(h.person.arms && h.person.arms[1]) h.person.arms[1].sh.visible = false;
+  h.stamMax = 0.5;
+  h.stam = Math.min(h.stam, 0.5);
   h.state='flee'; h.hideDoor=null; h.timer=4.5; h.postHit=4.5;
   h.person.root.visible = true;
   const p = atPath(h.d);
@@ -5142,108 +7414,379 @@ function aiHurtHuman(h){
   h.target = (h.d + 30) % RING_LEN;
 }
 let _aiAcc = 0;
+
+// —— AI 人类：真实坐标移动（撞墙自动换向，不再绑在环形路上）——
+function humanMove(h, dx, dz, speed, dt){
+  const p = h.person.root.position;
+  const L = Math.hypot(dx, dz) || 1;
+  const step = speed*dt;
+  const q = { x: p.x + dx/L*step, z: p.z + dz/L*step, y: 0 };
+  collide(q);
+  const mx = q.x - p.x, mz = q.z - p.z;      // ★ 先记下位移，再移动（否则朝向永远算成 0）
+  const moved = Math.hypot(mx, mz);
+  if(moved > 1e-4){
+    p.set(q.x, 0, q.z);
+    h.person.root.rotation.y = Math.atan2(mx, mz);
+    h.d = pathD(q.x, q.z);
+  }
+  return moved;
+}
+function humanWander(h, speed, dt){
+  const p = h.person.root.position;
+  // 没路线就挑一个 5~12 米外、确实能走到的点，用 A* 过去
+  if(!h.path || !h.path.length){
+    let target = null;
+    for(let i=0;i<20;i++){
+      const a = Math.random()*6.283, r = 5 + Math.random()*7;
+      const tx = p.x + Math.cos(a)*r, tz = p.z + Math.sin(a)*r;
+      if(!navWalkableAt(tx, tz)) continue;
+      target = {x:tx, z:tz}; break;
+    }
+    if(target){
+      const path = navPath(p.x, p.z, target.x, target.z);
+      if(path && path.length){ h.path = path; }
+    }
+    h.pathT = rr(3, 6);
+  }
+
+  if(h.path && h.path.length){
+    const wp = h.path[0];
+    const dx = wp.x - p.x, dz = wp.z - p.z;
+    const d = Math.hypot(dx, dz);
+    if(d < 0.32){ h.path.shift(); return; }
+    const moved = humanMove(h, dx, dz, speed, dt);
+    if(moved < speed*dt*0.35){
+      h.stuckT = (h.stuckT||0) + dt;
+      if(h.stuckT > 0.6){
+        h.stuckT = 0;
+        h.path = null;
+        h.stuckCount = (h.stuckCount||0) + 1;
+        if(h.stuckCount >= 2){
+          h.stuckCount = 0;
+          snapEntityToWalkable(h.person.root);    // 连续卡住：直接挪出墙缝
+        }
+        const a = Math.atan2(h.person.root.position.z - (h._pz||h.person.root.position.z),
+                             h.person.root.position.x - (h._px||h.person.root.position.x));
+        h.heading = { x: Math.cos(a + Math.PI), z: Math.sin(a + Math.PI) };  // 背对卡点转身
+      }
+    } else { h.stuckT = 0; h.stuckCount = 0; }
+  } else {
+    // 找不到路（角落/门后）：保持一个朝向走，每 0.35 秒转一下，不要每帧随机（会打转）
+    if(!h.escH) h.escH = Math.random()*6.283;
+    h.escT = (h.escT||0) + dt;
+    if(h.escT > 0.35){ h.escT = 0; h.escH += 1.2; }
+    if(humanMove(h, Math.cos(h.escH), Math.sin(h.escH), speed*0.8, dt) < speed*dt*0.3){
+      h.escT = 0; h.escH += 2.1;
+    }
+    h.pathT = 0;
+  }
+}
+function humanFlee(h, speed, dt, gx, gz){
+  const p = h.person.root.position;
+  // 贴太近（3 米内）：别管路线了，直接背对鬼跑，绝不往脸上撞
+  const dg0 = Math.hypot(p.x-gx, p.z-gz);
+  if(dg0 < 5.0){
+    const a = Math.atan2(p.z-gz, p.x-gx);
+    if(humanMove(h, Math.cos(a), Math.sin(a), speed, dt) < speed*dt*0.3){
+      humanMove(h, Math.cos(a+1.3), Math.sin(a+1.3), speed, dt);
+    }
+    h.path = null; h.fleeT = 0.25;
+    return;
+  }
+  // 逃跑也用寻路：每 0.45 秒重算一次"背离鬼、且真的能走到"的目标点，
+  // 不再每帧左右试探（那样会原地左右晃）
+  h.fleeT = (h.fleeT || 0) - dt;
+  if(!h.path || !h.path.length || h.fleeT <= 0){
+    let best = null, bd = -1e9;
+    const away = Math.atan2(p.z - gz, p.x - gx);
+    for(let i=0;i<20;i++){
+      const off = (Math.random()-0.5)*0.5;
+      const a = away + off;
+      const r = 9 + Math.random()*4;
+      const tx = p.x + Math.cos(a)*r, tz = p.z + Math.sin(a)*r;
+      if(!navWalkableAt(tx, tz)) continue;
+      const d = Math.hypot(tx-gx, tz-gz);
+      // 打分：离鬼越远越好，同时偏好"顺着已经跑的方向"，避免来回折返被堵住
+      const score = d - Math.abs(off)*1.6;
+      if(score > bd){ bd = score; best = {x:tx, z:tz}; }
+    }
+    if(best){
+      const path = navPath(p.x, p.z, best.x, best.z);
+      // 关键：路线如果会从鬼身边擦过去（往脸上撞），换一个目标点重算
+      let safe = true;
+      if(path && path.length){
+        for(let i=0;i<Math.min(5, path.length);i++){
+          if(Math.hypot(path[i].x-gx, path[i].z-gz) < 2.6){ safe = false; break; }
+        }
+      }
+      if(safe && path && path.length) h.path = path;
+      else if(path && path.length){ h.path = null; h.fleeT = 0.12; }   // 下一拍重新挑
+      else if(!h.path || !h.path.length){ /* 保留旧路线 */ }
+    }
+    h.fleeT = 1.0;
+  }
+
+  if(h.path && h.path.length){
+    const wp = h.path[0];
+    const dx = wp.x - p.x, dz = wp.z - p.z;
+    const d = Math.hypot(dx, dz);
+    if(d < 0.30){ h.path.shift(); return; }
+    const moved = humanMove(h, dx, dz, speed, dt);
+    if(moved < speed*dt*0.35){
+      h.stuckT = (h.stuckT||0) + dt;
+      if(h.stuckT > 0.5){                 // 0.5 秒原地徘徊 → 立刻换路线
+        h.stuckT = 0; h.path = null; h.fleeT = 0;
+        h.stuckCount = (h.stuckCount||0) + 1;
+        if(h.stuckCount >= 2){ h.stuckCount = 0; snapEntityToWalkable(p); }
+      }
+    } else { h.stuckT = 0; h.stuckCount = 0; }
+    return;
+  }
+
+  // 实在找不到路：保持一个方向跑 0.4 秒再换，不要每帧翻转
+  if(!h.escH) h.escH = Math.atan2(p.z-gz, p.x-gx);
+  h.escT = (h.escT||0) + dt;
+  if(h.escT > 0.4){ h.escT = 0; h.escH += 0.9; }
+  if(humanMove(h, Math.cos(h.escH), Math.sin(h.escH), speed, dt) < speed*dt*0.3){
+    h.escT = 0; h.escH += 1.8;
+  }
+}
+
+window.__AI_PROF = { n:0, total:0, max:0, navN:0, navMs:0, navMax:0, buildMs:0, builds:0 };
 function aiHumansUpdate(dt){
+  const _t0 = performance.now();
+  try{ aiHumansUpdateInner(dt); }catch(e){}
+  const _dt2 = performance.now() - _t0;
+  const P = window.__AI_PROF;
+  P.n++; P.total += _dt2; if(_dt2 > P.max) P.max = _dt2;
+}
+function aiHumansUpdateInner(dt){
   if(!GV.on) return;
   // 20Hz 更新就够：4 个人物每帧跑一次会把帧时间拉出毛刺
   _aiAcc += dt;
-  if(_aiAcc < 0.05) return;
+  if(_aiAcc < 0.08) return;
   const aiDt = _aiAcc; _aiAcc = 0;
 
-  // AI 人类路过玻璃门：自己滑开，走远关上
+  // AI 人类路过玻璃门：靠近才滑开；没有人类在门口就自动关上
   try{
-    for(const h of AI.humans){
-      if(h.state === 'hide' || h.state === 'dead') continue;
-      const hp = h.person.root.position;
-      for(const gd of GLASS){
-        const dg = Math.hypot(gd.x - hp.x, gd.z - hp.z);
-        if(!gd.open && dg < 2.6){ toggleGlass(gd); }
+    for(const gd of GLASS){
+      let anyNear = false;
+      for(const h of AI.humans){
+        if(h.state === 'hide' || h.state === 'dead') continue;
+        const hp = h.person.root.position;
+        if(Math.hypot(gd.x - hp.x, gd.z - hp.z) < 2.2){ anyNear = true; break; }
+      }
+      const playerNear = Math.hypot(gd.x - player.x, gd.z - player.z) < 3.2;
+      if(anyNear && !gd.open && !playerNear){ toggleGlass(gd); gd.__aiOpened = AI_CLOCK; }
+      else if(gd.open && gd.__aiOpened && AI_CLOCK - gd.__aiOpened > 2.5 && !anyNear && !playerNear){
+        toggleGlass(gd); gd.__aiOpened = 0;
       }
     }
   }catch(e){}
 
   for(const h of AI.humans){
     if(h.state==='out' || h.state==='dead') continue;
+    // 距离剔除：18 米外不画；15 米外不再算动画（雾里根本看不见）
+    let distG0 = 0;
+    try{
+      distG0 = Math.hypot(h.person.root.position.x-GV.x, h.person.root.position.z-GV.z);
+    }catch(e){}
+    if(h.state !== 'hide'){
+      const near = distG0 < 20;
+      if(h.person.root.visible !== near) h.person.root.visible = near;
+      // 注意：远处的人只是"不画"，模拟照常走，否则他们会永远站桩
+    }
     h.walk += dt;
     if(h.postHit>0) h.postHit = Math.max(0, h.postHit-dt);
     const distG = Math.hypot(h.person.root.position.x-GV.x, h.person.root.position.z-GV.z);
 
-    if(h.state === 'hide'){
-      h.timer -= aiDt;
-      h.stam = Math.min(1, h.stam + aiDt/CFG.玩家.体力回复秒);   // 躲着回体力
-      // 只有躲太久（12~20 秒）才会自己探头出来；鬼站门口不会把人吓出来
-      if(h.timer <= 0){
-        h.state='wander'; h.hideDoor=null; h.person.root.visible=true; h.timer=rr(3,6);
+    // ================= 行为决策（简化版） =================
+    //  鬼在 9 米内 = 被追：立刻疾跑远离，绝不躲
+    //  鬼在 10 米内但没追：找门躲进去
+    //  鬼走了（>10 米）：出来继续找钥匙
+    //  其余时间：走去抽屉翻钥匙（走路，不疾跑）
+    if(h.state === 'escaped') continue;      // 已经撤离的人不再参与任何决策
+    const chased = distG < 9;
+    const allKeysDone = (KEYS.length > 0 && KEYS_TAKEN >= KEYS.length);
+    if(allKeysDone && !chased && h.state !== 'escaped'){
+      h.state = 'toExit';                 // 钥匙齐了：往安全门撤
+    } else if(chased){
+      if(h.state === 'hiding' || h.state === 'toHide'){ h.person.root.visible = true; }
+      h.state = 'flee';
+      h.hideDoor = null; h.searchCab = null; h.searchT = 0;
+      h.path = null;
+    } else if(h.state === 'flee'){
+      if(distG > 16){ h.state = 'search'; h.path = null; h.searchCab = null; }
+    } else if(h.state === 'hiding'){
+      if(distG > 10){                     // 鬼走了 → 出来继续找钥匙
+        h.state = 'search'; h.person.root.visible = true;
+        h.hideDoor = null; h.path = null; h.searchCab = null;
       }
-      continue;
+    } else if(h.state === 'toHide'){
+      /* 继续走向门，下面处理 */
+    } else {
+      if(distG < 10){                     // 鬼在附近但没追 → 躲
+        const dr = aiNearestDoor(h.d, 10);
+        if(dr){ h.state = 'toHide'; h.hideDoor = dr; }
+        else { h.state = 'search'; }
+      } else {
+        h.state = 'search';
+      }
     }
 
-    if(distG < cfgNum('人类AI','发现鬼距离',6) && h.state !== 'flee'){ h.state='flee'; h.timer=3; }
-    if(h.state === 'flee'){ h.timer -= aiDt; if(h.timer<=0 || distG > cfgNum('人类AI','安全距离',13)){ h.state='wander'; h.timer=rr(2,5); } }
-
-    // 疾跑受体力限制：最多 8 秒，耗完只能快走
+    // ================= 体力 =================
     let sprinting = false;
     let speed = cfgNum('人类AI','走路速度',1.35);
     if(h.state === 'flee'){
-      if(h.stam > 0.02){
+      if(h.stam > 0.03){
         sprinting = true;
         speed = (h.postHit>0 ? cfgNum('人类AI','受伤冲刺速度',5.4) : cfgNum('人类AI','冲刺速度',5.05));
         h.stam = Math.max(0, h.stam - aiDt/CFG.玩家.疾跑上限秒);
       } else {
-        speed = 1.45;
-        h.stam = Math.min(1, h.stam + aiDt/CFG.玩家.体力回复秒);
+        speed = 3.2;                                  // 没体力也小跑，不走路
+        h.stam = Math.min(h.stamMax||1, h.stam + aiDt/6);
       }
     } else {
-      h.stam = Math.min(1, h.stam + aiDt/CFG.玩家.体力回复秒);
-    }
-    // 走门：靠近门 → 钻进去躲好
-    if(h.state === 'toDoor'){
-      const q = pathD(h.hideDoor.x, h.hideDoor.z);
-      h.target = q;
-      if(Math.abs(aiShortest(h.d, q)) < 0.9){
-        h.state='hide'; h.timer=rr(cfgNum('人类AI','躲藏最短秒',12), cfgNum('人类AI','躲藏最长秒',20));
-        const pp = atPath(q);
-        h.person.root.visible=false;
-        h.person.root.position.set(pp.x + pp.nx*0.55, 0, pp.z + pp.nz*0.55);
-        continue;
-      }
+      h.stam = Math.min(h.stamMax||1, h.stam + aiDt/CFG.玩家.体力回复秒);
+      if(h.state === 'toExit') speed = 3.4;      // 撤离时快跑，到一个撤一个
     }
 
-    // 闲逛：时间到就找一扇门过去躲
-    if(h.state === 'wander'){
+    // 路上遇到关着的房间门 → 推开（AI 不会开门会一直卡在门口）
+    try{
+      const pp = h.person.root.position;
+      for(const rd of ROOM_DOORS){
+        if(rd.open) continue;
+        if(Math.hypot(rd.x - pp.x, rd.z - pp.z) < 1.7){
+          setRoomDoor(rd, true);
+          GAI.path = null; h.path = null;
+          break;
+        }
+      }
+    }catch(e){}
+
+    // ================= 行动 =================
+    if(h.state === 'flee'){
+      humanFlee(h, speed, aiDt, GV.x, GV.z);
+
+    }else if(h.state === 'toHide' && h.hideDoor){
+      const dp = atPath(pathD(h.hideDoor.x, h.hideDoor.z));
+      humanMove(h, dp.x - h.person.root.position.x, dp.z - h.person.root.position.z, speed, aiDt);
+      if(Math.hypot(dp.x - h.person.root.position.x, dp.z - h.person.root.position.z) < 0.85){
+        h.state = 'hiding';
+        h.timer = rr(cfgNum('人类AI','躲藏最短秒',6), cfgNum('人类AI','躲藏最长秒',11));
+        h.person.root.visible = false;
+        h.person.root.position.set(dp.x + dp.nx*0.55, 0, dp.z + dp.nz*0.55);
+      }
+
+    }else if(h.state === 'hiding'){
       h.timer -= aiDt;
-      if(h.timer <= 0){
-        const dr = aiNearestDoor(h.d, 10.0);
-        if(dr && Math.random() < 0.85){
-          h.state='toDoor'; h.hideDoor=dr;
-          h.target = pathD(dr.x, dr.z);
-        } else {
-          h.target = (h.d + rr(8,18)) % RING_LEN;
-          h.timer = rr(3,6);
+
+    }else if(h.state === 'toExit'){
+      // 目标点：门内侧 1.1 米（门本身在墙里，直接走过去会被墙挡住，永远到不了）
+      if(!window.EXIT_APPROACH){
+        const ddx = 0 - EXIT_INFO.x, ddz = 0 - EXIT_INFO.z;
+        const LL = Math.hypot(ddx, ddz) || 1;
+        window.EXIT_APPROACH = { x: EXIT_INFO.x + ddx/LL*1.1, z: EXIT_INFO.z + ddz/LL*1.1 };
+      }
+      const ex = window.EXIT_APPROACH.x, ez = window.EXIT_APPROACH.z;
+      const px2 = h.person.root.position.x, pz2 = h.person.root.position.z;
+      const dd = Math.hypot(ex - px2, ez - pz2);
+      if(dd < 1.45){
+        h.state = 'escaped';
+        h.person.root.visible = false;
+        AI_ESCAPED++;
+        const alive = AI.humans.filter(function(x){ return x.state !== 'dead' && x.state !== 'escaped'; }).length;
+        if(alive === 0) humanSideWin('AI 带着钥匙从安全门撤离了');
+      }else{
+        h._exitT = (h._exitT || 0) - aiDt;
+        if(!h.path || !h.path.length || h._exitT <= 0){
+          const pth = navPath(px2, pz2, ex, ez);
+          if(pth && pth.length) h.path = pth;
+          h._exitT = 1.0;
+        }
+        if(h.path && h.path.length){
+          const wp2 = h.path[0];
+          const dx3 = wp2.x - px2, dz3 = wp2.z - pz2;
+          if(Math.hypot(dx3, dz3) < 0.32) h.path.shift();
+          else if(humanMove(h, dx3, dz3, speed, aiDt) < speed*aiDt*0.3) h.path = null;
+        }else{
+          humanMove(h, ex - px2, ez - pz2, speed, aiDt);
+        }
+      }
+
+    }else{
+      // —— 找钥匙：走到一个没翻过的抽屉柜，翻 1.2 秒 ——
+      if(!h.searchCab || h.cabSearched){
+        const pool = CABINETS.filter(function(c){ return !c.__searchedByAI; });
+        if(!pool.length){
+          for(const c of CABINETS) c.__searchedByAI = false;      // 都翻完了就重来
+        }
+        const keyCabs = CABINETS.filter(function(c){
+          return !c.__searchedByAI && c.drawers.some(function(d){ return d.item && d.item.kind==='key' && !d.item.taken; });
+        });
+        let pick = null;
+        if(keyCabs.length && Math.random() < 0.6) pick = keyCabs[(Math.random()*keyCabs.length)|0];
+        if(!pick){
+          const rest = CABINETS.filter(function(c){ return !c.__searchedByAI; });
+          if(rest.length) pick = rest[(Math.random()*rest.length)|0];
+        }
+        h.searchCab = pick || null;
+        h.cabSearched = false; h.searchT = 0; h.path = null;
+      }
+
+      const cab = h.searchCab;
+      if(!cab){
+        humanWander(h, speed, aiDt);
+      }else{
+        const px = h.person.root.position.x, pz = h.person.root.position.z;
+        const dc = Math.hypot(cab.x - px, cab.z - pz);
+        if(dc > 1.3){
+          // 走向抽屉柜（用寻路，撞墙会自动换路）
+          if(!h.path || !h.path.length){
+            const pth = navPath(px, pz, cab.x, cab.z);
+            if(pth && pth.length) h.path = pth;
+          }
+          if(h.path && h.path.length){
+            const wp = h.path[0];
+            const dx2 = wp.x - px, dz2 = wp.z - pz;
+            if(Math.hypot(dx2, dz2) < 0.3){ h.path.shift(); }
+            else if(humanMove(h, dx2, dz2, speed, aiDt) < speed*aiDt*0.3){ h.path = null; }
+          }else{
+            humanMove(h, cab.x - px, cab.z - pz, speed, aiDt);
+          }
+        }else{
+          // 到了：一层一层拉抽屉（每层 0.9 秒），翻到钥匙就拿走
+          h.searchT = (h.searchT||0) + aiDt;
+          if(h.searchT > 0.9){
+            h.searchT = 0;
+            try{ toggleDrawer(cab); }catch(e){}
+            try{ Sound.click(); }catch(e){}      // 翻抽屉只用这一个音效，之后替换成你的
+            for(const d of cab.drawers){
+              if(d.open && d.item && d.item.kind === 'key' && !d.item.taken){
+                takeKeyFromDrawer(d);
+                break;
+              }
+            }
+            // 三层都拉开了 → 这个柜子翻完
+            if(cab.drawers.every(function(d){ return d.open; })){
+              h.cabSearched = true;
+              cab.__searchedByAI = true;
+            }
+          }
         }
       }
     }
-    if(h.state === 'flee'){
-      const gd = pathD(GV.x, GV.z);
-      const away = aiShortest(gd, h.d);            // 鬼 → 人的方向
-      const sgn = away >= 0 ? 1 : -1;              // 朝远离鬼的那头跑
-      h.target = (h.d + sgn*26 + RING_LEN) % RING_LEN;
-      // 顺手往另一侧车道挪，别和鬼挤在一条线上
-      h.homeLane = (sgn > 0 ? -1 : 1) * (0.45 + Math.random()*0.35);
-    }
-
-    const diff = aiShortest(h.d, h.target);
-    const r = aiStepPath(h, speed, aiDt);
-    const step = r.moved || 0;
-    if(r.moved){
-      h.person.root.position.set(r.x, r.y || 0, r.z);
-      const p = atPath(h.d);
-      h.person.root.rotation.y = Math.atan2(p.dx*Math.sign(step||1), p.dz*Math.sign(step||1));
-    }
-    // 走路动画：脚步频率随速度变，跑起来幅度更大
-    const walkSpeed = Math.abs(step)/Math.max(1e-3, aiDt);
-    h.walkAnim = (h.walkAnim||0) + aiDt * (3.2 + walkSpeed*2.6);
-    if(h.person.update) h.person.update(h.walkAnim, walkSpeed/1.4, walkSpeed>2.4);
-    if(Math.abs(diff) < 0.6 && h.state==='wander'){ h.target=(h.d+rr(8,18))%RING_LEN; h.timer=rr(2,5); }
+    const step = speed*aiDt;
+    // 走路动画：按"真实位移"算幅度；远处的也给呼吸摆幅，
+    // 否则他们站着就是 A-pose 白模，看着像废弃模型
+    const _px0 = (h._px === undefined) ? h.person.root.position.x : h._px;
+    const _pz0 = (h._pz === undefined) ? h.person.root.position.z : h._pz;
+    const _mv = Math.hypot(h.person.root.position.x - _px0, h.person.root.position.z - _pz0);
+    h._px = h.person.root.position.x; h._pz = h.person.root.position.z;
+    const realSpeed = _mv / Math.max(1e-3, aiDt);
+    h.walkAnim = (h.walkAnim||0) + aiDt * (3.2 + realSpeed*2.6);
+    if(h.person.update) h.person.update(h.walkAnim, Math.max(0.12, Math.min(2.4, realSpeed/1.4)), realSpeed>2.4);
+    if(h.state==='wander' && (h.headT||0) <= 0){ h.headT = rr(1.6,3.6); }
   }
 }
 
@@ -5253,6 +7796,7 @@ function checkGhostVictory(){
   const alive = AI.humans.filter(function(h){ return h.state!=='out' && h.state!=='dead'; });
   if(alive.length > 0) return;
   GHOST_WON = true;
+  try{ playWin(); }catch(e){}
   if(document.pointerLockElement) document.exitPointerLock();
   const t=document.getElementById('winTitle'), hh=document.getElementById('winHint');
   if(t)  t.textContent = '你把所有人都杀了';
@@ -5266,10 +7810,32 @@ function checkGhostVictory(){
 }
 function updateAI(dt){
   if(AI.mode !== 'single') return;
+  // 4 扇出口：把 EXIT_INFO 指到离玩家最近的那扇，提示/撤离判定都跟着它走
+  if(window.EXITS && window.EXITS.length > 1 && !GV.on){
+    let bestX = EXIT_INFO.x, bestZ = EXIT_INFO.z, bd = 1e9;
+    for(const e of window.EXITS){
+      const dd = Math.hypot(player.x - e.x, player.z - e.z);
+      if(dd < bd){ bd = dd; bestX = e.x; bestZ = e.z; }
+    }
+    EXIT_INFO.x = bestX; EXIT_INFO.z = bestZ;
+  }
+  try{ if(window.Net && Net.connected) Net.tick(player); }catch(e){}
   aiGhostUpdate(dt);
   aiHumansUpdate(dt);
   checkGhostVictory();
 }
+
+// 菜单阶段先把 4 个 AI 人类造好（藏在菜单后面），点"我当鬼"时就不用现场造了
+try{ if(!AI.humans.length) aiSpawnHumans(4); }catch(e){}
+try{ AI.humans.forEach(function(h){ h.person.root.visible = false; }); }catch(e){}
+
+// 菜单阶段就在背后把着色器编好：这样点「我当鬼」时不用再等 8 秒
+setTimeout(function(){
+  try{
+    if(_warmedOnce || STARTED) return;
+    warmupOnce(function(){}, true);
+  }catch(e){}
+}, 1000);
 
 loop();
 
@@ -5321,12 +7887,87 @@ function prewarmWorld(){
       for(const h of AI.humans) h.person.root.visible = false;
     }
   }catch(e){ window.__pwErr = e.message; }
-  try{
-    if(renderer.compile) renderer.compile(scene, camera);
-    renderer.render(scene, camera);
-  }catch(e){ window.__pwErr2 = e.message; }
+  // 着色器编译统一交给 warmupOnce（点开始游戏时、在"加载中"遮罩后面做一次）
 }
-// 主菜单出来以后，趁玩家看菜单时把这活儿干完
+// 主菜单出来以后，只把 4 个 AI 人类建好（不编译、不渲染，避免菜单卡死）
 setTimeout(function(){
   try{ requestAnimationFrame(function(){ requestAnimationFrame(prewarmWorld); }); }catch(e){ prewarmWorld(); }
 }, 700);
+
+/* ================= 编辑器音效接入（LEVEL_DATA.音效） =================
+   用 <audio> 播放，file:// 打开也能用；没配或文件坏了就回落程序化音效 */
+const SND_OVR = { data: {}, ready: false, failed: [] };
+
+function probeAudio(url){
+  return new Promise(function(resolve){
+    const a = new Audio();
+    let done = false;
+    const finish = function(ok){
+      if(done) return; done = true;
+      resolve(ok ? { url, dur: (isFinite(a.duration) ? a.duration : 0) } : null);
+    };
+    a.preload = 'auto';
+    a.oncanplaythrough = function(){ finish(true); };
+    a.onloadeddata = function(){ finish(true); };
+    a.onerror = function(){ finish(false); };
+    a.src = url;
+    setTimeout(function(){ finish(!!(a.readyState >= 2)); }, 3000);
+  });
+}
+
+async function loadSoundOverrides(){
+  const cfg = (window.LEVEL_DATA && LEVEL_DATA.音效) || null;
+  if(!cfg) return;
+  const keys = Object.keys(cfg);
+  if(!keys.length) return;
+
+  for(const k of keys){
+    const entry = cfg[k] || {};
+    const files = (entry.items || []).filter(function(it){ return it && it.kind === 'file' && it.file; });
+    const ok = [];
+    for(const it of files){
+      const url = '素材/音频/' + encodeURIComponent(it.file);
+      const r = await probeAudio(url);
+      if(r) ok.push({ url: r.url, dur: it.dur || r.dur || 0, repeat: it.repeat || 1 });
+      else SND_OVR.failed.push(it.file);
+    }
+    if(ok.length){
+      SND_OVR.data[k] = { bufs: ok, vol: (entry.vol != null ? entry.vol : 1), random: !!entry.random };
+    }
+  }
+
+  for(const k in SND_OVR.data){
+    if(typeof Sound[k] !== 'function') continue;
+    Sound[k] = (function(key){ return function(){ playOverride(key); }; })(k);
+  }
+  SND_OVR.ready = true;
+  window.SND_OVR = SND_OVR;
+  if(SND_OVR.failed.length) console.warn('[音效] 没加载成功：', SND_OVR.failed.join(', '));
+}
+
+function playOverride(k){
+  const d = SND_OVR.data[k];
+  if(!d || !d.bufs.length) return;
+  const item = d.random ? d.bufs[Math.floor(Math.random()*d.bufs.length)] : d.bufs[0];
+  const n = Math.max(1, item.repeat|0);
+  const gap = item.dur > 0 ? item.dur : 0.5;
+  for(let i=0;i<n;i++){
+    setTimeout(function(){
+      try{
+        const a = new Audio(item.url);
+        a.volume = Math.max(0, Math.min(1, d.vol));
+        a.play().catch(function(){});
+      }catch(e){}
+    }, Math.round(i * gap * 1000));
+  }
+}
+
+setTimeout(function(){ try{ loadSoundOverrides(); }catch(e){} }, 1800);
+// 第一次交互时解锁音频
+(function(){
+  const kick = function(){
+    try{ const c = sndCtx(); if(c && c.state === 'suspended') c.resume(); }catch(e){}
+  };
+  window.addEventListener('pointerdown', kick, { once:true });
+  window.addEventListener('keydown', kick, { once:true });
+})();
