@@ -6,14 +6,11 @@
 <title>🚀 Y老大 · 项目集</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  html{touch-action:pan-y;-webkit-overflow-scrolling:touch;height:100%}
   body{
     font-family:-apple-system,"PingFang SC","Helvetica Neue",system-ui,sans-serif;
     background:#03060b;color:#e6edf3;min-height:100vh;overflow-x:hidden;
-    touch-action:pan-y;-webkit-overflow-scrolling:touch;
   }
-  /* 星空画布：只接收点按(tap)，垂直滑动/缩放手势交还浏览器，恢复手机端滚动 */
-  #starfield{position:fixed;inset:0;z-index:0;display:block;cursor:pointer;touch-action:pan-y pinch-zoom;-webkit-user-select:none;user-select:none}
+  #starfield{position:fixed;inset:0;z-index:0;display:block;cursor:pointer}
   .container{max-width:900px;margin:0 auto;padding:40px 24px;position:relative;z-index:1;pointer-events:none}
   .container *{pointer-events:auto}
   /* ===== Header ===== */
@@ -48,7 +45,6 @@
     cursor:pointer;text-decoration:none;color:inherit;
     position:relative;overflow:hidden;
     backdrop-filter:blur(2px);
-    touch-action:pan-y;-webkit-tap-highlight-color:transparent;
   }
   .project-card::before{
     content:'';position:absolute;inset:0;opacity:0;
@@ -63,7 +59,7 @@
     -webkit-mask-composite:xor;mask-composite:exclude;
     opacity:0;transition:opacity 0.4s;
   }
-  .project-card:hover{transform:translateY(-3px);background:rgba(255,255,255,0.04);border-color:transparent}
+  .project-card:hover{transform:translateY(-5px);background:rgba(255,255,255,0.04);border-color:transparent;box-shadow:0 16px 36px rgba(0,0,0,0.45)}
   .project-card:hover::before{opacity:0.08}
   .project-card:hover::after{opacity:1}
   .project-card .icon{
@@ -73,7 +69,7 @@
     background:var(--card-icon-bg,rgba(255,255,255,0.05));
   }
   .project-card .info{flex:1;position:relative;z-index:1;min-width:0}
-  .project-card .info h3{font-size:1.02rem;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .project-card .info h3{font-size:1.1rem;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .project-card .info .desc{font-size:0.84rem;color:rgba(255,255,255,0.4);line-height:1.55;margin-bottom:10px}
   .project-card .info .tags{display:flex;gap:6px;flex-wrap:wrap}
   .project-card .info .tags span{font-size:0.68rem;padding:2px 10px;border-radius:20px;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.05)}
@@ -216,13 +212,20 @@
   .hover-preview .hp-more{
     font-size:0.7rem;color:rgba(88,166,255,0.4);margin-top:6px;
   }
-  @media(max-width:600px){
-    .container{padding:20px 16px}
-    header{padding:40px 0 32px}
-    header h1{font-size:1.5rem}
-    .project-card{padding:16px;gap:14px}
+  @media(max-width:768px){
+    html{touch-action:pan-y;-webkit-overflow-scrolling:touch}
+    body{touch-action:pan-y;-webkit-overflow-scrolling:touch}
+    #starfield{touch-action:pan-y pinch-zoom;-webkit-user-select:none;user-select:none}
+    .container{pointer-events:none;padding:32px 16px 140px}
+    .container *{pointer-events:none}
+    .project-card{pointer-events:auto;touch-action:pan-y;-webkit-tap-highlight-color:transparent;padding:16px;gap:14px;margin-bottom:18px}
+    .project-card:active{transform:scale(0.97);background:rgba(255,255,255,0.05)}
+    header{padding:36px 0 28px}
+    header h1{font-size:1.55rem}
+    header p{font-size:0.85rem;padding:0 8px}
+    .section{margin-bottom:32px}
     .project-card .icon{width:44px;height:44px;font-size:20px}
-    .project-card .info h3{font-size:0.92rem}
+    .project-card .info h3{font-size:0.95rem}
     .project-card .info .desc{font-size:0.8rem}
     .modal-box{max-height:90vh;border-radius:14px}
     .hover-preview{max-width:220px}
@@ -234,8 +237,8 @@
 <div class="container">
   <header>
     <div class="avatar">🚀</div>
-    <h1><span>Y老大</span> 的项目</h1>
-    <p>钢铁侠负责拍脑袋，小虾虾负责落地。<br>
+    <h1><span>Y 的开发实验室</span></h1>
+    <p>全栈独立开发者 / 致力于用代码构建有趣的交互体验。<br>
       点击左下角的 🌍 地球，留下你的话 ✨</p>
   </header>
   <div class="section">
@@ -244,9 +247,9 @@
        style="--card-accent:#ff6b8a;--card-icon-bg:linear-gradient(135deg,rgba(231,76,111,0.15),rgba(255,107,138,0.15))">
       <div class="icon">🐳</div>
       <div class="info">
-        <h3>和小明宝宝的一天 <span class="status-badge online">● 已上线</span></h3>
-        <div class="desc">互动约会文字小游戏。以小鲸鱼的视角，经历北京站见面、逛街、吃饭、回酒店、亲吻的甜蜜一天。</div>
-        <div class="tags"><span>💕 约会</span><span>🎮 互动游戏</span><span>📱 手机友好</span></div>
+        <h3>互动叙事游戏：和小明宝宝的一天 <span class="status-badge online">● 已上线</span></h3>
+        <div class="desc">一款基于情感化设计的互动文字游戏。采用状态机管理多分支剧情，支持移动端完美适配。涵盖场景渲染、动态音效与交互逻辑，展示全栈开发与UI/UX能力。</div>
+        <div class="tags"><span>多分支剧情</span><span>全栈开发</span><span>互动游戏</span></div>
       </div>
       <div class="arrow">→</div>
     </a>
@@ -255,8 +258,8 @@
       <div class="icon">🎯</div>
       <div class="info">
         <h3>SlideForge <span class="status-badge online">● 已上线</span></h3>
-        <div class="desc">AI PPT 生成器。输入主题选个风格，AI 自动生成完整幻灯片。支持编辑和导出 .pptx。</div>
-        <div class="tags"><span>🤖 AI 驱动</span><span>📊 PPT 生成</span><span>🎨 10+ 主题</span></div>
+        <div class="desc">面向职场效率的 AI 生产力工具。打通 Prompt 工程与大模型 API，实现一键生成结构化大纲与精美排版，并支持在线编辑器与 .pptx 底层导出解析。</div>
+        <div class="tags"><span>AI 驱动</span><span>前端工程化</span><span>SaaS工具</span></div>
       </div>
       <div class="arrow">→</div>
     </a>
@@ -265,8 +268,8 @@
       <div class="icon">🏥</div>
       <div class="info">
         <h3>恐怖医院走廊 <span class="status-badge online">● 可试玩</span></h3>
-        <div class="desc">能真正玩起来的第一人称恐怖走廊：91 米环形医院走廊、14 扇门。手电、跳跃、体力全都有，按 E 能躲进门里，鬼会听见你开关门的动静。</div>
-        <div class="tags"><span>👁️ 第一人称</span><span>🔦 手电 · 躲藏</span><span>👻 有鬼在找你</span><span>🎧 声音判定</span></div>
+        <div class="desc">基于 WebGL 与 WebSocket 开发的第一人称非对称联机恐怖游戏。实现低延迟双端位置同步、主机权威状态机判定（断臂/倒地/救援）、以及基于距离衰减的空间音频与光影迷雾。</div>
+        <div class="tags"><span>3D WebGL</span><span>多人联机同步</span><span>空间音频</span></div>
       </div>
       <div class="arrow">→</div>
     </a>
@@ -281,7 +284,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>🦐 小虾虾 · Stark Industries 出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.3.7</span></footer>
+  <footer>🦐 小虾虾 · Stark Industries 出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.4.0</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -644,14 +647,17 @@ class Comet{
 }
 // ===== Init =====
 function initScene(){
+  const isMobile=window.innerWidth<=768;
   stars=[];
-  // Create meteor — top-left area
-  const ms=new Star(W*0.08,H*0.15);
-  ms.isMeteor=true;ms.type="meteor";ms.baseSize=20;ms.size=20;ms.homeX=W*0.08;ms.homeY=H*0.15;
+  // Create meteor — top-left area (mobile: tighter into the corner)
+  const mx=isMobile?W*0.07:W*0.08,my=isMobile?H*0.12:H*0.15;
+  const ms=new Star(mx,my);
+  ms.isMeteor=true;ms.type="meteor";ms.baseSize=20;ms.size=20;ms.homeX=mx;ms.homeY=my;
   meteor=ms;stars.push(ms);
   for(let i=1;i<STAR_COUNT;i++)stars.push(new Star());
+  const earthX=isMobile?W*0.06:Math.min(160,W*0.1),earthY=isMobile?H*0.88:Math.min(H-140,H*0.78);
   planets=[
-    new Celestial(Math.min(160,W*0.1),Math.min(H-140,H*0.78),60,"Earth","80,160,255",false,
+    new Celestial(earthX,earthY,60,"Earth","80,160,255",false,
       [{angle:0,dist:100,size:5,speed:0.003},{angle:2.2,dist:130,size:3.5,speed:0.002}]),
     new Celestial(Math.max(W-160,W*0.82),Math.min(150,H*0.15),28,"Mars","210,100,60",false,
       [{angle:1.5,dist:50,size:3,speed:0.004}]),
@@ -1122,8 +1128,9 @@ function render(){
 render();
 window.addEventListener("resize",()=>{
   resize();
+  const isMobile=W<=768;
   if(planets.length>=4){
-    planets[0].cx=Math.min(160,W*0.1);planets[0].cy=Math.min(H-140,H*0.78);
+    planets[0].cx=isMobile?W*0.06:Math.min(160,W*0.1);planets[0].cy=isMobile?H*0.88:Math.min(H-140,H*0.78);
     planets[1].cx=Math.max(W-160,W*0.82);planets[1].cy=Math.min(150,H*0.15);
     planets[2].cx=Math.max(W-200,W*0.78);planets[2].cy=Math.min(H*0.5,H*0.48);
     planets[3].cx=Math.max(W-130,W*0.85);planets[3].cy=Math.min(H-80,H*0.85);
@@ -1133,6 +1140,15 @@ window.addEventListener("resize",()=>{
 // 📋 更新日志
 // ============================================================
 const CHANGELOG=[
+  {
+    ver:"v1.4.0",
+    date:"2026-10-28",
+    items:[
+      "📱 修复移动端：无法滑动 + 留言地球/陨石点不到（事件穿透与手势声明）",
+      "✍️ 全局文案更新：标题「Y 的开发实验室」+ 三张项目卡片重构",
+      "✨ 卡片视觉微调：hover 上浮 + 发光，标题加粗放大",
+    ]
+  },
   {
     ver:"v1.3.7",
     date:"2026-10-22",
