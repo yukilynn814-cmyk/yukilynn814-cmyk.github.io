@@ -14,6 +14,8 @@
   }
   input,textarea{-webkit-user-select:text;user-select:text;cursor:text}
   #starfield{position:fixed;inset:0;z-index:0;display:block;cursor:pointer}
+  #meadow-bg{position:fixed;inset:0;z-index:5;background:url(meadow.jpg) no-repeat center/cover;opacity:0;pointer-events:none;transition:opacity 0.55s ease}
+  #meadow-bg.show{opacity:1}
   .container{max-width:900px;margin:0 auto;padding:40px 24px;position:relative;z-index:1;pointer-events:none}
   .container *{pointer-events:auto}
   /* ===== Header ===== */
@@ -85,87 +87,98 @@
   footer{text-align:center;padding:40px 0 60px;color:rgba(255,255,255,0.06);font-size:0.75rem;letter-spacing:1px}
   /* ===== Message Board Modal ===== */
   .modal-overlay{
-    position:fixed;inset:0;background:rgba(0,0,0,0.65);
-    backdrop-filter:blur(6px);z-index:1000;
+    position:fixed;inset:0;background:rgba(18,28,18,0.4);
+    z-index:1000;
     display:none;align-items:center;justify-content:center;
-    animation:fadeIn 0.25s ease;padding:20px;
+    animation:fadeIn 0.3s ease;padding:20px;
   }
   .modal-overlay.show{display:flex}
   @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
   @keyframes slideUp{0%{transform:translateY(30px);opacity:0}100%{transform:translateY(0);opacity:1}}
   .modal-box{
-    background:#0d1117;border:1px solid rgba(255,255,255,0.08);
-    border-radius:18px;width:100%;max-width:480px;max-height:80vh;
+    background:
+      repeating-linear-gradient(90deg, rgba(90,55,25,0.28) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.06) 0 1px, transparent 1px 6px),
+      linear-gradient(160deg, #b5804a, #8f5c2e 55%, #7c4f27);
+    border:6px solid #6a4223;
+    border-radius:16px;width:100%;max-width:520px;max-height:82vh;
     display:flex;flex-direction:column;overflow:hidden;
-    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    box-shadow:0 22px 60px rgba(0,0,0,0.55), inset 0 2px 3px rgba(255,255,255,0.18), inset 0 -4px 8px rgba(0,0,0,0.28);
     animation:slideUp 0.3s ease;
   }
   .modal-header{
     display:flex;align-items:center;justify-content:space-between;
-    padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);
+    padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.18);
   }
-  .modal-header h3{font-size:0.95rem;font-weight:600;display:flex;align-items:center;gap:8px}
+  .modal-header h3{font-size:0.95rem;font-weight:700;display:flex;align-items:center;gap:8px;color:#3a2410}
   .modal-header .close-btn{
-    width:32px;height:32px;border-radius:50%;border:none;
-    background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.4);
-    cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
+    width:30px;height:30px;border-radius:50%;border:1px solid rgba(0,0,0,0.2);
+    background:rgba(0,0,0,0.12);color:#3a2410;
+    cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;
     transition:all 0.2s;font-family:inherit;
   }
-  .modal-header .close-btn:hover{background:rgba(255,255,255,0.12);color:#fff}
+  .modal-header .close-btn:hover{background:rgba(0,0,0,0.22);color:#1e1206}
   .modal-body{flex:1;overflow-y:auto;padding:16px 20px}
-  .modal-body::-webkit-scrollbar{width:4px}
-  .modal-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
-  /* ===== Messages ===== */
-  .msg-list{display:flex;flex-direction:column;gap:14px}
+  .modal-body::-webkit-scrollbar{width:5px}
+  .modal-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.2);border-radius:4px}
+  /* ===== 便利贴留言板 ===== */
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 14px;padding:6px 2px}
   .msg-item{
-    display:flex;gap:10px;animation:fadeIn 0.3s ease;
+    --rot:0deg;
     position:relative;
+    background:linear-gradient(165deg,#fff2a0,#ffd95e);
+    color:#4a3415;
+    padding:14px 12px 10px;
+    border-radius:4px;
+    min-height:98px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+    transform:rotate(var(--rot));
+    animation:noteIn 0.45s ease both;
+    display:flex;flex-direction:column;
+    word-break:break-word;
+    font-size:0.84rem;line-height:1.5;
   }
-  .msg-item .avatar{
-    width:36px;height:36px;border-radius:50%;flex-shrink:0;
-    display:flex;align-items:center;justify-content:center;
-    font-size:14px;font-weight:600;margin-top:2px;
+  @keyframes noteIn{
+    from{opacity:0;transform:rotate(var(--rot)) translateY(10px) scale(0.94);}
+    to{opacity:1;transform:rotate(var(--rot)) translateY(0) scale(1);}
   }
-  .msg-item .body{flex:1;min-width:0}
-  .msg-item .body .meta{display:flex;align-items:center;gap:6px;margin-bottom:3px}
-  .msg-item .body .meta .name{font-size:0.78rem;font-weight:600;color:rgba(255,255,255,0.6)}
-  .msg-item .body .meta .time{font-size:0.65rem;color:rgba(255,255,255,0.2)}
-  .msg-item .body .text{
-    font-size:0.88rem;line-height:1.55;color:#e6edf3;
-    background:rgba(255,255,255,0.04);border-radius:4px 12px 12px 12px;
-    padding:8px 12px;word-break:break-word;
+  .msg-item .note-text{flex:1;margin-bottom:8px}
+  .msg-item .note-meta{display:flex;align-items:center;justify-content:space-between;font-size:0.68rem;color:rgba(74,52,21,0.75)}
+  .msg-item .note-name{font-weight:700;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .msg-item .note-del{
+    position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;
+    border:1px solid rgba(0,0,0,0.2);background:#fff2a0;color:#8a5a2e;
+    cursor:pointer;font-size:11px;line-height:1;display:none;align-items:center;justify-content:center;
   }
-  .msg-item .body .text.admin-badge{
-    border-left:2px solid #58a6ff;
+  .msg-item:hover .note-del{display:flex}
+  .pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
+  .pg-btn{
+    padding:7px 16px;border-radius:20px;border:1px solid rgba(0,0,0,0.28);
+    background:linear-gradient(180deg,#8f5c2e,#7c4f27);color:#f5e7c8;
+    cursor:pointer;font-size:0.78rem;font-family:inherit;
+    box-shadow:0 2px 4px rgba(0,0,0,0.3);
+    transition:all 0.2s;
   }
-  .msg-item .body .actions{
-    display:none;gap:6px;margin-top:4px;padding-left:4px;
-  }
-  .msg-item:hover .body .actions{display:flex}
-  .msg-item .body .actions button{
-    background:none;border:none;color:rgba(255,255,255,0.25);
-    font-size:0.68rem;cursor:pointer;padding:2px 6px;
-    border-radius:4px;font-family:inherit;
-  }
-  .msg-item .body .actions button:hover{background:rgba(255,255,255,0.06);color:#58a6ff}
-  .msg-item .body .actions .del:hover{color:#f85149}
-  .empty-msg{padding:40px 20px;text-align:center;color:rgba(255,255,255,0.15);font-size:0.85rem;line-height:1.7}
+  .pg-btn:hover:not(:disabled){background:linear-gradient(180deg,#a06a35,#8f5c2e)}
+  .pg-btn:disabled{opacity:0.4;cursor:default}
+  .pg-info{font-size:0.75rem;color:rgba(58,36,16,0.85);font-weight:700}
+  .empty-msg{padding:40px 20px;text-align:center;color:rgba(58,36,16,0.55);font-size:0.85rem;line-height:1.7}
   /* ===== Post Form ===== */
   .modal-footer{
-    padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,0.06);
+    padding:14px 20px 18px;border-top:1px solid rgba(0,0,0,0.18);
   }
   .post-form{display:flex;gap:8px}
   .post-form input[type="text"]{
     flex:1;padding:10px 14px;border-radius:20px;
-    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
-    color:#e6edf3;font-size:0.85rem;font-family:inherit;
+    background:rgba(255,255,255,0.75);border:1px solid rgba(0,0,0,0.18);
+    color:#3a2410;font-size:0.85rem;font-family:inherit;
     outline:none;transition:border-color 0.2s;
   }
-  .post-form input:focus{border-color:#58a6ff}
+  .post-form input:focus{border-color:#8a5a2e}
   .post-form button{
-    width:40px;height:40px;border-radius:50%;border:none;
-    background:linear-gradient(135deg,#58a6ff,#bc8cff);
-    color:#fff;cursor:pointer;font-size:18px;
+    width:40px;height:40px;border-radius:50%;border:1px solid rgba(0,0,0,0.25);
+    background:linear-gradient(180deg,#a06a35,#7c4f27);
+    color:#f5e7c8;cursor:pointer;font-size:18px;
     display:flex;align-items:center;justify-content:center;
     transition:transform 0.15s;flex-shrink:0;
   }
@@ -173,7 +186,7 @@
   .post-form button:active{transform:scale(0.95)}
   .post-form button:disabled{opacity:0.3;cursor:default;transform:none}
   .post-name-row{display:flex;gap:8px;margin-bottom:8px}
-  .post-name-row input{flex:1;padding:8px 12px;border-radius:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:#e6edf3;font-size:0.8rem;font-family:inherit;outline:none}
+  .post-name-row input{flex:1;padding:8px 12px;border-radius:20px;background:rgba(255,255,255,0.7);border:1px solid rgba(0,0,0,0.16);color:#3a2410;font-size:0.8rem;font-family:inherit;outline:none}
   .post-name-row input:focus{border-color:#58a6ff}
   .post-name-row .admin-badge-input{
     font-size:0.68rem;color:rgba(255,255,255,0.2);display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;
@@ -232,12 +245,14 @@
     .project-card .info h3{font-size:0.95rem}
     .project-card .info .desc{font-size:0.8rem}
     .modal-box{max-height:90vh;border-radius:14px}
+    .board{grid-template-columns:repeat(2,1fr)}
     .hover-preview{max-width:220px}
   }
 </style>
 </head>
 <body>
 <canvas id="starfield"></canvas>
+<div id="meadow-bg"></div>
 <div class="container">
   <header>
     <div class="avatar">🚀</div>
@@ -288,7 +303,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.5.0</span></footer>
+  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.6.0</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -520,13 +535,6 @@ class Star{
     const a=Math.min(this.alpha*tw,1)*(1-starFade);
     if(a<=0.004)return;
     const [r,g,b]=this.tint;
-    if(warp>0.02&&this.type!=="meteor"){
-      const cx=W/2,cy=H/2,dx=this.x-cx,dy=this.y-cy,d=Math.hypot(dx,dy)||1;
-      const ux=dx/d,uy=dy/d,len=warp*(d*1.3+45);
-      ctx.strokeStyle=`rgba(${r},${g},${b},${a*0.7})`;
-      ctx.lineWidth=Math.max(1,this.size*0.35);
-      ctx.beginPath();ctx.moveTo(this.x-ux*len,this.y-uy*len);ctx.lineTo(this.x,this.y);ctx.stroke();
-    }
     if(this.type==="circle")this._c(a,r,g,b);
     else if(this.type==="spark")this._s(a,r,g,b);
     else if(this.type==="diamond")this._d(a,r,g,b);
@@ -702,7 +710,7 @@ initScene();
 function scheduleReplacement(o){pendingReplacements.push({x:o?o.homeX:rnd(0,W),y:o?o.homeY:rnd(0,H),cd:15+Math.floor(rnd(0,25))})}
 function spawnBurst(x,y,c){for(let i=0;i<12;i++)particles.push({x,y,color:c,vx:rnd(-4,4),vy:rnd(1,5),life:15+rnd(0,10),age:0})}
 // ===== 星际穿越与降落 =====
-let warp=0,starFade=0;
+let rollAngle=0,starFade=0,planetFade=0;
 const deepTravel={phase:"idle",t:0,animStart:0,duration:1800,homeX:0,homeY:0};
 function clamp01(v){return v<0?0:v>1?1:v}
 function smoothstep(t){return t*t*(3-2*t)}
@@ -718,15 +726,18 @@ function startDeepTravel(){
   deepTravel.phase="entering";deepTravel.animStart=performance.now();
 }
 function applyTravel(t){
-  const tw2=t<0.45?t/0.45:1-(t-0.45)/0.55;
-  warp=clamp01(tw2);
-  starFade=clamp01((t-0.62)/0.33);
+  const ec=clamp01(t);
+  const sm=smoothstep(ec);
+  rollAngle=Math.PI*2*sm;                                   // 全画布360°翻滚(缓入缓出)
+  starFade=clamp01((ec-0.12)/0.45);                         // 星星淡出
+  planetFade=clamp01((ec-0.08)/0.40);                       // 其他行星淡出
   const e=planets[0];if(!e)return;
   const tx=W/2,ty=H/2,tr=Math.max(W,H)*0.74;
-  const es=smoothstep(clamp01(t));
-  e.cx=deepTravel.homeX+(tx-deepTravel.homeX)*es;
-  e.cy=deepTravel.homeY+(ty-deepTravel.homeY)*es;
-  e.r=60+(tr-60)*es;
+  e.cx=deepTravel.homeX+(tx-deepTravel.homeX)*sm;
+  e.cy=deepTravel.homeY+(ty-deepTravel.homeY)*sm;
+  e.r=60+(tr-60)*sm;
+  const bg=document.getElementById("meadow-bg");
+  if(bg){if(ec>=0.68)bg.classList.add("show");else bg.classList.remove("show");}
 }
 function updateDeepTravel(){
   if(deepTravel.phase==="idle")return;
@@ -742,7 +753,7 @@ function updateDeepTravel(){
     openMsgModal();
   }else if(deepTravel.phase==="leaving"&&t<=0){
     deepTravel.phase="idle";
-    warp=0;starFade=0;
+    rollAngle=0;starFade=0;planetFade=0;
     const h=earthHome();const e=planets[0];
     if(e){e.cx=h.x;e.cy=h.y;e.r=60;}
   }
@@ -933,15 +944,28 @@ async function saveMessages(){
     return false;
   }
 }
+const PAGE_SIZE=6;
+let curPage=0;
 function renderMessages(){
   const body=document.getElementById("msgBody");
-  if(msgData.length===0){
+  if(!msgData.length){
     body.innerHTML='<div class="empty-msg">🌌 还没有留言…<br>写下第一句话吧</div>';
     return;
   }
-  body.innerHTML=`<div class="msg-list">${msgData.map((m,i)=>renderMsg(m,i)).join("")}</div>`;
-  body.scrollTop=body.scrollHeight;
+  const total=Math.ceil(msgData.length/PAGE_SIZE);
+  if(curPage>=total)curPage=total-1;
+  if(curPage<0)curPage=0;
+  const start=curPage*PAGE_SIZE;
+  const page=msgData.slice(start,start+PAGE_SIZE);
+  body.innerHTML=`<div class="board">${page.map((m,i)=>renderMsg(m,i)).join("")}</div>
+    <div class="pager">
+      <button class="pg-btn" onclick="prevPage()"${curPage<=0?" disabled":""}>← 上一页</button>
+      <span class="pg-info">${curPage+1} / ${total}</span>
+      <button class="pg-btn" onclick="nextPage()"${curPage>=total-1?" disabled":""}>下一页 →</button>
+    </div>`;
 }
+function prevPage(){if(curPage>0){curPage--;renderMessages();}}
+function nextPage(){const total=Math.ceil(msgData.length/PAGE_SIZE);if(curPage<total-1){curPage++;renderMessages();}}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 function timeAgo(ts){
   const d=Date.now()-ts;
@@ -951,36 +975,26 @@ function timeAgo(ts){
   return Math.floor(d/86400000)+"天前";
 }
 function renderMsg(m,i){
-  const isOwn=m.id===editingId;
-  const nameCls=m.nameClass||["#58a6ff","#bc8cff","#f0883e","#3fb950","#f85149","#f0a0c0"][Math.abs(hashStr(m.name||""))%6];
+  const rot=(((Math.abs(hashStr(m.id))%1000)/1000)*10-5).toFixed(1); // -5~5 度，稳定随机
   const canEdit=isAdmin||(localStorage.getItem("sf_userId")===m.userId);
   const isAdminMsg=m.isAdmin;
+  const isOwn=m.id===editingId;
   if(isOwn){
-    return `<div class="msg-item">
-      <div class="avatar" style="background:${nameCls};color:#fff">${(m.name||"?")[0]}</div>
-      <div class="body">
-        <div class="meta"><span class="name">${esc(m.name)}</span><span class="time">${timeAgo(m.ts)}</span></div>
-        <input class="edit-input" id="editInput" value="${esc(m.text)}" maxlength="200">
-        <div class="edit-actions">
-          <button onclick="saveEdit('${m.id}')">💾 保存</button>
-          <button onclick="cancelEdit()">取消</button>
-        </div>
+    return `<div class="msg-item" style="--rot:${rot}deg">
+      <input class="edit-input" id="editInput" value="${esc(m.text)}" maxlength="200">
+      <div class="edit-actions">
+        <button onclick="saveEdit('${m.id}')">💾 保存</button>
+        <button onclick="cancelEdit()">取消</button>
       </div>
     </div>`;
   }
-  return `<div class="msg-item">
-    <div class="avatar" style="background:${nameCls};color:#fff">${(m.name||"?")[0]}</div>
-    <div class="body">
-      <div class="meta">
-        <span class="name">${esc(m.name)}${isAdminMsg?' <span style="color:#58a6ff;font-size:0.65rem">✦</span>':''}</span>
-        <span class="time">${timeAgo(m.ts)}</span>
-      </div>
-      <div class="text${isAdminMsg?' admin-badge':''}">${esc(m.text)}</div>
-      <div class="actions">
-        ${canEdit?`<button onclick="startEdit('${m.id}')">✏️ 编辑</button>`:''}
-        ${canEdit?`<button class="del" onclick="deleteMsg('${m.id}')">🗑️ 删除</button>`:''}
-      </div>
+  return `<div class="msg-item" style="--rot:${rot}deg">
+    <div class="note-text">${esc(m.text)}</div>
+    <div class="note-meta">
+      <span class="note-name">${esc(m.name)}${isAdminMsg?' ✦':''}</span>
+      <span class="note-time">${timeAgo(m.ts)}</span>
     </div>
+    ${canEdit?`<button class="note-del" title="删除" onclick="deleteMsg('${m.id}')">✕</button>`:''}
   </div>`;
 }
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0}return h}
@@ -996,6 +1010,7 @@ async function postMessage(){
     text,ts:Date.now(),userId,isAdmin
   });
   document.getElementById("postInput").value="";
+  curPage=Math.ceil(msgData.length/PAGE_SIZE)-1;
   renderMessages();
   const ok=await saveMessages();
   if(!ok)renderMessages();
@@ -1079,7 +1094,11 @@ let _renderCrashCount=0;
 function render(){
   try{
     updateDeepTravel();
+    ctx.setTransform(1,0,0,1,0,0);
     ctx.clearRect(0,0,W,H);ctx.fillStyle="#03060b";ctx.fillRect(0,0,W,H);
+    if(rollAngle!==0){
+      ctx.translate(W/2,H/2);ctx.rotate(rollAngle);ctx.translate(-W/2,-H/2);
+    }
     nebulae.forEach(n=>n.draw());
     for(let i=pendingReplacements.length-1;i>=0;i--){
       const p=pendingReplacements[i];p.cd--;
@@ -1108,7 +1127,10 @@ function render(){
       });
     }
     // Planets
-    planets.forEach(p=>{try{p.draw()}catch(e){}});
+    planets.forEach(p=>{
+      if(p.isEarth){try{p.draw()}catch(e){}}
+      else{const ga=1-planetFade;if(ga>0.01){ctx.globalAlpha=ga;try{p.draw()}catch(e){};ctx.globalAlpha=1;}}
+    });
     // ===== Debris rendering =====
     for(let i=debris.length-1;i>=0;i--){
       try{
@@ -1197,6 +1219,7 @@ function render(){
     stars=stars.filter(s=>{try{return s.update()}catch(e){return false}});
     stars.forEach(s=>{try{s.draw()}catch(e){}});
     while(stars.length<STAR_COUNT)stars.push(new Star());
+    ctx.setTransform(1,0,0,1,0,0);
     _renderCrashCount=0;
   }catch(e){
     _renderCrashCount++;
@@ -1221,6 +1244,14 @@ window.addEventListener("resize",()=>{
 // 📋 更新日志
 // ============================================================
 const CHANGELOG=[
+  {
+    ver:"v1.6.0",
+    date:"2026-10-29",
+    items:[
+      "🪐 星际穿越改版：镜头360°翻滚+行星剥离+地球拉近，落地蓝天白云草地背景",
+      "📋 留言板改木质风格：留言变便利贴、每页6张、随机倾斜、翻页切换",
+    ]
+  },
   {
     ver:"v1.5.0",
     date:"2026-10-29",
