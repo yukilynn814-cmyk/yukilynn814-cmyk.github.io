@@ -288,7 +288,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.4.2</span></footer>
+  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.5.0</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -427,13 +427,12 @@ class Celestial{
     // Continents for Earth
     if(this.isEarth){
       ctx.save();ctx.translate(cx,cy);ctx.rotate(this.rot*0.2);
-      // Continent positions (constant)
+      const fc=this.r/60; // 缩放：地球放大时陆地/云随之铺满全屏
       const contPos=[
         {x:-15,y:-10,rx:16,ry:12},{x:12,y:-14,rx:14,ry:18},
         {x:-22,y:14,rx:12,ry:10},{x:18,y:12,rx:13,ry:11},
         {x:-4,y:-30,rx:10,ry:8}
       ];
-      // Compute continent colors from raw values each frame (immutable)
       const ir=this.impactIntensity;
       const usesRed=ir>0.01;
       contPos.forEach((cp,i)=>{
@@ -441,10 +440,25 @@ class Celestial{
         const r=usesRed?lerp(60,220,ir):cc.r;
         const g=usesRed?lerp(cc.g,Math.max(40,cc.g-ir*120),ir):cc.g;
         const b=usesRed?Math.max(30,cc.b-ir*80):cc.b;
-        ctx.beginPath();ctx.ellipse(cp.x,cp.y,cp.rx,cp.ry,0,0,Math.PI*2);
+        ctx.beginPath();ctx.ellipse(cp.x*fc,cp.y*fc,cp.rx*fc,cp.ry*fc,0,0,Math.PI*2);
         ctx.fillStyle=`rgba(${r|0},${g|0},${b|0},${cc.a})`;
         ctx.fill();
       });
+      // 云层：降落后显现生态
+      const cloudA=clamp01((this.r-90)/60);
+      if(cloudA>0.02){
+        const clouds=[
+          {x:-22,y:-26,rx:30,ry:11},{x:26,y:-8,rx:26,ry:12},
+          {x:10,y:24,rx:32,ry:10},{x:-28,y:14,rx:24,ry:9}
+        ];
+        clouds.forEach((c,i)=>{
+          const cxx=c.x*fc+Math.sin(this.rot*2+i*1.7)*4;
+          const cyy=c.y*fc+Math.cos(this.rot*1.5+i)*3;
+          ctx.beginPath();ctx.ellipse(cxx,cyy,c.rx*fc,c.ry*fc,0,0,Math.PI*2);
+          ctx.fillStyle=`rgba(255,255,255,${0.10*cloudA})`;
+          ctx.fill();
+        });
+      }
       ctx.restore();
     }
     // Highlight
@@ -503,7 +517,16 @@ class Star{
   }
   draw(){if(this.alpha<=0)return;
     const tw=this.type==="meteor"?1:0.6+0.4*Math.sin(this.twinklePhase);
-    const a=Math.min(this.alpha*tw,1),[r,g,b]=this.tint;
+    const a=Math.min(this.alpha*tw,1)*(1-starFade);
+    if(a<=0.004)return;
+    const [r,g,b]=this.tint;
+    if(warp>0.02&&this.type!=="meteor"){
+      const cx=W/2,cy=H/2,dx=this.x-cx,dy=this.y-cy,d=Math.hypot(dx,dy)||1;
+      const ux=dx/d,uy=dy/d,len=warp*(d*1.3+45);
+      ctx.strokeStyle=`rgba(${r},${g},${b},${a*0.7})`;
+      ctx.lineWidth=Math.max(1,this.size*0.35);
+      ctx.beginPath();ctx.moveTo(this.x-ux*len,this.y-uy*len);ctx.lineTo(this.x,this.y);ctx.stroke();
+    }
     if(this.type==="circle")this._c(a,r,g,b);
     else if(this.type==="spark")this._s(a,r,g,b);
     else if(this.type==="diamond")this._d(a,r,g,b);
@@ -678,12 +701,59 @@ const nebulae=[
 initScene();
 function scheduleReplacement(o){pendingReplacements.push({x:o?o.homeX:rnd(0,W),y:o?o.homeY:rnd(0,H),cd:15+Math.floor(rnd(0,25))})}
 function spawnBurst(x,y,c){for(let i=0;i<12;i++)particles.push({x,y,color:c,vx:rnd(-4,4),vy:rnd(1,5),life:15+rnd(0,10),age:0})}
+// ===== 星际穿越与降落 =====
+let warp=0,starFade=0;
+const deepTravel={phase:"idle",t:0,animStart:0,duration:1800,homeX:0,homeY:0};
+function clamp01(v){return v<0?0:v>1?1:v}
+function smoothstep(t){return t*t*(3-2*t)}
+function earthHome(){
+  const isMobile=W<=768;
+  return {x:isMobile?W*0.06:Math.min(160,W*0.1),y:isMobile?H*0.88:Math.min(H-140,H*0.78)};
+}
+function startDeepTravel(){
+  if(deepTravel.phase!=="idle")return; // 动画期间禁连点，防状态机错乱
+  const e=planets[0];if(!e)return;
+  const h=earthHome();
+  deepTravel.homeX=h.x;deepTravel.homeY=h.y;
+  deepTravel.phase="entering";deepTravel.animStart=performance.now();
+}
+function applyTravel(t){
+  const tw2=t<0.45?t/0.45:1-(t-0.45)/0.55;
+  warp=clamp01(tw2);
+  starFade=clamp01((t-0.62)/0.33);
+  const e=planets[0];if(!e)return;
+  const tx=W/2,ty=H/2,tr=Math.max(W,H)*0.74;
+  const es=smoothstep(clamp01(t));
+  e.cx=deepTravel.homeX+(tx-deepTravel.homeX)*es;
+  e.cy=deepTravel.homeY+(ty-deepTravel.homeY)*es;
+  e.r=60+(tr-60)*es;
+}
+function updateDeepTravel(){
+  if(deepTravel.phase==="idle")return;
+  const now=performance.now();
+  let t;
+  if(deepTravel.phase==="entering")t=clamp01((now-deepTravel.animStart)/deepTravel.duration);
+  else if(deepTravel.phase==="leaving")t=clamp01(1-(now-deepTravel.animStart)/deepTravel.duration);
+  else t=1;
+  deepTravel.t=t;
+  applyTravel(t);
+  if(deepTravel.phase==="entering"&&t>=1){
+    deepTravel.phase="eco";
+    openMsgModal();
+  }else if(deepTravel.phase==="leaving"&&t<=0){
+    deepTravel.phase="idle";
+    warp=0;starFade=0;
+    const h=earthHome();const e=planets[0];
+    if(e){e.cx=h.x;e.cy=h.y;e.r=60;}
+  }
+}
 // ===== Click Handler =====
 canvas.addEventListener("click",e=>{
+  if(deepTravel.phase!=="idle")return; // 穿越动画中忽略点击
   const rect=canvas.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
   for(const p of planets){
     if(p.contains(px,py)){
-      if(p.isEarth){openMsgModal();return}
+      if(p.isEarth){startDeepTravel();return}
       if(p.name==="Mars"){showChangelog();return}
       spawnBurst(p.cx,p.cy,p.baseColor);return
     }
@@ -997,6 +1067,10 @@ function openMsgModal(){
 function closeMsgModal(){
   document.getElementById("msgModal").classList.remove("show");
   document.body.style.overflow="";
+  if(deepTravel.phase==="eco"){
+    deepTravel.phase="leaving";
+    deepTravel.animStart=performance.now();
+  }
 }
 document.getElementById("msgModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeMsgModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMsgModal()});
@@ -1004,6 +1078,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMsgModal()});
 let _renderCrashCount=0;
 function render(){
   try{
+    updateDeepTravel();
     ctx.clearRect(0,0,W,H);ctx.fillStyle="#03060b";ctx.fillRect(0,0,W,H);
     nebulae.forEach(n=>n.draw());
     for(let i=pendingReplacements.length-1;i>=0;i--){
@@ -1134,7 +1209,9 @@ window.addEventListener("resize",()=>{
   resize();
   const isMobile=W<=768;
   if(planets.length>=4){
-    planets[0].cx=isMobile?W*0.06:Math.min(160,W*0.1);planets[0].cy=isMobile?H*0.88:Math.min(H-140,H*0.78);
+    if(deepTravel.phase==="idle"){
+      planets[0].cx=isMobile?W*0.06:Math.min(160,W*0.1);planets[0].cy=isMobile?H*0.88:Math.min(H-140,H*0.78);
+    }
     planets[1].cx=Math.max(W-160,W*0.82);planets[1].cy=Math.min(150,H*0.15);
     planets[2].cx=Math.max(W-200,W*0.78);planets[2].cy=Math.min(H*0.5,H*0.48);
     planets[3].cx=Math.max(W-130,W*0.85);planets[3].cy=Math.min(H-80,H*0.85);
@@ -1144,6 +1221,14 @@ window.addEventListener("resize",()=>{
 // 📋 更新日志
 // ============================================================
 const CHANGELOG=[
+  {
+    ver:"v1.5.0",
+    date:"2026-10-29",
+    items:[
+      "🚀 星际穿越与降落动画：点地球触发曲速拖影→俯冲→生态降落→留言板浮现",
+      "🔁 反向关闭动画 + 动画期间防连点 + 退出完全恢复原状",
+    ]
+  },
   {
     ver:"v1.4.2",
     date:"2026-10-28",
