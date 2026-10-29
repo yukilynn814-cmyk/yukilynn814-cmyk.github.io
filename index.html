@@ -251,14 +251,61 @@
     .board{grid-template-columns:repeat(2,1fr)}
     .hover-preview{max-width:220px}
   }
+/* ===== 🚀 火箭层(独立,高于文字,低于弹窗) ===== */
+#rocketLayer{position:fixed;inset:0;z-index:50;display:block;pointer-events:none}
+/* ===== 🚀 火箭发射弹窗(星际主题) ===== */
+#rocketModal .rocket-box{
+  background:
+    radial-gradient(130% 130% at 50% -30%, rgba(88,166,255,0.28), rgba(13,17,23,0) 60%),
+    linear-gradient(160deg, #0d1117, #0a0e18 55%, #060a12);
+  border:1px solid rgba(88,166,255,0.35);
+  border-radius:18px;width:100%;max-width:420px;
+  padding:32px 30px;text-align:center;
+  box-shadow:0 0 70px rgba(88,166,255,0.18),0 24px 60px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.08);
+  animation:slideUp 0.3s ease;position:relative;overflow:hidden;
+}
+#rocketModal .rocket-box::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(2px 2px at 20% 28%,rgba(255,255,255,0.55),transparent 55%),
+             radial-gradient(1px 1px at 72% 18%,rgba(255,255,255,0.45),transparent 55%),
+             radial-gradient(1.5px 1.5px at 40% 72%,rgba(255,255,255,0.4),transparent 55%),
+             radial-gradient(1px 1px at 86% 62%,rgba(255,255,255,0.35),transparent 55%),
+             radial-gradient(1.2px 1.2px at 8% 80%,rgba(255,255,255,0.3),transparent 55%);
+}
+#rocketModal .rocket-box-title{font-size:1.3rem;font-weight:700;color:#e6edf3;margin-bottom:14px;position:relative}
+#rocketModal .rocket-box-hint{font-size:0.74rem;color:rgba(255,255,255,0.35);line-height:1.75;margin-bottom:26px;position:relative}
+#rocketModal .rocket-box-actions{display:flex;gap:12px;justify-content:center;position:relative}
+#rocketModal .rkt-btn{
+  padding:11px 30px;border-radius:24px;font-size:0.92rem;font-family:inherit;cursor:pointer;
+  border:1px solid transparent;transition:all 0.2s;
+}
+#rocketModal .rkt-ok{
+  background:linear-gradient(135deg,#58a6ff,#bc8cff);color:#fff;
+  box-shadow:0 4px 22px rgba(88,166,255,0.35);
+}
+#rocketModal .rkt-ok:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(88,166,255,0.55)}
+#rocketModal .rkt-cancel{
+  background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.12);
+}
+#rocketModal .rkt-cancel:hover{background:rgba(255,255,255,0.1);color:#e6edf3}
+/* 爆炸时项目卡片波动 */
+@keyframes rktShake{
+  0%,100%{transform:translate(0,0) rotate(0)}
+  20%{transform:translate(-4px,-2px) rotate(-1.2deg)}
+  40%{transform:translate(4px,-4px) rotate(1.2deg)}
+  60%{transform:translate(-3px,-2px) rotate(-0.8deg)}
+  80%{transform:translate(3px,-3px) rotate(0.8deg)}
+}
+.project-card.rkt-shake{animation:rktShake 0.9s ease}
 </style>
 </head>
 <body>
 <canvas id="starfield"></canvas>
+<canvas id="rocketLayer"></canvas>
 <div id="meadow-bg"></div>
 <div class="container">
   <header>
-    <div class="avatar">🚀</div>
+    <div class="avatar" id="rocketAvatar" onclick="openRocketPrompt()">🚀</div>
     <h1><span>Y 的开发实验室</span></h1>
     <p>全栈独立开发者 / 致力于用代码构建有趣的交互体验。<br>
       点击左下角的 🌍 地球，留下你的话 ✨</p>
@@ -306,7 +353,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.7.0</span></footer>
+  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.8.0</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -361,6 +408,17 @@
       <button class="close-btn" onclick="closeChangelog()">✕</button>
     </div>
     <div class="modal-body" id="changelogBody">
+    </div>
+  </div>
+</div>
+<!-- 🚀 Rocket Launch Modal -->
+<div class="modal-overlay" id="rocketModal">
+  <div class="rocket-box">
+    <div class="rocket-box-title">🚀 是否发射火箭？</div>
+    <div class="rocket-box-hint">使用 WASD 进行火箭操控，空格键即为点击，长按三秒空格退出游戏</div>
+    <div class="rocket-box-actions">
+      <button class="rkt-btn rkt-ok" onclick="launchRocket()">确定</button>
+      <button class="rkt-btn rkt-cancel" onclick="closeRocketPrompt()">取消</button>
     </div>
   </div>
 </div>
@@ -771,14 +829,13 @@ function updateDeepTravel(){
   }
 }
 // ===== Click Handler =====
-canvas.addEventListener("click",e=>{
-  if(deepTravel.phase!=="idle")return; // 穿越动画中忽略点击
-  const rect=canvas.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;
+function canvasClickAt(px,py){
+  if(deepTravel.phase!=="idle")return false; // 穿越动画中忽略点击
   for(const p of planets){
     if(p.contains(px,py)){
-      if(p.isEarth){startDeepTravel();return}
-      if(p.name==="Mars"){showChangelog();return}
-      spawnBurst(p.cx,p.cy,p.baseColor);return
+      if(p.isEarth){startDeepTravel();return true}
+      if(p.name==="Mars"){showChangelog();return true}
+      spawnBurst(p.cx,p.cy,p.baseColor);return true
     }
   }
   // Check meteor
@@ -860,11 +917,16 @@ canvas.addEventListener("click",e=>{
       requestAnimationFrame(fa);
     }
     fa();
-    return;
+    return true;
   }
   let best=null,bestD=50;
   for(const s of stars){if(s.falling)continue;const d=dist(px,py,s.x,s.y);if(d<bestD){bestD=d;best=s}}
-  if(best&&typeof best.startFall==='function'){best.startFall();spawnBurst(best.x,best.y,"255,255,255")}
+  if(best&&typeof best.startFall==='function'){best.startFall();spawnBurst(best.x,best.y,"255,255,255");return true}
+  return false;
+}
+canvas.addEventListener("click",e=>{
+  const rect=canvas.getBoundingClientRect();
+  canvasClickAt(e.clientX-rect.left,e.clientY-rect.top);
 });
 // ===== Earth Hover =====
 let hoverTimer=null;
@@ -1090,6 +1152,246 @@ function closeMsgModal(){
 }
 document.getElementById("msgModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeMsgModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMsgModal()});
+// ============================================================
+// 🚀 火箭游戏模块 v1.8 — 完全隔离的独立模块，不影响其他页面逻辑
+// ============================================================
+const rC=document.getElementById("rocketLayer");
+const rX=rC.getContext("2d");
+function rkResize(){rC.width=window.innerWidth;rC.height=window.innerHeight}
+window.addEventListener("resize",rkResize);rkResize();
+
+const RKT={
+  phase:"idle",           // idle | flying | exploding | rebuilding
+  x:0,y:0,vx:0,vy:0,
+  angle:-Math.PI/2,
+  R:17,maxSpeed:120,accel:600,lastT:0,
+  keys:{},spaceAt:0,
+  flame:0,trail:[],rktParticles:[],
+  boom:{active:false,t:0,flash:0,rings:[],x:0,y:0},
+  rebuild:{active:false,t:0,x:0,y:0},
+  shake:[]
+};
+function rkAvatarCenter(){
+  const a=document.getElementById("rocketAvatar");
+  if(!a)return{x:W/2,y:64};
+  const r=a.getBoundingClientRect(),cr=canvas.getBoundingClientRect();
+  return{x:r.left-cr.left+r.width/2,y:r.top-cr.top+r.height/2};
+}
+function openRocketPrompt(){
+  if(RKT.phase!=="idle"||deepTravel.phase!=="idle")return;
+  document.getElementById("rocketModal").classList.add("show");
+  document.body.style.overflow="hidden";
+}
+function closeRocketPrompt(){
+  document.getElementById("rocketModal").classList.remove("show");
+  if(RKT.phase==="idle")document.body.style.overflow="";
+}
+function launchRocket(){
+  closeRocketPrompt();
+  const c=rkAvatarCenter();
+  RKT.phase="flying";RKT.x=c.x;RKT.y=c.y;RKT.vx=0;RKT.vy=0;
+  RKT.angle=-Math.PI/2;RKT.flame=0;RKT.trail=[];RKT.spaceAt=0;RKT.lastT=0;
+  const a=document.getElementById("rocketAvatar");
+  if(a)a.style.opacity="0";
+}
+function rkResetUI(){
+  RKT.phase="idle";RKT.trail=[];RKT.rktParticles=[];RKT.shake=[];
+  RKT.keys={};RKT.spaceAt=0;RKT.flame=0;RKT.boom.active=false;RKT.lastT=0;
+  const a=document.getElementById("rocketAvatar");
+  if(a)a.style.opacity="";
+  rX.clearRect(0,0,W,H);
+}
+function rkSpaceExit(){rkResetUI();}
+function rkExplode(){
+  if(RKT.phase!=="flying")return;
+  RKT.phase="exploding";
+  RKT.boom={active:true,t:0,flash:1,x:RKT.x,y:RKT.y,rings:[
+    {r:0,max:Math.max(W,H)*0.55,c:"255,210,140"},
+    {r:0,max:Math.max(W,H)*0.8,c:"255,130,50"},
+    {r:0,max:Math.max(W,H)*1.0,c:"255,255,255"},
+  ]};
+  for(let i=0;i<90;i++){
+    const ang=rnd(0,Math.PI*2),sp=rnd(2,15);
+    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:rnd(0,1)>0.5?"255,160,60":"255,80,20",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:45+rnd(0,30),age:0});
+  }
+  for(let i=0;i<45;i++){
+    const ang=rnd(0,Math.PI*2),sp=rnd(1,9);
+    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:"255,255,220",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:28+rnd(0,15),age:0});
+  }
+  RKT.shake=planets.map(p=>({p:p,ox:p.cx,oy:p.cy,t:0}));
+  document.querySelectorAll('.project-card').forEach(c=>{c.classList.add('rkt-shake');setTimeout(()=>c.classList.remove('rkt-shake'),950);});
+  const a=document.getElementById("rocketAvatar");
+  if(a)a.style.opacity="0";
+}
+function rkCheckCollide(){
+  for(const p of planets){
+    if(dist(RKT.x,RKT.y,p.cx,p.cy)<p.r+RKT.R){rkExplode();return true;}
+  }
+  if(meteor&&!meteor.falling&&dist(RKT.x,RKT.y,meteor.x,meteor.y)<meteor.size*1.6+RKT.R){rkExplode();return true;}
+  return false;
+}
+function rkOverText(){
+  const els=document.querySelectorAll('.container h1,.container p,.container h3,.container .desc,.container .tags span,.container footer,.container .section-title');
+  for(const el of els){
+    const r=el.getBoundingClientRect();
+    if(RKT.x>r.left&&RKT.x<r.right&&RKT.y>r.top&&RKT.y<r.bottom)return true;
+  }
+  return false;
+}
+function rkUpdate(){
+  if(RKT.phase==="flying"){
+    if(deepTravel.phase!=="idle"){rkResetUI();return;}
+    const now=performance.now();
+    const dt=RKT.lastT?Math.min((now-RKT.lastT)/1000,0.05):0.016;
+    RKT.lastT=now;
+    const k=RKT.keys;
+    let ax=0,ay=0;
+    if(k.w)ay-=1;if(k.s)ay+=1;if(k.a)ax-=1;if(k.d)ax+=1;
+    if(ax&&ay){ax*=0.7071;ay*=0.7071;}
+    RKT.vx+=ax*RKT.accel*dt;RKT.vy+=ay*RKT.accel*dt;
+    const damp=Math.pow(0.05,dt);
+    RKT.vx*=damp;RKT.vy*=damp;
+    const sp=Math.hypot(RKT.vx,RKT.vy);
+    if(sp>RKT.maxSpeed){RKT.vx*=RKT.maxSpeed/sp;RKT.vy*=RKT.maxSpeed/sp;}
+    RKT.x+=RKT.vx*dt;RKT.y+=RKT.vy*dt;
+    if(ax||ay)RKT.angle=Math.atan2(ay,ax);
+    RKT.flame=(ax||ay)?Math.min(1,RKT.flame+0.14):Math.max(0,RKT.flame-0.08);
+    RKT.trail.push({x:RKT.x,y:RKT.y,a:0.7});
+    if(RKT.trail.length>42)RKT.trail.shift();
+    RKT.trail.forEach(t=>t.a-=0.024);
+    if(rkCheckCollide())return;
+    if(RKT.x<-12||RKT.x>W+12||RKT.y<-12||RKT.y>H+12){rkExplode();return;}
+    if(RKT.spaceAt&&performance.now()-RKT.spaceAt>=3000){rkExplode();return;}
+  }else if(RKT.phase==="exploding"){
+    RKT.boom.t++;
+    RKT.boom.flash*=0.92;
+    RKT.boom.rings.forEach(rg=>rg.r+=(rg.max-rg.r)*0.055);
+    RKT.shake.forEach(s=>{
+      s.t++;
+      if(s.t<55){const amp=Math.max(0,1-s.t/55)*11;s.p.cx=s.ox+rnd(-amp,amp);s.p.cy=s.oy+rnd(-amp,amp);}
+      else{s.p.cx=s.ox;s.p.cy=s.oy;}
+    });
+    if(RKT.boom.t>85){
+      RKT.boom.active=false;
+      RKT.shake.forEach(s=>{s.p.cx=s.ox;s.p.cy=s.oy;});
+      RKT.shake=[];
+      const c=rkAvatarCenter();
+      RKT.rebuild={active:true,t:0,x:c.x,y:c.y};
+      RKT.phase="rebuilding";
+    }
+  }else if(RKT.phase==="rebuilding"){
+    RKT.rebuild.t++;
+    if(RKT.rebuild.t>=250){rkResetUI();}
+  }
+  for(let i=RKT.rktParticles.length-1;i>=0;i--){
+    const p=RKT.rktParticles[i];p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy*=0.97;p.age++;
+    if(p.age>=p.life)RKT.rktParticles.splice(i,1);
+  }
+}
+function rkDrawShip(x,y,angle,flame){
+  rX.save();rX.translate(x,y);rX.rotate(angle+Math.PI/2);
+  if(flame>0.01){
+    const fl=flame*(15+rnd(0,7));
+    const fg=rX.createLinearGradient(0,10,0,12+fl);
+    fg.addColorStop(0,"rgba(255,245,190,0.95)");
+    fg.addColorStop(0.45,"rgba(255,150,45,0.75)");
+    fg.addColorStop(1,"rgba(255,60,20,0)");
+    rX.fillStyle=fg;
+    rX.beginPath();rX.moveTo(-6,10);rX.lineTo(0,12+fl);rX.lineTo(6,10);rX.closePath();rX.fill();
+    const fi=rX.createLinearGradient(0,10,0,10+fl*0.55);
+    fi.addColorStop(0,"rgba(255,255,255,0.95)");
+    fi.addColorStop(1,"rgba(130,190,255,0)");
+    rX.fillStyle=fi;
+    rX.beginPath();rX.moveTo(-3,10);rX.lineTo(0,10+fl*0.55);rX.lineTo(3,10);rX.closePath();rX.fill();
+  }
+  rX.fillStyle="rgba(220,80,70,0.9)";
+  rX.beginPath();rX.moveTo(-7,6);rX.lineTo(-12,17);rX.lineTo(-4,14);rX.closePath();rX.fill();
+  rX.beginPath();rX.moveTo(7,6);rX.lineTo(12,17);rX.lineTo(4,14);rX.closePath();rX.fill();
+  const bg=rX.createLinearGradient(-7,0,7,0);
+  bg.addColorStop(0,"rgba(190,200,225,1)");
+  bg.addColorStop(0.5,"rgba(245,248,255,1)");
+  bg.addColorStop(1,"rgba(165,175,200,1)");
+  rX.fillStyle=bg;
+  rX.beginPath();
+  rX.moveTo(0,-21);rX.lineTo(7,-7);rX.lineTo(7,12);rX.lineTo(0,17);rX.lineTo(-7,12);rX.lineTo(-7,-7);
+  rX.closePath();rX.fill();
+  rX.fillStyle="rgba(230,80,70,0.95)";
+  rX.beginPath();rX.moveTo(0,-21);rX.lineTo(5,-10);rX.lineTo(-5,-10);rX.closePath();rX.fill();
+  rX.beginPath();rX.arc(0,-3,3.2,0,Math.PI*2);
+  rX.fillStyle="rgba(120,200,255,0.9)";rX.fill();
+  rX.strokeStyle="rgba(255,255,255,0.7)";rX.lineWidth=1;rX.stroke();
+  rX.strokeStyle="rgba(255,255,255,0.25)";rX.lineWidth=0.8;
+  rX.beginPath();rX.moveTo(0,-21);rX.lineTo(7,-7);rX.lineTo(7,12);rX.lineTo(0,17);rX.lineTo(-7,12);rX.lineTo(-7,-7);rX.closePath();rX.stroke();
+  rX.restore();
+}
+function rkDraw(){
+  if(RKT.phase==="idle")return;
+  rX.clearRect(0,0,W,H);
+  RKT.trail.forEach((t,i)=>{
+    const rr=2.2*(i/RKT.trail.length);
+    rX.beginPath();rX.arc(t.x,t.y,rr,0,Math.PI*2);
+    rX.fillStyle=`rgba(255,180,120,${Math.max(t.a,0)*0.5})`;rX.fill();
+  });
+  const overText=rkOverText();
+  rX.globalAlpha=overText?0.42:1;
+  if(RKT.phase==="flying")rkDrawShip(RKT.x,RKT.y,RKT.angle,RKT.flame);
+  else if(RKT.phase==="exploding"&&RKT.boom.t<12)rkDrawShip(RKT.x,RKT.y,RKT.angle,0);
+  rX.globalAlpha=1;
+  if(RKT.phase==="exploding"&&RKT.boom.active){
+    if(RKT.boom.flash>0.04){
+      rX.fillStyle=`rgba(255,255,245,${Math.min(1,RKT.boom.flash)})`;
+      rX.fillRect(0,0,W,H);
+    }
+    RKT.boom.rings.forEach(rg=>{
+      const a=Math.max(0,1-rg.r/rg.max);
+      rX.beginPath();rX.arc(RKT.boom.x,RKT.boom.y,rg.r,0,Math.PI*2);
+      rX.strokeStyle=`rgba(${rg.c},${a*0.7})`;rX.lineWidth=7*a+1;rX.stroke();
+    });
+    RKT.rktParticles.forEach(p=>{
+      const a=0.8*(1-p.age/p.life);
+      rX.beginPath();rX.arc(p.x,p.y,2.4*(1-p.age/p.life)+0.5,0,Math.PI*2);
+      rX.fillStyle=`rgba(${p.color},${a})`;rX.fill();
+    });
+  }
+  if(RKT.phase==="rebuilding"){
+    const p=RKT.rebuild;
+    const prog=Math.min(1,p.t/250);
+    for(let i=0;i<14;i++){
+      const ang=i/14*Math.PI*2+p.t*0.06;
+      const rr=(1-prog)*90+18;
+      rX.beginPath();rX.arc(p.x+Math.cos(ang)*rr,p.y+Math.sin(ang)*rr,2.6,0,Math.PI*2);
+      rX.fillStyle=`rgba(140,200,255,${0.85*(1-prog)})`;rX.fill();
+    }
+    rX.globalAlpha=0.15+0.85*prog;
+    rkDrawShip(p.x,p.y,-Math.PI/2,0.25*prog);
+    rX.globalAlpha=1;
+    const g=rX.createRadialGradient(p.x,p.y,0,p.x,p.y,30);
+    g.addColorStop(0,`rgba(150,210,255,${0.25*(1-prog)+0.1})`);
+    g.addColorStop(1,"rgba(150,210,255,0)");
+    rX.fillStyle=g;rX.beginPath();rX.arc(p.x,p.y,30,0,Math.PI*2);rX.fill();
+  }
+}
+window.addEventListener("keydown",e=>{
+  if(RKT.phase==="flying"){
+    const k=e.key.toLowerCase();
+    if(k==="w"||k==="a"||k==="s"||k==="d"){RKT.keys[k]=true;e.preventDefault();}
+    else if(e.key===" "||e.key==="Spacebar"){
+      e.preventDefault();
+      if(!RKT.spaceAt){
+        RKT.spaceAt=performance.now();
+        const hit=canvasClickAt(RKT.x,RKT.y);
+        if(hit)rkSpaceExit();
+      }
+    }
+  }
+});
+window.addEventListener("keyup",e=>{
+  const k=e.key.toLowerCase();
+  if(k==="w"||k==="a"||k==="s"||k==="d")RKT.keys[k]=false;
+  if(e.key===" "||e.key==="Spacebar")RKT.spaceAt=0;
+});
+document.getElementById("rocketModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeRocketPrompt();});
+
 // ===== Render Loop =====
 let _renderCrashCount=0;
 function render(){
@@ -1221,6 +1523,7 @@ function render(){
     stars.forEach(s=>{try{s.draw()}catch(e){}});
     while(stars.length<STAR_COUNT)stars.push(new Star());
     ctx.setTransform(1,0,0,1,0,0);
+    try{rkUpdate();rkDraw();}catch(e){}
     _renderCrashCount=0;
   }catch(e){
     _renderCrashCount++;
@@ -1245,6 +1548,16 @@ window.addEventListener("resize",()=>{
 // 📋 更新日志
 // ============================================================
 const CHANGELOG=[
+  {
+    ver:"v1.8.0",
+    date:"2026-10-29",
+    items:[
+      "🚀 火箭图标可交互：点击顶部火箭发射，WASD 操控 + 空格点击 + 长按空格爆炸退出",
+      "💥 核弹爆炸特效：白闪 + 三重冲击波 + 周边星球抖动 + 项目卡片波动",
+      "🔄 重建闭环：爆炸后 4 秒建造动画，造出全新火箭",
+      "🎮 真空惯性 + 8 方向操控 + 推进器喷火特效（宇宙飞船游戏操作逻辑铺垫）",
+    ]
+  },
   {
     ver:"v1.7.0",
     date:"2026-10-29",
