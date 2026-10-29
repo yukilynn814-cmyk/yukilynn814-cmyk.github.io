@@ -14,10 +14,11 @@
   }
   input,textarea{-webkit-user-select:text;user-select:text;cursor:text}
   #starfield{position:fixed;inset:0;z-index:0;display:block;cursor:pointer}
-  #meadow-bg{position:fixed;inset:0;z-index:5;background:url(meadow.jpg) no-repeat center/cover;opacity:0;pointer-events:none;transition:opacity 0.55s ease}
+  #meadow-bg{position:fixed;inset:0;z-index:5;background:url(tree.jpg) no-repeat center/cover;opacity:0;pointer-events:none;transition:opacity 0.55s ease}
   #meadow-bg.show{opacity:1}
   .container{max-width:900px;margin:0 auto;padding:40px 24px;position:relative;z-index:1;pointer-events:none}
   .container *{pointer-events:auto}
+  .container.traveling *{pointer-events:none}
   /* ===== Header ===== */
   header{text-align:center;padding:60px 0 48px;position:relative}
   header .avatar{
@@ -87,7 +88,7 @@
   footer{text-align:center;padding:40px 0 60px;color:rgba(255,255,255,0.06);font-size:0.75rem;letter-spacing:1px}
   /* ===== Message Board Modal ===== */
   .modal-overlay{
-    position:fixed;inset:0;background:rgba(18,28,18,0.4);
+    position:fixed;inset:0;background:transparent;
     z-index:1000;
     display:none;align-items:center;justify-content:center;
     animation:fadeIn 0.3s ease;padding:20px;
@@ -139,8 +140,10 @@
     font-size:0.84rem;line-height:1.5;
   }
   @keyframes noteIn{
-    from{opacity:0;transform:rotate(var(--rot)) translateY(10px) scale(0.94);}
-    to{opacity:1;transform:rotate(var(--rot)) translateY(0) scale(1);}
+    0%{opacity:0;transform:rotate(var(--rot)) translateY(-26px) scale(1.18);}
+    60%{opacity:1;transform:rotate(var(--rot)) translateY(3px) scale(0.95);}
+    80%{opacity:1;transform:rotate(var(--rot)) translateY(-2px) scale(1.02);}
+    100%{opacity:1;transform:rotate(var(--rot)) translateY(0) scale(1);}
   }
   .msg-item .note-text{flex:1;margin-bottom:8px}
   .msg-item .note-meta{display:flex;align-items:center;justify-content:space-between;font-size:0.68rem;color:rgba(74,52,21,0.75)}
@@ -724,6 +727,8 @@ function startDeepTravel(){
   const h=earthHome();
   deepTravel.homeX=h.x;deepTravel.homeY=h.y;
   deepTravel.phase="entering";deepTravel.animStart=performance.now();
+  const cont=document.querySelector('.container');
+  if(cont)cont.classList.add('traveling');
 }
 function applyTravel(t){
   const ec=clamp01(t);
@@ -738,6 +743,11 @@ function applyTravel(t){
   e.r=60+(tr-60)*sm;
   const bg=document.getElementById("meadow-bg");
   if(bg){if(ec>=0.68)bg.classList.add("show");else bg.classList.remove("show");}
+  const cont=document.querySelector('.container');
+  if(cont){
+    cont.style.opacity=(1-ec).toFixed(3);
+    cont.style.transform=`rotate(${(ec*18).toFixed(2)}deg) scale(${(1-ec*0.5).toFixed(3)})`;
+  }
 }
 function updateDeepTravel(){
   if(deepTravel.phase==="idle")return;
@@ -756,6 +766,8 @@ function updateDeepTravel(){
     rollAngle=0;starFade=0;planetFade=0;
     const h=earthHome();const e=planets[0];
     if(e){e.cx=h.x;e.cy=h.y;e.r=60;}
+    const cont=document.querySelector('.container');
+    if(cont){cont.style.opacity='';cont.style.transform='';cont.classList.remove('traveling');}
   }
 }
 // ===== Click Handler =====
