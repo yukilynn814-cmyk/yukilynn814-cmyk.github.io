@@ -299,7 +299,7 @@
   60%{transform:translate(-3px,-2px) rotate(-0.8deg)}
   80%{transform:translate(3px,-3px) rotate(0.8deg)}
 }
-.project-card.rkt-shake{animation:rktShake 0.9s ease}
+.project-card.rkt-shake{animation:rktShake 3s ease}
 </style>
 </head>
 <body>
@@ -356,7 +356,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.8.1</span></footer>
+  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.8.2</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -1206,6 +1206,15 @@ function rkResetUI(){
   rX.clearRect(0,0,W,H);
 }
 function rkSpaceExit(){rkResetUI();}
+function rkSpaceClick(){
+  if(canvasClickAt(RKT.x,RKT.y))return true;
+  const cards=document.querySelectorAll('.project-card');
+  for(const c of cards){
+    const r=c.getBoundingClientRect();
+    if(RKT.x>r.left&&RKT.x<r.right&&RKT.y>r.top&&RKT.y<r.bottom){c.click();return true;}
+  }
+  return false;
+}
 function rkExplode(){
   if(RKT.phase!=="flying")return;
   RKT.phase="exploding";
@@ -1223,7 +1232,7 @@ function rkExplode(){
     RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:"255,255,220",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:80+rnd(0,30),age:0});
   }
   RKT.shake=planets.map(p=>({p:p,ox:p.cx,oy:p.cy,t:0}));
-  document.querySelectorAll('.project-card').forEach(c=>{c.classList.add('rkt-shake');setTimeout(()=>c.classList.remove('rkt-shake'),950);});
+  document.querySelectorAll('.project-card').forEach(c=>{c.classList.add('rkt-shake');setTimeout(()=>c.classList.remove('rkt-shake'),3000);});
   const a=document.getElementById("rocketAvatar");
   if(a)a.style.opacity="0";
 }
@@ -1260,7 +1269,7 @@ function rkUpdate(){
       const gd=dist(RKT.x,RKT.y,p.cx,p.cy);
       const gravR=p.isEarth?p.r*2:p.r*1.5;
       if(gd<gravR&&gd>0.01){
-        const pull=p.r*4.2*(1-gd/gravR);
+        const pull=p.r*6*(1-gd/gravR);
         const ux=(p.cx-RKT.x)/gd,uy=(p.cy-RKT.y)/gd;
         RKT.vx+=ux*pull*dt;RKT.vy+=uy*pull*dt;
       }
@@ -1286,10 +1295,10 @@ function rkUpdate(){
     RKT.boom.rings.forEach(rg=>rg.r+=(rg.max-rg.r)*0.02);
     RKT.shake.forEach(s=>{
       s.t++;
-      if(s.t<55){const amp=Math.max(0,1-s.t/55)*11;s.p.cx=s.ox+rnd(-amp,amp);s.p.cy=s.oy+rnd(-amp,amp);}
+      if(s.t<180){const amp=Math.max(0,1-s.t/180)*11;s.p.cx=s.ox+rnd(-amp,amp);s.p.cy=s.oy+rnd(-amp,amp);}
       else{s.p.cx=s.ox;s.p.cy=s.oy;}
     });
-    if(RKT.boom.t>150){
+    if(RKT.boom.t>180){
       RKT.boom.active=false;
       RKT.shake.forEach(s=>{s.p.cx=s.ox;s.p.cy=s.oy;});
       RKT.shake=[];
@@ -1393,13 +1402,13 @@ window.addEventListener("keydown",e=>{
   if(RKT.phase==="flying"){
     const k=e.key.toLowerCase();
     if(k==="w"||k==="a"||k==="s"||k==="d"){RKT.keys[k]=true;e.preventDefault();}
-    else if(e.key===" "||e.key==="Spacebar"){
+    else if(e.code==="Space"||e.key===" "||e.key==="Spacebar"){
       e.preventDefault();
       if(!RKT.spaceAt){
         RKT.spaceAt=performance.now();
         const bar=document.getElementById("selfDestructBar");
         if(bar)bar.classList.add("show");
-        const hit=canvasClickAt(RKT.x,RKT.y);
+        const hit=rkSpaceClick();
         if(hit)rkSpaceExit();
       }
     }
@@ -1408,7 +1417,7 @@ window.addEventListener("keydown",e=>{
 window.addEventListener("keyup",e=>{
   const k=e.key.toLowerCase();
   if(k==="w"||k==="a"||k==="s"||k==="d")RKT.keys[k]=false;
-  if(e.key===" "||e.key==="Spacebar"){
+  if(e.code==="Space"||e.key===" "||e.key==="Spacebar"){
     RKT.spaceAt=0;
     const bar=document.getElementById("selfDestructBar");
     if(bar){bar.classList.remove("show");const f=document.getElementById("selfDestructFill");if(f)f.style.width="0%";}
