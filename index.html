@@ -90,32 +90,22 @@
   .modal-overlay{
     position:fixed;inset:0;background:transparent;
     z-index:1000;
-    perspective:1500px;perspective-origin:50% 22%;
     display:none;align-items:center;justify-content:center;
-    animation:fadeIn 0.3s ease;padding:20px 20px 70px;
+    animation:fadeIn 0.3s ease;padding:20px;
   }
   .modal-overlay.show{display:flex}
   @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
   @keyframes slideUp{0%{transform:translateY(30px);opacity:0}100%{transform:translateY(0);opacity:1}}
   .modal-box{
     background:
-      repeating-linear-gradient(90deg, rgba(70,40,18,0.22) 0 2px, transparent 2px 6px),
-      repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 5px),
-      linear-gradient(155deg, #d09b5e 0%, #b07f43 38%, #80512a 70%, #5d3a1d 100%);
-    border:6px solid #5c3a1f;
-    border-radius:12px;width:100%;max-width:520px;max-height:76vh;
+      repeating-linear-gradient(90deg, rgba(90,55,25,0.28) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.06) 0 1px, transparent 1px 6px),
+      linear-gradient(160deg, #b5804a, #8f5c2e 55%, #7c4f27);
+    border:6px solid #6a4223;
+    border-radius:16px;width:100%;max-width:520px;max-height:82vh;
     display:flex;flex-direction:column;overflow:hidden;
-    box-shadow:
-      0 55px 90px rgba(0,0,0,0.5),
-      inset 0 2px 3px rgba(255,220,170,0.28),
-      inset -5px 0 10px rgba(0,0,0,0.18),
-      inset 0 -6px 12px rgba(0,0,0,0.35);
+    box-shadow:0 22px 60px rgba(0,0,0,0.55), inset 0 2px 3px rgba(255,255,255,0.18), inset 0 -4px 8px rgba(0,0,0,0.28);
     animation:slideUp 0.3s ease;
-  }
-  #msgModal .modal-box{transform:rotateX(16deg) rotateY(-3deg);transform-origin:50% 100%;animation:boardIn 0.55s ease both}
-  @keyframes boardIn{
-    from{opacity:0;transform:rotateX(24deg) rotateY(-3deg) translateY(50px);}
-    to{opacity:1;transform:rotateX(16deg) rotateY(-3deg) translateY(0);}
   }
   .modal-header{
     display:flex;align-items:center;justify-content:space-between;
@@ -133,7 +123,6 @@
   .modal-body::-webkit-scrollbar{width:5px}
   .modal-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.2);border-radius:4px}
   /* ===== 便利贴留言板 ===== */
-  .grass{position:absolute;left:0;right:0;bottom:0;width:100%;height:42px;z-index:40;pointer-events:none;opacity:0.96}
   .board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 14px;padding:6px 2px}
   .msg-item{
     --rot:0deg;
@@ -167,17 +156,13 @@
   .msg-item:hover .note-del{display:flex}
   .pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
   .pg-btn{
-    padding:6px 14px;border-radius:9px;border:2px solid #3d2e20;
-    background:
-      radial-gradient(circle at 25% 20%, rgba(190,150,110,0.35), transparent 60%),
-      repeating-linear-gradient(0deg, rgba(90,60,35,0.2) 0 2px, transparent 2px 5px),
-      linear-gradient(180deg, #8a6b4a, #5d4630);
-    color:#f2e5ca;cursor:pointer;font-size:0.76rem;font-weight:700;font-family:inherit;
-    box-shadow:0 3px 7px rgba(0,0,0,0.45), inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.35);
-    transition:all 0.15s;
+    padding:7px 16px;border-radius:20px;border:1px solid rgba(0,0,0,0.28);
+    background:linear-gradient(180deg,#8f5c2e,#7c4f27);color:#f5e7c8;
+    cursor:pointer;font-size:0.78rem;font-family:inherit;
+    box-shadow:0 2px 4px rgba(0,0,0,0.3);
+    transition:all 0.2s;
   }
-  .pg-btn:hover:not(:disabled){filter:brightness(1.12)}
-  .pg-btn:active:not(:disabled){transform:translateY(1px);box-shadow:0 1px 3px rgba(0,0,0,0.4)}
+  .pg-btn:hover:not(:disabled){background:linear-gradient(180deg,#a06a35,#8f5c2e)}
   .pg-btn:disabled{opacity:0.4;cursor:default}
   .pg-info{font-size:0.75rem;color:rgba(58,36,16,0.85);font-weight:700}
   .empty-msg{padding:40px 20px;text-align:center;color:rgba(58,36,16,0.55);font-size:0.85rem;line-height:1.7}
@@ -366,7 +351,6 @@
         <button id="postBtn" onclick="postMessage()">➤</button>
       </div>
     </div>
-    <svg class="grass" viewBox="0 0 640 46" preserveAspectRatio="none" aria-hidden="true"><g><path d="M0,46 L0,28 Q6,16 13,26 Q15,34 21,46 Z" fill="#3f7a28"/><path d="M24,46 L30,12 Q37,6 43,18 Q41,34 51,46 Z" fill="#4d8c33"/><path d="M55,46 L60,26 Q66,16 72,26 Q70,36 79,46 Z" fill="#35671f"/><path d="M83,46 L89,8 Q96,4 102,16 Q98,34 108,46 Z" fill="#3f7a28"/><path d="M112,46 L117,28 Q123,18 129,28 Q127,36 136,46 Z" fill="#4d8c33"/><path d="M140,46 L147,10 Q153,5 159,17 Q156,32 165,46 Z" fill="#35671f"/><path d="M169,46 L174,27 Q180,17 186,27 Q184,37 193,46 Z" fill="#3f7a28"/><path d="M197,46 L204,12 Q210,6 216,18 Q213,33 222,46 Z" fill="#4d8c33"/><path d="M226,46 L231,28 Q237,18 243,28 Q241,37 250,46 Z" fill="#35671f"/><path d="M254,46 L261,9 Q267,4 273,16 Q270,33 279,46 Z" fill="#3f7a28"/><path d="M283,46 L288,27 Q294,17 300,27 Q298,37 307,46 Z" fill="#4d8c33"/><path d="M311,46 L318,11 Q324,6 330,18 Q327,32 336,46 Z" fill="#35671f"/><path d="M340,46 L345,28 Q351,18 357,28 Q355,36 364,46 Z" fill="#3f7a28"/><path d="M368,46 L375,10 Q381,5 387,17 Q384,33 393,46 Z" fill="#4d8c33"/><path d="M397,46 L402,27 Q408,17 414,27 Q412,37 421,46 Z" fill="#35671f"/><path d="M425,46 L432,9 Q438,4 444,16 Q441,32 450,46 Z" fill="#3f7a28"/><path d="M454,46 L459,28 Q465,18 471,28 Q469,36 478,46 Z" fill="#4d8c33"/><path d="M482,46 L489,11 Q495,6 501,18 Q498,33 507,46 Z" fill="#35671f"/><path d="M511,46 L516,27 Q522,17 528,27 Q526,37 535,46 Z" fill="#3f7a28"/><path d="M539,46 L546,10 Q552,5 558,17 Q555,32 564,46 Z" fill="#4d8c33"/><path d="M568,46 L573,28 Q579,18 585,28 Q583,36 592,46 Z" fill="#35671f"/><path d="M596,46 L603,9 Q609,4 615,16 Q612,33 621,46 Z" fill="#3f7a28"/><path d="M625,46 L632,13 Q637,7 640,16 Z" fill="#4d8c33"/></g></svg>
   </div>
 </div>
 <!-- Changelog Modal -->
