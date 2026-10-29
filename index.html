@@ -306,7 +306,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.6.0</span></footer>
+  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.7.0</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -907,54 +907,23 @@ function hideHoverPreview(){document.getElementById("hoverPreview").classList.re
 // ============================================================
 // 💬 留言板系统
 // ============================================================
-const API_URL="https://api.github.com/repos/yukilynn814-cmyk/yukilynn814-cmyk.github.io/contents/data/messages.json";
-const RAW_URL="https://raw.githubusercontent.com/yukilynn814-cmyk/yukilynn814-cmyk.github.io/main/data/messages.json";
-let TOKEN=localStorage.getItem("sf_gh_token")||"";
+const SB_URL="https://iptfyeoeoshbsiqiiwxw.supabase.co";
+const SB_KEY="sb_publishable_jDULBqoCJi_fWRQsWtFgvA_xhGSTlB6";
 let msgData=[];
 let isAdmin=false;
-let adminToken="";
 let editingId=null;
-function getMessages(){
-  try{return JSON.parse(localStorage.getItem("sf_msgCache"))||[]}catch(e){return []}
-}
-function setMessages(msgs){localStorage.setItem("sf_msgCache",JSON.stringify(msgs))}
 async function loadMessages(){
   try{
-    const r=await fetch(RAW_URL);
-    if(!r.ok)throw new Error("fetch failed");
-    const raw=await r.text();
-    msgData=JSON.parse(raw);
+    const r=await fetch(`${SB_URL}/rest/v1/messages?select=*&order=created_at.asc`,{
+      headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}
+    });
+    if(!r.ok)throw new Error("load failed");
+    msgData=await r.json();
     if(!Array.isArray(msgData))msgData=[];
-    setMessages(msgData);
   }catch(e){
-    msgData=getMessages();
+    msgData=[];
   }
   renderMessages();
-}
-async function saveMessages(){
-  if(!TOKEN){
-    const t=prompt("🔑 需要 GitHub Token 才能保存留言到云端：");
-    if(!t)return false;
-    TOKEN=t.trim();
-    localStorage.setItem("sf_gh_token",TOKEN);
-  }
-  try{
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(msgData,null,2))));
-    const getR=await fetch(API_URL,{headers:{Authorization:"token "+TOKEN,"Accept":"application/vnd.github.v3+json"}});
-    const getD=await getR.json();
-    const sha=getD.sha||"";
-    const r=await fetch(API_URL,{
-      method:"PUT",
-      headers:{"Authorization":"token "+TOKEN,"Content-Type":"application/json"},
-      body:JSON.stringify({message:"💬 更新留言",content,sha})
-    });
-    if(!r.ok)throw new Error("save failed");
-    setMessages(msgData);
-    return true;
-  }catch(e){
-    setMessages(msgData);
-    return false;
-  }
 }
 const PAGE_SIZE=6;
 let curPage=0;
@@ -980,7 +949,7 @@ function prevPage(){if(curPage>0){curPage--;renderMessages();}}
 function nextPage(){const total=Math.ceil(msgData.length/PAGE_SIZE);if(curPage<total-1){curPage++;renderMessages();}}
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 function timeAgo(ts){
-  const d=Date.now()-ts;
+  const d=Date.now()-new Date(ts).getTime();
   if(d<60000)return"刚刚";
   if(d<3600000)return Math.floor(d/60000)+"分钟前";
   if(d<86400000)return Math.floor(d/3600000)+"小时前";
@@ -988,8 +957,8 @@ function timeAgo(ts){
 }
 function renderMsg(m,i){
   const rot=(((Math.abs(hashStr(m.id))%1000)/1000)*10-5).toFixed(1); // -5~5 度，稳定随机
-  const canEdit=isAdmin||(localStorage.getItem("sf_userId")===m.userId);
-  const isAdminMsg=m.isAdmin;
+  const canEdit=isAdmin||(localStorage.getItem("sf_userId")===m.user_id);
+  const isAdminMsg=m.is_admin;
   const isOwn=m.id===editingId;
   if(isOwn){
     return `<div class="msg-item" style="--rot:${rot}deg">
@@ -1004,7 +973,7 @@ function renderMsg(m,i){
     <div class="note-text">${esc(m.text)}</div>
     <div class="note-meta">
       <span class="note-name">${esc(m.name)}${isAdminMsg?' ✦':''}</span>
-      <span class="note-time">${timeAgo(m.ts)}</span>
+      <span class="note-time">${timeAgo(m.created_at)}</span>
     </div>
     ${canEdit?`<button class="note-del" title="删除" onclick="deleteMsg('${m.id}')">✕</button>`:''}
   </div>`;
@@ -1016,22 +985,34 @@ async function postMessage(){
   if(!text)return;
   let userId=localStorage.getItem("sf_userId");
   if(!userId){userId="u_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);localStorage.setItem("sf_userId",userId);}
-  msgData.push({
-    id:"m_"+Date.now()+"_"+Math.random().toString(36).slice(2,6),
-    name:isAdmin?name+" ✦":name,
-    text,ts:Date.now(),userId,isAdmin
-  });
-  document.getElementById("postInput").value="";
-  curPage=Math.ceil(msgData.length/PAGE_SIZE)-1;
-  renderMessages();
-  const ok=await saveMessages();
-  if(!ok)renderMessages();
+  const payload={name:isAdmin?name+" ✦":name,text,user_id:userId,is_admin:isAdmin};
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/messages`,{
+      method:"POST",
+      headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation"},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok)throw new Error("post failed");
+    const inserted=await r.json();
+    msgData.push(inserted[0]);
+    document.getElementById("postInput").value="";
+    curPage=Math.ceil(msgData.length/PAGE_SIZE)-1;
+    renderMessages();
+  }catch(e){
+    alert("留言没传上去，检查网络/加速器后再试");
+  }
 }
 async function deleteMsg(id){
   if(!confirm("删除这条留言？"))return;
-  msgData=msgData.filter(m=>m.id!==id);
-  await saveMessages();
-  renderMessages();
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/messages?id=eq.${id}`,{
+      method:"DELETE",
+      headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}
+    });
+    if(!r.ok)throw new Error("delete failed");
+    msgData=msgData.filter(m=>m.id!==id);
+    renderMessages();
+  }catch(e){alert("删除失败");}
 }
 function startEdit(id){editingId=id;renderMessages();
   setTimeout(()=>{const el=document.getElementById("editInput");if(el){el.focus();el.select()}},50)}
@@ -1039,11 +1020,19 @@ function cancelEdit(){editingId=null;renderMessages()}
 async function saveEdit(id){
   const el=document.getElementById("editInput");
   if(!el)return;
-  const m=msgData.find(x=>x.id===id);
-  if(m){m.text=el.value.trim()||m.text}
+  const text=el.value.trim();
   editingId=null;
-  await saveMessages();
-  renderMessages();
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/messages?id=eq.${id}`,{
+      method:"PATCH",
+      headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation"},
+      body:JSON.stringify({text})
+    });
+    if(!r.ok)throw new Error("patch failed");
+    const m=msgData.find(x=>x.id===id);
+    if(m)m.text=text;
+    renderMessages();
+  }catch(e){renderMessages();}
 }
 let adminAttempts=0;
 document.addEventListener("keydown",e=>{
@@ -1256,6 +1245,13 @@ window.addEventListener("resize",()=>{
 // 📋 更新日志
 // ============================================================
 const CHANGELOG=[
+  {
+    ver:"v1.7.0",
+    date:"2026-10-29",
+    items:[
+      "💬 留言板接入 Supabase 云端数据库：所有访客留言互通，不再丢失",
+    ]
+  },
   {
     ver:"v1.6.0",
     date:"2026-10-29",
