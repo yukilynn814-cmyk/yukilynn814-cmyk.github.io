@@ -288,6 +288,9 @@
   background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.12);
 }
 #rocketModal .rkt-cancel:hover{background:rgba(255,255,255,0.1);color:#e6edf3}
+#selfDestructBar{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:280px;height:16px;border-radius:9px;background:rgba(8,14,24,0.82);border:1px solid rgba(88,166,255,0.55);box-shadow:0 0 24px rgba(88,166,255,0.35);overflow:hidden;z-index:70;display:none}
+#selfDestructBar.show{display:block}
+#selfDestructFill{height:100%;width:0%;background:linear-gradient(90deg,#ff9a3c,#ff4d5e);border-radius:9px;box-shadow:0 0 12px rgba(255,120,60,0.6)}
 /* 爆炸时项目卡片波动 */
 @keyframes rktShake{
   0%,100%{transform:translate(0,0) rotate(0)}
@@ -353,7 +356,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.8.0</span></footer>
+  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.8.1</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -422,6 +425,7 @@
     </div>
   </div>
 </div>
+<div id="selfDestructBar"><div id="selfDestructFill"></div></div>
 <script>
 // ============================================================
 // 🌌 深空星域引擎 v3.5 — 陨石纪元
@@ -1164,7 +1168,7 @@ const RKT={
   phase:"idle",           // idle | flying | exploding | rebuilding
   x:0,y:0,vx:0,vy:0,
   angle:-Math.PI/2,
-  R:17,maxSpeed:120,accel:600,lastT:0,
+  R:17,maxSpeed:180,accel:600,lastT:0,
   keys:{},spaceAt:0,
   flame:0,trail:[],rktParticles:[],
   boom:{active:false,t:0,flash:0,rings:[],x:0,y:0},
@@ -1210,13 +1214,13 @@ function rkExplode(){
     {r:0,max:Math.max(W,H)*0.8,c:"255,130,50"},
     {r:0,max:Math.max(W,H)*1.0,c:"255,255,255"},
   ]};
-  for(let i=0;i<90;i++){
-    const ang=rnd(0,Math.PI*2),sp=rnd(2,15);
-    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:rnd(0,1)>0.5?"255,160,60":"255,80,20",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:45+rnd(0,30),age:0});
+  for(let i=0;i<160;i++){
+    const ang=rnd(0,Math.PI*2),sp=rnd(2,18);
+    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:rnd(0,1)>0.5?"255,160,60":"255,80,20",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:110+rnd(0,40),age:0});
   }
-  for(let i=0;i<45;i++){
-    const ang=rnd(0,Math.PI*2),sp=rnd(1,9);
-    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:"255,255,220",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:28+rnd(0,15),age:0});
+  for(let i=0;i<80;i++){
+    const ang=rnd(0,Math.PI*2),sp=rnd(1,11);
+    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:"255,255,220",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:80+rnd(0,30),age:0});
   }
   RKT.shake=planets.map(p=>({p:p,ox:p.cx,oy:p.cy,t:0}));
   document.querySelectorAll('.project-card').forEach(c=>{c.classList.add('rkt-shake');setTimeout(()=>c.classList.remove('rkt-shake'),950);});
@@ -1225,9 +1229,9 @@ function rkExplode(){
 }
 function rkCheckCollide(){
   for(const p of planets){
-    if(dist(RKT.x,RKT.y,p.cx,p.cy)<p.r+RKT.R){rkExplode();return true;}
+    if(dist(RKT.x,RKT.y,p.cx,p.cy)<p.r+RKT.R*2){rkExplode();return true;}
   }
-  if(meteor&&!meteor.falling&&dist(RKT.x,RKT.y,meteor.x,meteor.y)<meteor.size*1.6+RKT.R){rkExplode();return true;}
+  if(meteor&&!meteor.falling&&dist(RKT.x,RKT.y,meteor.x,meteor.y)<meteor.size*1.6+RKT.R*2){rkExplode();return true;}
   return false;
 }
 function rkOverText(){
@@ -1249,8 +1253,18 @@ function rkUpdate(){
     if(k.w)ay-=1;if(k.s)ay+=1;if(k.a)ax-=1;if(k.d)ax+=1;
     if(ax&&ay){ax*=0.7071;ay*=0.7071;}
     RKT.vx+=ax*RKT.accel*dt;RKT.vy+=ay*RKT.accel*dt;
-    const damp=Math.pow(0.05,dt);
+    const damp=Math.pow(0.224,dt);
     RKT.vx*=damp;RKT.vy*=damp;
+    // 星球引力：体积越大引力越强，越近越强（强度低于推力，可反向逃脱）
+    for(const p of planets){
+      const gd=dist(RKT.x,RKT.y,p.cx,p.cy);
+      const gravR=p.isEarth?p.r*2:p.r*1.5;
+      if(gd<gravR&&gd>0.01){
+        const pull=p.r*4.2*(1-gd/gravR);
+        const ux=(p.cx-RKT.x)/gd,uy=(p.cy-RKT.y)/gd;
+        RKT.vx+=ux*pull*dt;RKT.vy+=uy*pull*dt;
+      }
+    }
     const sp=Math.hypot(RKT.vx,RKT.vy);
     if(sp>RKT.maxSpeed){RKT.vx*=RKT.maxSpeed/sp;RKT.vy*=RKT.maxSpeed/sp;}
     RKT.x+=RKT.vx*dt;RKT.y+=RKT.vy*dt;
@@ -1261,17 +1275,21 @@ function rkUpdate(){
     RKT.trail.forEach(t=>t.a-=0.024);
     if(rkCheckCollide())return;
     if(RKT.x<-12||RKT.x>W+12||RKT.y<-12||RKT.y>H+12){rkExplode();return;}
-    if(RKT.spaceAt&&performance.now()-RKT.spaceAt>=3000){rkExplode();return;}
+    if(RKT.spaceAt){
+      const fill=document.getElementById("selfDestructFill");
+      if(fill)fill.style.width=Math.min(100,(performance.now()-RKT.spaceAt)/3000*100)+"%";
+      if(performance.now()-RKT.spaceAt>=3000){rkExplode();return;}
+    }
   }else if(RKT.phase==="exploding"){
     RKT.boom.t++;
     RKT.boom.flash*=0.92;
-    RKT.boom.rings.forEach(rg=>rg.r+=(rg.max-rg.r)*0.055);
+    RKT.boom.rings.forEach(rg=>rg.r+=(rg.max-rg.r)*0.02);
     RKT.shake.forEach(s=>{
       s.t++;
       if(s.t<55){const amp=Math.max(0,1-s.t/55)*11;s.p.cx=s.ox+rnd(-amp,amp);s.p.cy=s.oy+rnd(-amp,amp);}
       else{s.p.cx=s.ox;s.p.cy=s.oy;}
     });
-    if(RKT.boom.t>85){
+    if(RKT.boom.t>150){
       RKT.boom.active=false;
       RKT.shake.forEach(s=>{s.p.cx=s.ox;s.p.cy=s.oy;});
       RKT.shake=[];
@@ -1379,6 +1397,8 @@ window.addEventListener("keydown",e=>{
       e.preventDefault();
       if(!RKT.spaceAt){
         RKT.spaceAt=performance.now();
+        const bar=document.getElementById("selfDestructBar");
+        if(bar)bar.classList.add("show");
         const hit=canvasClickAt(RKT.x,RKT.y);
         if(hit)rkSpaceExit();
       }
@@ -1388,7 +1408,11 @@ window.addEventListener("keydown",e=>{
 window.addEventListener("keyup",e=>{
   const k=e.key.toLowerCase();
   if(k==="w"||k==="a"||k==="s"||k==="d")RKT.keys[k]=false;
-  if(e.key===" "||e.key==="Spacebar")RKT.spaceAt=0;
+  if(e.key===" "||e.key==="Spacebar"){
+    RKT.spaceAt=0;
+    const bar=document.getElementById("selfDestructBar");
+    if(bar){bar.classList.remove("show");const f=document.getElementById("selfDestructFill");if(f)f.style.width="0%";}
+  }
 });
 document.getElementById("rocketModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeRocketPrompt();});
 
