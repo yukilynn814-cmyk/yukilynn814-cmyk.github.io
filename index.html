@@ -356,7 +356,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.8.3</span></footer>
+  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.8.4</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -1225,16 +1225,16 @@ function rkExplode(){
   ]};
   for(let i=0;i<160;i++){
     const ang=rnd(0,Math.PI*2),sp=rnd(2,18);
-    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:rnd(0,1)>0.5?"255,160,60":"255,80,20",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:110+rnd(0,40),age:0});
+    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:rnd(0,1)>0.5?"255,160,60":"255,80,20",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:200+rnd(0,60),age:0});
   }
   for(let i=0;i<80;i++){
     const ang=rnd(0,Math.PI*2),sp=rnd(1,11);
-    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:"255,255,220",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:80+rnd(0,30),age:0});
+    RKT.rktParticles.push({x:RKT.x,y:RKT.y,color:"255,255,220",vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,life:150+rnd(0,40),age:0});
   }
   RKT.debris=[];
   for(let i=0;i<26;i++){
     const ang=rnd(0,Math.PI*2),sp=rnd(3,13);
-    RKT.debris.push({x:RKT.x,y:RKT.y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp-4,rot:rnd(0,Math.PI*2),vr:rnd(-0.25,0.25),size:rnd(3,7),life:130+rnd(0,60),age:0,color:["215,215,230","185,85,75","245,245,250","120,200,255"][Math.floor(rnd(0,4))]});
+    RKT.debris.push({x:RKT.x,y:RKT.y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp-4,rot:rnd(0,Math.PI*2),vr:rnd(-0.25,0.25),size:rnd(3,7),life:220+rnd(0,60),age:0,color:["215,215,230","185,85,75","245,245,250","120,200,255"][Math.floor(rnd(0,4))]});
   }
   RKT.shake=planets.map(p=>({p:p,ox:p.cx,oy:p.cy,t:0}));
   document.querySelectorAll('.project-card').forEach(c=>{c.classList.add('rkt-shake');setTimeout(()=>c.classList.remove('rkt-shake'),950);});
@@ -1301,13 +1301,13 @@ function rkUpdate(){
   }else if(RKT.phase==="exploding"){
     RKT.boom.t++;
     RKT.boom.flash*=0.92;
-    RKT.boom.rings.forEach(rg=>rg.r+=(rg.max-rg.r)*0.02);
+    RKT.boom.rings.forEach(rg=>rg.r+=(rg.max-rg.r)*0.01);
     RKT.shake.forEach(s=>{
       s.t++;
       if(s.t<180){const amp=Math.max(0,1-s.t/180)*11;s.p.cx=s.ox+rnd(-amp,amp);s.p.cy=s.oy+rnd(-amp,amp);}
       else{s.p.cx=s.ox;s.p.cy=s.oy;}
     });
-    if(RKT.boom.t>180){
+    if(RKT.boom.t>240){
       RKT.boom.active=false;
       RKT.shake.forEach(s=>{s.p.cx=s.ox;s.p.cy=s.oy;});
       RKT.shake=[];
@@ -1320,7 +1320,7 @@ function rkUpdate(){
     if(RKT.rebuild.t>=250){rkResetUI();}
   }
   for(let i=RKT.rktParticles.length-1;i>=0;i--){
-    const p=RKT.rktParticles[i];p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy*=0.97;p.age++;
+    const p=RKT.rktParticles[i];p.x+=p.vx;p.y+=p.vy;p.vx*=0.985;p.vy*=0.985;p.age++;
     if(p.age>=p.life)RKT.rktParticles.splice(i,1);
   }
   for(let i=RKT.debris.length-1;i>=0;i--){
