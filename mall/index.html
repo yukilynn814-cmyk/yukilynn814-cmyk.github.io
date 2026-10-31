@@ -531,7 +531,7 @@ function tick(){
   const h=((simT%24)+24)%24;
   document.getElementById("clockText").textContent="模拟时间 · 第"+(simT+1)+"小时（"+String(h).padStart(2,"0")+":00）";
 }
-setInterval(tick,2000);
+setInterval(tick,2500);
 
 /* ============ 十、顾客端 ============ */
 let curCat="全部",keyword="";const cart={};
