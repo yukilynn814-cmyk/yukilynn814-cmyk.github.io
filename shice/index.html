@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F7F4EF">
-<title>食策 · 免费开源饮食助手</title>
+<title>食策 · 饮食助手</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
@@ -82,9 +82,12 @@ h1.title{font-size:var(--fs-title);font-weight:700;margin:6px 0 18px}
 .stepper .step{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-lo);background:var(--bg-field);border:1px solid var(--line);flex-shrink:0}
 .stepper .step.done{background:var(--brand-soft);color:var(--brand);border-color:var(--brand)}
 .stepper .step.now{background:var(--brand);color:#fff;border-color:var(--brand)}
+.stepper .step.skipped{background:transparent;color:var(--text-lo);border-style:dashed;opacity:.6}
 .stepper .bar{flex:1;height:2px;background:var(--line);border-radius:1px}
 .stepper .bar.done{background:var(--brand)}
 .step-question{font-size:19px;font-weight:700;margin-bottom:20px}
+.skip-note{font-size:12px;color:var(--text-lo);background:var(--bg-field);border:1px dashed var(--line-strong);border-radius:var(--r-s);padding:9px 12px;margin:-8px 0 16px;line-height:1.5}
+.skip-note:empty{display:none}
 
 .option-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .option-grid.cols3{grid-template-columns:repeat(3,1fr)}
@@ -272,7 +275,7 @@ h1.title{font-size:var(--fs-title);font-weight:700;margin:6px 0 18px}
   <header class="topbar">
     <div class="brand">
       <span class="logo">食<b>策</b></span>
-      <span class="sub">免费开源 · 饮食助手</span>
+      <span class="sub">饮食助手</span>
     </div>
     <button class="icon-btn" id="btn-settings" title="设置">⚙</button>
   </header>
@@ -302,6 +305,7 @@ h1.title{font-size:var(--fs-title);font-weight:700;margin:6px 0 18px}
     <div class="sub-nav"><button id="wizard-back">‹ 返回</button></div>
     <div class="stepper" id="stepper"></div>
     <h2 class="step-question" id="step-question"></h2>
+    <div class="skip-note" id="skip-note"></div>
     <div class="option-grid" id="option-grid"></div>
     <div class="wizard-nav" id="wizard-nav"></div>
   </section>
@@ -339,7 +343,6 @@ h1.title{font-size:var(--fs-title);font-weight:700;margin:6px 0 18px}
     <div id="log-list"></div>
   </section>
 
-  <div class="foot">食策 · 免费开源，代码可自由下载与修改 · <a href="https://github.com" target="_blank">GitHub</a></div>
 </div>
 
 <script>
@@ -486,7 +489,7 @@ const ICONS = {
 };
 
 
-/* ---------- 实拍菜品图（随仓库开源，assets/img/） ---------- */
+/* ---------- 实拍菜品图（assets/img/） ---------- */
 const DISH_IMG = {
   '黄焖鸡米饭':'d_huangmenji','清蒸鲈鱼套餐':'d_qingzhengyu','麻辣香锅':'d_malaxiangguo',
   '兰州拉面':'d_lanzhoulamian','重庆小面':'d_chongqingxiaomian','番茄鸡蛋面':'d_fanqiejidanmian',
@@ -508,6 +511,16 @@ const STAPLE_IMG = {
 function imgUrl(key){ return key ? 'assets/img/'+key+'.jpg' : ''; }
 function dishImg(name){ return imgUrl(DISH_IMG[name]||''); }
 
+/* 这些主食的质感本身就是固定的（如汉堡一定酥脆、包子一定软糯），
+   选到它们时直接跳过「口感」这一步，避免问一个没有意义的重复问题。 */
+const FIXED_TEXTURE = {
+  burger: 'crispy',   // 汉堡：面包脆、肉饼软 → 酥脆
+  baozi: 'soft',     // 包子：松软
+  dumpling: 'soft',  // 饺子：皮软馅弹 → 软糯
+  toast: 'crispy',   // 面包片：烤脆
+  bun: 'soft'        // 馒头：松软
+};
+
 const STEPS = [
   { key:'cal', question:'你想控制在多少热量？', cols:3, options:[
     { id:'low', label:'低卡', desc:'约500大卡内', img:'w_cal_low' },
@@ -527,7 +540,7 @@ const STEPS = [
     { id:'mid', label:'中辣', desc:'明显的辣', img:'w_spicy2' },
     { id:'hot', label:'特辣', desc:'辣到冒汗', img:'w_spicy3' }
   ]},
-  { key:'texture', question:'喜欢什么口感？', cols:3, options:[
+  { key:'texture', question:'喜欢什么口感？', cols:3, skippable:true, options:[
     { id:'fresh', label:'清爽', desc:'水灵不油腻', img:'w_tex_fresh' },
     { id:'oily', label:'油腻', desc:'重油重香', img:'w_tex_oily' },
     { id:'crispy', label:'酥脆', desc:'咬下去咔嚓', img:'w_tex_crispy' },
@@ -542,6 +555,7 @@ const STEPS = [
 
 const state = {
   wizard:{ step:0, answers:{} },
+  skippedTexture:false,
   meal: autoMeal(),
   rolling:false,
   pick:{ drink:'none', soup:'none' },
@@ -620,17 +634,32 @@ function renderHome(){
   $('today-count').textContent = items.length ? ('今天已记 ' + items.length + ' 项') : '今天还没记录';
 }
 
-function startWizard(){ state.wizard = { step:0, answers:{} }; state.pick = { drink:'none', soup:'none' }; renderWizard(); showScreen('wizard'); }
+function startWizard(){ state.wizard = { step:0, answers:{} }; state.skippedTexture = false; state.pick = { drink:'none', soup:'none' }; renderWizard(); showScreen('wizard'); }
 function renderWizard(){
   const i = state.wizard.step, step = STEPS[i];
   let bar = '';
   for (let k=0;k<STEPS.length;k++){
     if (k>0) bar += '<span class="bar '+(k<=i?'done':'')+'"></span>';
-    const cls = k<i?'done':(k===i?'now':'');
-    bar += '<span class="step '+cls+'">'+(k<i?'✓':(k+1))+'</span>';
+    const skipped = STEPS[k].skippable && state.skippedTexture && k<=i && k>i-1;
+    const cls = skipped?'skipped':(k<i?'done':(k===i?'now':''));
+    bar += '<span class="step '+cls+'">'+(skipped?'—':(k<i?'✓':(k+1)))+'</span>';
   }
   $('stepper').innerHTML = bar;
   $('step-question').textContent = step.question;
+  // 说明为什么这一题的选项是有限的（比如选了汉堡，口感本来就固定）
+  const note = $('skip-note');
+  if (note){
+    const a = state.wizard.answers;
+    if (step.key === 'texture' && a.staple){
+      const fixed = FIXED_TEXTURE[a.staple];
+      const st = STAPLE_LABEL[a.staple].replace('配','');
+      note.textContent = fixed
+        ? '你选的'+st+'口感是固定的（'+(TEXTURE_LABEL[fixed]||'')+'），已帮你选好；想改可以点「上一步」回去换主食。'
+        : '';
+    } else {
+      note.textContent = '';
+    }
+  }
   $('option-grid').className = 'option-grid' + (step.cols===3 ? ' cols3' : '');
   $('option-grid').innerHTML = step.options.map(o => {
     const sel = state.wizard.answers[step.key]===o.id ? ' sel' : '';
@@ -663,10 +692,36 @@ function renderWizard(){
 function nextStep(){
   const i = state.wizard.step;
   if (!state.wizard.answers[STEPS[i].key]) return;
-  if (i < STEPS.length-1){ state.wizard.step++; renderWizard(); }
-  else finishWizard();
+  if (i >= STEPS.length-1){ finishWizard(); return; }
+
+  let next = i + 1;
+  // 下一个步骤是「口感」，且用户选的主食自带固定质感 → 替他选好，直接跳过那一步
+  if (STEPS[next] && STEPS[next].skippable){
+    const fixed = FIXED_TEXTURE[state.wizard.answers.staple];
+    if (fixed){
+      state.wizard.answers.texture = fixed;
+      state.skippedTexture = true;
+      next = i + 2;   // 越过口感
+    }
+  }
+  state.wizard.step = next;
+  renderWizard();
 }
-function prevStep(){ if (state.wizard.step>0){ state.wizard.step--; renderWizard(); } }
+function prevStep(){
+  if (state.wizard.step<=0) return;
+  // 上一步是「口感」且它是被自动跳过的 → 回退到那一步，让用户自己改
+  const target = state.wizard.step - 1;
+  const prev = STEPS[target];
+  if (prev && prev.skippable && state.skippedTexture){
+    delete state.wizard.answers.texture;
+    state.skippedTexture = false;
+    state.wizard.step = target;
+    renderWizard();
+    return;
+  }
+  state.wizard.step = target;
+  renderWizard();
+}
 function finishWizard(){
   if (state.wizard.answers.dining === 'takeout'){ showTakeout(); }
   else { showDinein(); }
