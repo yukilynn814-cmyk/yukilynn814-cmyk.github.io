@@ -43,5 +43,20 @@
     "accent": "#e05a4f",
     "iconBg": "linear-gradient(135deg,rgba(224,90,79,0.15),rgba(224,90,79,0.07))",
     "status": "online"
+  },
+  {
+    "id": "shice",
+    "icon": "🍽",
+    "name": "食策 · 饮食助手",
+    "desc": "免费开源的饮食管理与推荐工具。精准控制模式按热量、主食、口味、口感逐步筛选并给出热量明细，饮品与汤品标注含糖与无糖；随机模式可安排全天四餐并按天留存记录。",
+    "url": "https://yukilynn814-cmyk.github.io/shice/",
+    "tags": [
+      "开源项目",
+      "热量计算",
+      "决策推荐"
+    ],
+    "accent": "#e07b39",
+    "iconBg": "linear-gradient(135deg,rgba(224,123,57,0.18),rgba(224,123,57,0.06))",
+    "status": "online"
   }
 ]

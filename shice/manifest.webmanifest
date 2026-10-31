@@ -1,0 +1,17 @@
+{
+  "name": "食策 · 免费开源饮食助手",
+  "short_name": "食策",
+  "description": "精准控制 + 随机抽签，帮你决定今天吃什么。免费开源。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F7F4EF",
+  "theme_color": "#F7F4EF",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
