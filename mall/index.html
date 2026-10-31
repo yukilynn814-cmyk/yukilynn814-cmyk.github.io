@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星选商城 · 经营驾驶舱</title>
+<script src="https://cdn.staticfile.org/echarts/5.4.3/echarts.min.js"></script>
+<style>
+/* ==================== 全局（写实金融风：黑灰底 + 克制红绿） ==================== */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#141414; --panel:#1c1c1c; --panel2:#212121; --border:#2c2c2c;
+  --txt:#d8d8d8; --sub:#8f8f8f; --dim:#5f5f5f;
+  --up:#e04343;   /* 涨红（A股习惯） */
+  --down:#2e9e6b; /* 跌绿 */
+  --blue:#3b82c4; --warn:#e6a23c;
+}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);overflow:hidden}
+button{font-family:inherit;cursor:pointer;border:none}
+input{font-family:inherit}
+.num{font-variant-numeric:tabular-nums;font-family:"PingFang SC","Microsoft YaHei",monospace}
+
+/* ==================== 顶栏（简洁深灰） ==================== */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;gap:14px;
+  padding:9px 20px;background:#181818;border-bottom:1px solid var(--border)}
+.logo{font-size:17px;font-weight:700;color:#e8e8e8;white-space:nowrap}
+.logo span{color:var(--blue)}
+.search{flex:1;max-width:340px;padding:7px 13px;border:1px solid var(--border);border-radius:4px;
+  font-size:13px;outline:none;background:#141414;color:var(--txt)}
+.search::placeholder{color:var(--dim)}
+.search:focus{border-color:#4a4a4a}
+.switch-btn{margin-left:auto;padding:7px 16px;border-radius:4px;font-size:13px;font-weight:600;
+  background:var(--blue);color:#fff;white-space:nowrap}
+.switch-btn:hover{background:#3575b0}
+.cart-btn{position:relative;font-size:19px;background:none;padding:4px;color:var(--txt)}
+.cart-badge{position:absolute;top:-5px;right:-7px;background:var(--up);color:#fff;font-size:11px;
+  border-radius:9px;padding:1px 5px;font-weight:700}
+
+/* ==================== 视图切换（简洁淡入淡出，无花哨动效） ==================== */
+.view{position:fixed;top:50px;left:0;right:0;bottom:0;opacity:0;pointer-events:none;
+  transition:opacity .25s ease;overflow:auto}
+.view.active{opacity:1;pointer-events:auto}
+
+/* ==================== 顾客端 ==================== */
+#storefront{background:#f4f4f5}
+.store-wrap{max-width:1100px;margin:0 auto;padding:18px 24px 60px}
+.cats{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap}
+.cat{padding:6px 16px;border-radius:4px;background:#e6e6e8;font-size:13px;color:#555}
+.cat.active{background:#333;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.pcard{background:#fff;border:1px solid #e2e2e4;border-radius:6px;padding:14px}
+.pcard:hover{border-color:#bbb}
+.p-imgwrap{position:relative;height:150px;overflow:hidden;border-radius:4px;background:#eee;margin-bottom:8px}
+.p-emoji-fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;z-index:0}
+.p-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.p-name{font-size:13px;font-weight:600;margin:6px 0 3px;line-height:1.4;min-height:36px;color:#333}
+.p-cat{font-size:11px;color:#aaa;margin-bottom:8px}
+.p-foot{display:flex;align-items:center;justify-content:space-between}
+.p-price{color:var(--up);font-weight:700;font-size:16px}
+.p-price::before{content:"¥";font-size:12px}
+.p-add{background:#333;color:#fff;width:28px;height:28px;border-radius:4px;font-size:17px;line-height:1}
+
+/* ==================== 老板端（金融仪表盘） ==================== */
+#dashboard{background:var(--bg)}
+.dash-wrap{padding:16px 20px 40px}
+.dash-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.dash-top h1{font-size:17px;font-weight:700;color:#e8e8e8}
+.dash-top .clock{font-size:12px;color:var(--sub);background:var(--panel);padding:5px 12px;border-radius:3px;border:1px solid var(--border)}
+
+/* KPI（金融软件风格：黑底细边框，等宽数字） */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px 14px}
+.kpi .k-label{font-size:12px;color:var(--sub);margin-bottom:6px}
+.kpi .k-val{font-size:22px;font-weight:700;color:#e8e8e8}
+.kpi .k-val small{font-size:12px;font-weight:400;color:var(--sub);margin-left:2px}
+.kpi .k-trend{font-size:11px;margin-top:4px;color:var(--dim)}
+.kpi .k-trend.up{color:var(--up)}
+.kpi .k-trend.down{color:var(--down)}
+.warn-ico{font-size:13px;margin-left:4px;vertical-align:1px}
+
+/* 图表区 */
+.charts{display:grid;grid-template-columns:1.6fr 1fr;gap:10px;margin-bottom:10px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px}
+.panel h3{font-size:13px;color:#c0c0c0;margin-bottom:8px;font-weight:600;border-left:3px solid var(--blue);padding-left:8px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.panel-head h3{margin-bottom:0}
+.trend-tabs{display:flex;gap:4px}
+.ttab{padding:4px 12px;border-radius:3px;font-size:12px;background:transparent;border:1px solid var(--border);color:var(--sub)}
+.ttab.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.drill-back{padding:4px 12px;border-radius:3px;font-size:12px;background:transparent;border:1px solid var(--warn);color:var(--warn);white-space:nowrap}
+.chart{height:260px}
+.chart-sm{height:210px}
+.chart-full{grid-column:1/-1}
+
+/* 底部：决策台 + 知识卡片 */
+.bottom{display:grid;grid-template-columns:1fr 1.3fr;gap:10px}
+.control-panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px}
+.control-panel h3{font-size:13px;color:#c0c0c0;margin-bottom:14px;border-left:3px solid var(--blue);padding-left:8px}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.slider-row .s-label{width:66px;font-size:13px;color:#b0b0b0;white-space:nowrap}
+.slider-row .s-val{width:40px;font-size:13px;color:#e8e8e8;font-weight:600;text-align:right}
+input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:#333;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:3px;
+  background:#555;cursor:pointer;border:1px solid #777}
+
+/* 商业知识卡片 */
+.advice-panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px;overflow-y:auto}
+.advice-panel h3{font-size:13px;color:#c0c0c0;margin-bottom:10px;border-left:3px solid var(--blue);padding-left:8px}
+.kcard{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
+.kcard:last-child{margin-bottom:0}
+.kcard-head{display:flex;align-items:flex-start;gap:10px}
+.kcard-head .k-ico{font-size:18px;line-height:1.3;flex-shrink:0}
+.kcard-head .k-text{flex:1;font-size:13px;color:#d0d0d0;line-height:1.6}
+.k-more{margin-top:8px;padding:5px 12px;border-radius:3px;font-size:12px;font-weight:600;
+  background:transparent;border:1px solid var(--blue);color:var(--blue)}
+.k-more:hover{background:rgba(59,130,196,0.12)}
+.k-detail{max-height:0;overflow:hidden;transition:max-height .35s ease;border-top:1px solid transparent}
+.kcard.open .k-detail{max-height:500px;border-top:1px solid var(--border);margin-top:10px;padding-top:10px}
+.k-theory{font-size:12.5px;color:#b8b8b8;line-height:1.75}
+.k-source{margin-top:8px;font-size:11.5px;color:var(--warn)}
+
+/* 购物车/弹窗（顾客端，浅色） */
+.cart-side{position:fixed;top:0;right:-340px;width:330px;height:100vh;background:#fff;z-index:110;
+  transition:right .2s;box-shadow:-4px 0 16px rgba(0,0,0,0.2);display:flex;flex-direction:column}
+.cart-side.open{right:0}
+.cart-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #eee}
+.cart-head h3{font-size:15px;color:#333}
+.cart-close{background:none;font-size:18px;color:#999}
+.cart-list{flex:1;overflow-y:auto;padding:10px 18px}
+.cart-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed #eee}
+.cart-item .ci-emoji{font-size:24px}
+.cart-item .ci-info{flex:1}
+.cart-item .ci-name{font-size:13px;font-weight:600;color:#333}
+.cart-item .ci-price{font-size:12px;color:#888}
+.ci-qty{display:flex;align-items:center;gap:6px}
+.ci-qty button{width:20px;height:20px;border-radius:3px;background:#eee;font-size:13px;color:#333}
+.ci-del{background:none;color:#bbb;font-size:15px}
+.cart-foot{padding:14px 18px;border-top:1px solid #eee}
+.cart-total{display:flex;justify-content:space-between;font-weight:700;margin-bottom:10px;color:#333}
+.cart-total b{color:var(--up);font-size:19px}
+.checkout{width:100%;padding:12px;border-radius:4px;background:var(--up);color:#fff;font-weight:700;font-size:14px}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:105;display:none}
+.mask.show{display:block}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:6px;
+  padding:22px;z-index:115;width:320px;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.modal.show{display:block}
+.modal h3{font-size:15px;margin-bottom:14px;color:#333}
+.modal input{width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:4px;margin-bottom:9px;font-size:13px}
+.modal-actions{display:flex;gap:9px;margin-top:5px}
+.modal-actions button{flex:1;padding:10px;border-radius:4px;font-weight:600;font-size:13px}
+.m-submit{background:var(--up);color:#fff}
+.m-cancel{background:#eee;color:#555}
+
+@media(max-width:768px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .charts,.bottom{grid-template-columns:1fr}
+  .chart{height:210px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">星选<span>商城</span></div>
+  <input class="search" id="searchInput" placeholder="搜索商品…" oninput="renderProducts()">
+  <button class="switch-btn" id="switchBtn" onclick="toggleView()">📊 老板模式</button>
+  <button class="cart-btn" id="cartBtn" onclick="openCart()">🛒<span class="cart-badge" id="cartBadge">0</span></button>
+</div>
+
+<!-- 顾客端 -->
+<section class="view active" id="storefront">
+  <div class="store-wrap">
+    <div class="cats" id="catBar"></div>
+    <div class="grid" id="productGrid"></div>
+  </div>
+</section>
+
+<!-- 老板端 -->
+<section class="view" id="dashboard">
+  <div class="dash-wrap">
+    <div class="dash-top">
+      <h1>经营数据仪表盘</h1>
+      <div class="clock" id="clockText">模拟时间 --</div>
+    </div>
+    <div class="kpis" id="kpiRow"></div>
+    <div class="charts">
+      <div class="panel chart-full">
+        <div class="panel-head"><h3 id="trendTitle">实时经营趋势（近48小时）</h3>
+          <button class="drill-back" id="drillBack" style="display:none" onclick="resetDrill()">× 返回全部</button>
+          <div class="trend-tabs">
+            <button class="ttab active" data-dim="revenue" onclick="setTrendDim('revenue')">销售额</button>
+            <button class="ttab" data-dim="margin" onclick="setTrendDim('margin')">利润率</button>
+            <button class="ttab" data-dim="orders" onclick="setTrendDim('orders')">订单量</button>
+            <button class="ttab" data-dim="aov" onclick="setTrendDim('aov')">客单价</button>
+          </div>
+        </div>
+        <div id="cTrend" class="chart"></div>
+      </div>
+      <div class="panel"><h3>品类销售占比</h3><div id="cCat" class="chart-sm"></div></div>
+      <div class="panel"><h3>消费群体偏好</h3><div id="cRadar" class="chart-sm"></div></div>
+    </div>
+    <div class="bottom">
+      <div class="control-panel">
+        <h3>经营决策台</h3>
+        <div class="slider-row"><span class="s-label">研发投入</span><input type="range" id="slRd" min="0" max="100" value="30" oninput="onSlider('rd',this.value)"><span class="s-val num" id="vRd">30</span></div>
+        <div class="slider-row"><span class="s-label">折扣力度</span><input type="range" id="slDisc" min="0" max="50" value="10" oninput="onSlider('discount',this.value)"><span class="s-val num" id="vDisc">10%</span></div>
+        <div class="slider-row"><span class="s-label">包装等级</span><input type="range" id="slPack" min="0" max="100" value="40" oninput="onSlider('packaging',this.value)"><span class="s-val num" id="vPack">40</span></div>
+        <div class="slider-row"><span class="s-label">广告预算</span><input type="range" id="slAds" min="0" max="100" value="20" oninput="onSlider('ads',this.value)"><span class="s-val num" id="vAds">20</span></div>
+      </div>
+      <div class="advice-panel">
+        <h3>商业洞察</h3>
+        <div id="adviceList"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="mask" id="mask" onclick="closeCart()"></div>
+<div class="cart-side" id="cartSide">
+  <div class="cart-head"><h3>🛒 购物车</h3><button class="cart-close" onclick="closeCart()">✕</button></div>
+  <div class="cart-list" id="cartList"></div>
+  <div class="cart-foot">
+    <div class="cart-total"><span>合计</span><b>¥<span id="cartTotal">0</span></b></div>
+    <button class="checkout" onclick="openCheckout()">去结算</button>
+  </div>
+</div>
+<div class="modal" id="checkoutModal">
+  <h3>📦 确认收货信息</h3>
+  <input id="coName" placeholder="收货人姓名">
+  <input id="coPhone" placeholder="手机号">
+  <input id="coAddr" placeholder="收货地址">
+  <div class="modal-actions">
+    <button class="m-cancel" onclick="closeCheckout()">取消</button>
+    <button class="m-submit" onclick="submitOrder()">提交订单</button>
+  </div>
+</div>
+
+<script>
+/* ============ 一、商品数据 ============ */
+const PRODUCTS=[
+  {id:1,name:"星际宇航员盲盒",cat:"潮玩",price:59,emoji:"🚀",img:"https://images.unsplash.com/photo-1551124054-0324fbd83227?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:2,name:"猫咪手办摆件",cat:"潮玩",price:89,emoji:"🐱",img:"https://images.pexels.com/photos/21047223/pexels-photo-21047223.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:3,name:"机甲拼装模型",cat:"潮玩",price:159,emoji:"🤖",img:"https://images.pexels.com/photos/8566467/pexels-photo-8566467.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:4,name:"发光水晶球",cat:"潮玩",price:49,emoji:"✨",img:"https://images.unsplash.com/photo-1516373829531-29d21ac7f9d6?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:5,name:"毛绒抱枕玩偶",cat:"潮玩",price:69,emoji:"🧸",img:"https://images.unsplash.com/photo-1750625565614-156eecb1dfeb?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:6,name:"复古游戏机挂件",cat:"潮玩",price:39,emoji:"🎮",img:"https://images.pexels.com/photos/6006298/pexels-photo-6006298.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:7,name:"机械键盘",cat:"数码",price:399,emoji:"⌨️",img:"https://images.unsplash.com/photo-1750756662621-771b8c294058?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:8,name:"无线蓝牙耳机",cat:"数码",price:299,emoji:"🎧",img:"https://images.unsplash.com/photo-1512221472476-7e439affc029?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:9,name:"便携充电宝",cat:"数码",price:129,emoji:"🔋",img:"https://images.unsplash.com/photo-1667411424245-6e1b9d0d055e?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:10,name:"智能手表",cat:"数码",price:899,emoji:"⌚",img:"https://images.pexels.com/photos/8217430/pexels-photo-8217430.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:11,name:"RGB电竞鼠标",cat:"数码",price:199,emoji:"🖱️",img:"https://images.unsplash.com/photo-1628832306751-ec751454119c?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:12,name:"磁吸手机支架",cat:"数码",price:59,emoji:"📱",img:"https://images.unsplash.com/photo-1679361100074-36ce7c798af2?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:13,name:"联名款卫衣",cat:"服饰",price:199,emoji:"👕",img:"https://images.unsplash.com/photo-1703531293255-0b16d10fe09f?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:14,name:"潮流棒球帽",cat:"服饰",price:79,emoji:"🧢",img:"https://images.pexels.com/photos/18545451/pexels-photo-18545451.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:15,name:"经典帆布鞋",cat:"服饰",price:299,emoji:"👟",img:"https://images.unsplash.com/photo-1565021861162-e2a8c7e817e6?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:16,name:"轻便双肩包",cat:"服饰",price:259,emoji:"🎒",img:"https://images.pexels.com/photos/17061995/pexels-photo-17061995.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:17,name:"针织围巾",cat:"服饰",price:99,emoji:"🧣",img:"https://images.unsplash.com/photo-1610384104075-e05c8cf200c3?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:18,name:"袜子三件套",cat:"服饰",price:39,emoji:"🧦",img:"https://images.unsplash.com/photo-1484071096222-7936a931e094?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:19,name:"不锈钢保温杯",cat:"生活",price:129,emoji:"☕",img:"https://images.pexels.com/photos/12393320/pexels-photo-12393320.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:20,name:"香薰蜡烛",cat:"生活",price:89,emoji:"🕯️",img:"https://images.unsplash.com/photo-1744921051330-19ca331b27a5?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:21,name:"静音加湿器",cat:"生活",price:149,emoji:"💧",img:"https://images.unsplash.com/photo-1768471569643-717e823b5f9a?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:22,name:"护眼台灯",cat:"生活",price:169,emoji:"💡",img:"https://images.unsplash.com/photo-1756474215958-f0c2a31eddc1?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:23,name:"帆布袋",cat:"生活",price:49,emoji:"🛍️",img:"https://images.unsplash.com/photo-1758815915419-d427160da2e6?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:24,name:"桌面小绿植",cat:"生活",price:39,emoji:"🌱",img:"https://images.unsplash.com/photo-1631960579895-79fb41fe7fd1?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:25,name:"丝绒口红",cat:"美妆个护",price:129,emoji:"💄",img:"https://images.pexels.com/photos/11883768/pexels-photo-11883768.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:26,name:"补水面膜",cat:"美妆个护",price:79,emoji:"🧖",img:"https://images.unsplash.com/photo-1743931787138-7529fc62fd3b?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:27,name:"氨基酸洗发水",cat:"美妆个护",price:89,emoji:"🧴",img:"https://images.unsplash.com/photo-1747858989102-cca0f4dc4a11?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:28,name:"淡香氛香水",cat:"美妆个护",price:299,emoji:"🌸",img:"https://images.unsplash.com/photo-1523293182086-7651a899d37f?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:29,name:"温和洗面奶",cat:"美妆个护",price:69,emoji:"🫧",img:"https://images.pexels.com/photos/11179695/pexels-photo-11179695.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:30,name:"滋润护手霜",cat:"美妆个护",price:39,emoji:"🧴",img:"https://images.pexels.com/photos/6690241/pexels-photo-6690241.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:31,name:"精品咖啡豆",cat:"食品生鲜",price:99,emoji:"☕",img:"https://images.pexels.com/photos/10992757/pexels-photo-10992757.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:32,name:"每日坚果礼盒",cat:"食品生鲜",price:69,emoji:"🥜",img:"https://images.unsplash.com/photo-1543158181-1274e5362710?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:33,name:"野生蜂蜜",cat:"食品生鲜",price:89,emoji:"🍯",img:"https://images.pexels.com/photos/10510569/pexels-photo-10510569.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:34,name:"高山绿茶",cat:"食品生鲜",price:129,emoji:"🍵",img:"https://images.unsplash.com/photo-1571934811356-5cc061b6821f?fm=jpg&q=70&w=400&auto=format&fit=crop"},
+  {id:35,name:"黑巧克力",cat:"食品生鲜",price:59,emoji:"🍫",img:"https://images.pexels.com/photos/9045849/pexels-photo-9045849.jpeg?auto=compress&cs=tinysrgb&w=400"},
+  {id:36,name:"冻干草莓干",cat:"食品生鲜",price:29,emoji:"🍓",img:"https://images.pexels.com/photos/26346626/pexels-photo-26346626.jpeg?auto=compress&cs=tinysrgb&w=400"},
+];
+const CATS=["全部","潮玩","数码","服饰","生活","美妆个护","食品生鲜"];
+
+/* ============ 二、模拟引擎（单店体量，数值真实化） ============ */
+const business={rd:30,discount:10,packaging:40,ads:20};
+function hashNoise(seed){const x=Math.sin(seed*12.9898+78.233)*43758.5453;return x-Math.floor(x);}
+function hourFactor(h){
+  return 1
+    + 0.65*Math.exp(-Math.pow(h-9,2)/6)
+    + 0.85*Math.exp(-Math.pow(h-20,2)/8)
+    - 0.38*Math.exp(-Math.pow(h-3,2)/10);
+}
+// 单店体量：每小时基础订单 12 单，日销售额约 5~15 万元
+function simulateTick(t){
+  const h=((t%24)+24)%24;
+  const tf=hourFactor(h);
+  const b=business;
+  const discountBoost=1+b.discount/100*1.6;
+  const adsBoost     =1+b.ads/100*0.9;
+  const rdBoost      =1+b.rd/100*0.5;
+  const noise=0.94+hashNoise(t*7.13)*0.12;
+  const orders=Math.round(12*tf*discountBoost*adsBoost*rdBoost*noise);
+  const avgPrice=120*(1-b.discount/100);
+  const revenue=Math.round(orders*avgPrice);      // 单位：元
+  const margin=40 - b.discount*0.8 - b.rd*0.15 - b.packaging*0.08 - b.ads*0.12;
+  const satisfaction=Math.min(100, 58 + b.rd*0.32 + b.packaging*0.2 + b.discount*0.3);
+  const rdShift=b.rd/100*0.06, discShift=b.discount/100*0.08;
+  const catRaw={
+    "潮玩":0.18+hashNoise(t*3.1)*0.02-rdShift*0.2,
+    "数码":0.22+rdShift,
+    "服饰":0.16+discShift,
+    "生活":0.13+hashNoise(t*5.7)*0.02-rdShift*0.5+discShift*0.15,
+    "美妆个护":0.17+hashNoise(t*8.3)*0.02+discShift*0.4,
+    "食品生鲜":0.14+hashNoise(t*11.7)*0.02+discShift*0.3,
+  };
+  const catSum=Object.values(catRaw).reduce((a,x)=>a+x,0);
+  const catShare={};for(const k in catRaw)catShare[k]=catRaw[k]/catSum;
+  const pref={
+    "价格敏感":Math.min(100,40+b.discount*1.4),
+    "颜值包装":Math.min(100,45+b.packaging*0.55),
+    "性能质量":Math.min(100,42+b.rd*0.6),
+    "性价比":Math.min(100,48+b.discount*0.6+b.rd*0.35),
+    "品牌忠诚":Math.min(100,50+satisfaction*0.4),
+  };
+  return {h,orders,revenue,margin:Math.max(2,margin),aov:Math.round(revenue/Math.max(1,orders)),satisfaction,catShare,pref};
+}
+
+/* ============ 三、历史窗口 + 累计 ============ */
+const WINDOW=48;
+let history=[],totalRevenue=0,totalOrders=0,simT=0;
+function rebuildHistory(){history=[];for(let i=WINDOW-1;i>=0;i--)history.push(simulateTick(simT-i));}
+
+/* ============ 四、商业知识库（真实理论 + 出处） ============ */
+const KB={
+  elasticity:{title:"价格弹性",icon:"📉",
+    theory:"需求量对价格变化的敏感度叫\"价格弹性\"。公式：需求弹性 = 需求量变动% ÷ 价格变动%。生活必需品弹性小（降价销量涨得少），非必需消费品弹性大（降价销量涨得多）。你拉大折扣 → 销量上升、但单价和利润率下降。关键看弹性：若弹性>1，降价反而提升总营收；若弹性<1，降价会拖垮利润。这就是为什么折扣不是越大越好。",
+    source:"微观经济学核心概念；菲利普·科特勒《营销管理》定价策略章节"},
+  pareto:{title:"二八定律",icon:"📊",
+    theory:"帕累托法则（80/20）：大约 80% 的销售额，往往来自 20% 的商品或客户。经营上意味着：不该平均用力，而应识别并聚焦贡献最大的核心品类/爆款，把资源投到刀刃上。你的品类占比里，头部品类贡献越大，越要优先保它的库存和营销。",
+    source:"维尔弗雷多·帕累托（1906 年）"},
+  longtail:{title:"长尾效应",icon:"📚",
+    theory:"克里斯·安德森在《长尾理论》中提出：在互联网零售里，大量小众商品（长尾）的累计销量，可以与少数热门商品（头部）相媲美。所以别只盯着爆款——那些销量平平的小众商品，集合起来也是一块可观、且竞争更小的利润来源。",
+    source:"克里斯·安德森《长尾理论》(2006)"},
+  fourP:{title:"4P 营销组合",icon:"🎯",
+    theory:"科特勒的经典框架：营销 = 产品(Product) + 价格(Price) + 渠道(Place) + 促销(Promotion) 四要素协同。你这里的四个滑块，正是对这四个杠杆的调节：研发/包装=产品，折扣=价格，广告=促销。真正的经营能力，在于让四者平衡，而不是只拉某一个。",
+    source:"菲利普·科特勒《营销管理》"},
+  diminishing:{title:"边际效益递减",icon:"📉",
+    theory:"在其它条件不变时，持续追加某一项投入（如广告、研发），每单位追加投入带来的额外产出会逐渐下降。比如广告从 0 加到 20 效果显著，但从 80 加到 100 收效甚微。所以投入不是越多越好，要找到\"边际收益 = 边际成本\"的临界点。",
+    source:"经济学边际效用递减规律"},
+  loyalty:{title:"顾客忠诚度",icon:"💗",
+    theory:"满意的顾客 → 忠诚 → 复购。忠诚客户贡献更高的\"生命周期价值(LTV)\"，且获取新客成本远高于维护老客。净推荐值(NPS)就是衡量\"顾客愿不愿意推荐你\"的指标。当满意度走低时，短期看利润没变，长期看复购率会崩，所以满意度是必须盯住的前瞻指标。",
+    source:"Fred Reichheld《终极问题》(2003)"},
+};
+
+/* ============ 五、智能建议 → 商业知识卡片 ============ */
+function genAdvice(cur,prev){
+  const cards=[];
+  const growth=prev?cur.orders/prev.orders-1:0;
+  // 利润率低 -> 价格弹性 + 警报
+  if(cur.margin<22){
+    cards.push({icon:"🚨",text:`当前利润率仅 ${cur.margin.toFixed(1)}%，处于偏低水平`,kb:"elasticity"});
+  }
+  // 满意度高但销量弱 -> 忠诚度 + 广告
+  if(cur.satisfaction>=82 && growth<0.03){
+    cards.push({icon:"💡",text:"产品口碑好（满意度高）但销量增长乏力",kb:"loyalty"});
+  }
+  // 销量猛增且利润足 -> 4P（可涨价）
+  if(growth>0.35 && cur.margin>32){
+    cards.push({icon:"💡",text:"销售势头强劲且利润空间充足",kb:"fourP"});
+  }
+  // 满意度不足 -> 忠诚度
+  if(cur.satisfaction<62){
+    cards.push({icon:"🚨",text:`顾客满意度仅 ${cur.satisfaction.toFixed(0)} 分，低于健康线`,kb:"loyalty"});
+  }
+  // 品类集中 -> 二八定律
+  let topCat=null,topVal=0;
+  for(const k in cur.catShare)if(cur.catShare[k]>topVal){topVal=cur.catShare[k];topCat=k;}
+  if(topCat&&topVal>0.32){
+    cards.push({icon:"📊",text:`「${topCat}」品类销售额占比 ${(topVal*100).toFixed(1)}%，集中度较高`,kb:"pareto"});
+  }
+  // 广告/研发拉满 -> 边际递减提醒
+  if(business.ads>80||business.rd>80){
+    cards.push({icon:"💡",text:"某项投入已处于高位，注意边际效益递减",kb:"diminishing"});
+  }
+  // 无异常 -> 平稳
+  if(!cards.length){
+    cards.push({icon:"✅",text:"经营状况平稳，各项指标处于健康区间",kb:"fourP"});
+  }
+  return cards;
+}
+let lastAdviceKey="";
+function renderAdvice(){
+  const cur=history[history.length-1],prev=history[history.length-2];
+  const cards=genAdvice(cur,prev);
+  const key=JSON.stringify(cards.map(c=>c.icon+c.text+c.kb));
+  if(key===lastAdviceKey)return;
+  lastAdviceKey=key;
+  document.getElementById("adviceList").innerHTML=cards.map((c,i)=>`
+    <div class="kcard" id="kcard${i}">
+      <div class="kcard-head"><span class="k-ico">${c.icon}</span><span class="k-text">${c.text}</span></div>
+      <button class="k-more" onclick="toggleKcard(${i})">了解更多</button>
+      <div class="k-detail">
+        <div class="k-theory">${KB[c.kb].title}：${KB[c.kb].theory}</div>
+        <div class="k-source">📖 出处：${KB[c.kb].source}</div>
+      </div>
+    </div>`).join("");
+}
+function toggleKcard(i){
+  document.getElementById("kcard"+i).classList.toggle("open");
+}
+
+/* ============ 六、ECharts（金融写实配色，克制红绿） ============ */
+let cTrend,cCat,cRadar;
+let drillCat=null;             // 下钻品类（null=全部）
+let highlightedRadar=null;     // 雷达图高亮维度
+const CAT_COLOR={"潮玩":"#e04343","数码":"#3b82c4","服饰":"#e6a23c","生活":"#2e9e6b","美妆个护":"#a855f7","食品生鲜":"#14b8a6"};
+function setDrill(cat){
+  drillCat=cat;
+  document.getElementById("drillBack").style.display="block";
+  updateCharts();
+}
+function resetDrill(){
+  drillCat=null;
+  document.getElementById("drillBack").style.display="none";
+  updateCharts();
+}
+// 折线图数据取值（支持品类下钻）
+function trendValue(x){
+  if(drillCat){
+    if(trendDim==='revenue')return Math.round(x.revenue*x.catShare[drillCat]);
+    if(trendDim==='orders')return Math.round(x.orders*x.catShare[drillCat]);
+    if(trendDim==='margin')return +x.margin.toFixed(1);
+    return x.aov;
+  }
+  if(trendDim==='revenue')return x.revenue;
+  if(trendDim==='orders')return x.orders;
+  if(trendDim==='margin')return +x.margin.toFixed(1);
+  return x.aov;
+}
+function initCharts(){
+  cTrend=echarts.init(document.getElementById("cTrend"));
+  cCat=echarts.init(document.getElementById("cCat"));
+  cRadar=echarts.init(document.getElementById("cRadar"));
+  // 饼图点击 -> 折线图下钻到该品类
+  cCat.on('click',function(p){if(p.name&&p.name!==drillCat){setDrill(p.name);}});
+  // 雷达图点击 -> 高亮该维度
+  cRadar.on('click',function(p){if(p.name){highlightedRadar=highlightedRadar===p.name?null:p.name;updateCharts();}});
+}
+const TREND_DIMS={
+  revenue:{name:"销售额",unit:"元",key:"revenue",color:"#e04343"},
+  margin:{name:"利润率",unit:"%",key:"margin",color:"#3b82c4"},
+  orders:{name:"订单量",unit:"单",key:"orders",color:"#e6a23c"},
+  aov:{name:"客单价",unit:"元",key:"aov",color:"#2e9e6b"},
+};
+let trendDim="revenue";
+function setTrendDim(d){
+  trendDim=d;
+  document.querySelectorAll('.ttab').forEach(b=>b.classList.toggle('active',b.dataset.dim===d));
+  updateCharts();
+}
+function updateCharts(){
+  const labels=history.map(x=>String(x.h).padStart(2,"0")+":00");
+  const dim=TREND_DIMS[trendDim];
+  document.getElementById("trendTitle").textContent=drillCat?`「${drillCat}」${dim.name}趋势（近48小时）`:"实时经营趋势（近48小时）";
+  cTrend.setOption({
+    animationDuration:800,animationEasing:"linear",
+    grid:{left:60,right:25,top:25,bottom:26},
+    tooltip:{trigger:"axis",backgroundColor:"#222",borderColor:"#3a3a3a",textStyle:{color:"#ddd"},
+      formatter:function(ps){const p=ps[0];return p.axisValue+'<br>'+dim.name+'：'+(dim.unit==='%'?p.data+'%':p.data+dim.unit);}},
+    xAxis:{type:"category",data:labels,axisLabel:{color:"#777",fontSize:10},axisLine:{lineStyle:{color:"#3a3a3a"}}},
+    yAxis:{type:"value",name:dim.name+'('+dim.unit+')',axisLabel:{color:"#777"},splitLine:{lineStyle:{color:"#2a2a2a"}}},
+    series:[{name:dim.name,type:"line",smooth:true,symbol:"none",
+      data:history.map(trendValue),
+      lineStyle:{color:drillCat?CAT_COLOR[drillCat]:dim.color,width:1.8},
+      areaStyle:{color:(drillCat?CAT_COLOR[drillCat]:dim.color)+"18"}}]
+  });
+  const cur=history[history.length-1];
+  cCat.setOption({
+    animationDuration:800,animationEasing:"linear",
+    tooltip:{trigger:"item",formatter:"{b}: {d}%",backgroundColor:"#222",borderColor:"#3a3a3a",textStyle:{color:"#ddd"}},
+    legend:{bottom:0,textStyle:{color:"#999",fontSize:11}},
+    color:["#e04343","#3b82c4","#e6a23c","#2e9e6b","#a855f7","#14b8a6"],
+    series:[{type:"pie",radius:["42%","66%"],center:["50%","44%"],
+      data:Object.entries(cur.catShare).map(([k,v])=>({name:k,value:+(v*100).toFixed(1)})),
+      label:{color:"#aaa",fontSize:11}}]
+  });
+  const prefKeys=Object.keys(cur.pref);
+  cRadar.setOption({
+    animationDuration:800,animationEasing:"linear",
+    tooltip:{backgroundColor:"#222",borderColor:"#3a3a3a",textStyle:{color:"#ddd"}},
+    radar:{
+      indicator:prefKeys.map(k=>({name:k,max:100,color:highlightedRadar===k?"#fff":undefined})),
+      radius:"60%",center:["50%","54%"],
+      axisName:{color:"#999",fontSize:10},
+      splitArea:{areaStyle:{color:["#1a1a1a","#1e1e1e"]}},
+      splitLine:{lineStyle:{color:"#2c2c2c"}},
+      axisLine:{lineStyle:{color:"#2c2c2c"}}
+    },
+    series:[{type:"radar",data:[{value:prefKeys.map(k=>+cur.pref[k].toFixed(1)),
+      name:"群体偏好",areaStyle:{color:"rgba(59,130,196,0.25)"},lineStyle:{color:"#3b82c4"},itemStyle:{color:"#3b82c4"}}]}]
+  });
+}
+
+/* ============ 七、滑块联动 ============ */
+function onSlider(key,val){
+  val=parseInt(val);
+  business[key]=val;
+  const showMap={rd:["vRd",val],discount:["vDisc",val+"%"],packaging:["vPack",val],ads:["vAds",val]};
+  document.getElementById(showMap[key][0]).textContent=showMap[key][1];
+  rebuildHistory();updateCharts();updateKPIs();renderAdvice();
+}
+
+/* ============ 八、KPI（万单位 + 警报图标，文字颜色统一） ============ */
+function updateKPIs(){
+  const cur=history[history.length-1],prev=history[history.length-2];
+  const growth=prev?Math.round((cur.orders/prev.orders-1)*100):0;
+  const revWan=(totalRevenue/10000);
+  const marginWarn=cur.margin<22?'<span class="warn-ico">🚨</span>':'';
+  const satWarn=cur.satisfaction<62?'<span class="warn-ico">🚨</span>':'';
+  document.getElementById("kpiRow").innerHTML=`
+    <div class="kpi"><div class="k-label">累计销售额</div><div class="k-val num">¥${revWan.toFixed(1)}<small>万</small></div><div class="k-trend">近48小时</div></div>
+    <div class="kpi"><div class="k-label">累计订单</div><div class="k-val num">${totalOrders.toLocaleString()}<small>单</small></div><div class="k-trend ${growth>=0?'up':'down'}">环比 ${growth>=0?'+':''}${growth}%</div></div>
+    <div class="kpi"><div class="k-label">当前利润率</div><div class="k-val num">${cur.margin.toFixed(1)}<small>%</small>${marginWarn}</div><div class="k-trend">健康线 22%</div></div>
+    <div class="kpi"><div class="k-label">顾客满意度</div><div class="k-val num">${cur.satisfaction.toFixed(0)}<small>分</small>${satWarn}</div><div class="k-trend">满分 100</div></div>`;
+}
+
+/* ============ 九、主循环（2秒推进1小时） ============ */
+function tick(){
+  simT++;
+  history.push(simulateTick(simT));
+  if(history.length>WINDOW)history.shift();
+  totalRevenue+=history[history.length-1].revenue;
+  totalOrders+=history[history.length-1].orders;
+  updateKPIs();updateCharts();renderAdvice();
+  const h=((simT%24)+24)%24;
+  document.getElementById("clockText").textContent="模拟时间 · 第"+(simT+1)+"小时（"+String(h).padStart(2,"0")+":00）";
+}
+setInterval(tick,2000);
+
+/* ============ 十、顾客端 ============ */
+let curCat="全部",keyword="";const cart={};
+function renderCatBar(){document.getElementById("catBar").innerHTML=CATS.map(c=>`<button class="cat ${c===curCat?'active':''}" onclick="setCat('${c}')">${c}</button>`).join("");}
+function setCat(c){curCat=c;renderCatBar();renderProducts();}
+function renderProducts(){
+  const list=PRODUCTS.filter(p=>(curCat==="全部"||p.cat===curCat)&&(!keyword||p.name.includes(keyword)));
+  document.getElementById("productGrid").innerHTML=list.map(p=>`
+    <div class="pcard">
+      <div class="p-imgwrap"><span class="p-emoji-fb">${p.emoji}</span><img class="p-img" src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'"></div>
+      <div class="p-name">${p.name}</div><div class="p-cat">${p.cat}</div>
+      <div class="p-foot"><span class="p-price">${p.price}</span><button class="p-add" onclick="addToCart(${p.id})">+</button></div>
+    </div>`).join("");
+}
+function addToCart(pid){
+  cart[pid]=(cart[pid]||0)+1;updateCartBadge();
+  const p=PRODUCTS.find(x=>x.id===pid);
+  const tip=document.createElement("div");
+  tip.textContent=`${p.emoji} ${p.name} 已加入购物车`;
+  tip.style.cssText="position:fixed;left:50%;top:18%;transform:translateX(-50%);background:#333;color:#fff;padding:9px 16px;border-radius:4px;font-size:13px;z-index:130;transition:opacity .3s";
+  document.body.appendChild(tip);
+  setTimeout(()=>{tip.style.opacity="0";setTimeout(()=>tip.remove(),300)},1200);
+}
+function updateCartBadge(){document.getElementById("cartBadge").textContent=Object.values(cart).reduce((a,b)=>a+b,0);}
+function openCart(){document.getElementById("cartSide").classList.add("open");document.getElementById("mask").classList.add("show");renderCart();}
+function closeCart(){document.getElementById("cartSide").classList.remove("open");document.getElementById("mask").classList.remove("show");}
+function renderCart(){
+  const ids=Object.keys(cart);
+  if(!ids.length){document.getElementById("cartList").innerHTML='<div style="text-align:center;color:#bbb;padding:40px 0">🛒 购物车还是空的</div>';document.getElementById("cartTotal").textContent="0";return;}
+  let total=0;
+  document.getElementById("cartList").innerHTML=ids.map(id=>{
+    const p=PRODUCTS.find(x=>x.id==id),q=cart[id];total+=p.price*q;
+    return `<div class="cart-item"><span class="ci-emoji">${p.emoji}</span>
+      <div class="ci-info"><div class="ci-name">${p.name}</div><div class="ci-price">¥${p.price} × ${q}</div></div>
+      <div class="ci-qty"><button onclick="chgQty(${id},-1)">−</button><span>${q}</span><button onclick="chgQty(${id},1)">+</button></div>
+      <button class="ci-del" onclick="delItem(${id})">✕</button></div>`;
+  }).join("");
+  document.getElementById("cartTotal").textContent=total;
+}
+function chgQty(pid,d){cart[pid]+=d;if(cart[pid]<=0)delete cart[pid];updateCartBadge();renderCart();}
+function delItem(pid){delete cart[pid];updateCartBadge();renderCart();}
+function openCheckout(){if(!Object.keys(cart).length){alert("购物车是空的");return;}document.getElementById("checkoutModal").classList.add("show");document.getElementById("mask").classList.add("show");}
+function closeCheckout(){document.getElementById("checkoutModal").classList.remove("show");document.getElementById("mask").classList.remove("show");}
+function submitOrder(){
+  const name=document.getElementById("coName").value.trim(),phone=document.getElementById("coPhone").value.trim(),addr=document.getElementById("coAddr").value.trim();
+  if(!name||!phone||!addr){alert("请填写完整收货信息");return;}
+  for(const id in cart)delete cart[id];
+  updateCartBadge();closeCheckout();closeCart();alert("🎉 下单成功！感谢购买");
+}
+
+/* ============ 十一、视图切换（简洁淡入淡出） ============ */
+let inDash=false;
+function toggleView(){
+  inDash=!inDash;
+  document.getElementById("storefront").classList.toggle("active",!inDash);
+  document.getElementById("dashboard").classList.toggle("active",inDash);
+  document.getElementById("switchBtn").textContent=inDash?"🛍 顾客模式":"📊 老板模式";
+  document.querySelector(".search").style.display=inDash?"none":"block";
+  document.getElementById("cartBtn").style.display=inDash?"none":"block";
+  if(inDash){cTrend&&cTrend.resize();cCat&&cCat.resize();cRadar&&cRadar.resize();}
+}
+
+/* ============ 十二、启动 ============ */
+renderCatBar();renderProducts();updateCartBadge();
+initCharts();rebuildHistory();updateCharts();updateKPIs();renderAdvice();
+document.getElementById("clockText").textContent="模拟时间 · 第1小时（00:00）";
+</script>
+</body>
+</html>
