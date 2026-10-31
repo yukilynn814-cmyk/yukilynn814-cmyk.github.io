@@ -636,7 +636,7 @@ function renderWizard(){
     const sel = state.wizard.answers[step.key]===o.id ? ' sel' : '';
     if (o.img){
       return '<div class="option has-photo'+sel+'" data-id="'+o.id+'">' +
-        '<img class="opt-photo" src="'+imgUrl(o.img)+'" alt="'+o.label+'" loading="lazy" ' +
+        '<img class="opt-photo" src="'+imgUrl(o.img)+'" alt="'+o.label+'" ' +
         'onerror="var p=this; p.style.display=\'none\'; p.parentNode.classList.remove(\'has-photo\');">' +
         '<span class="opt-text">' +
           '<span class="opt-label">'+o.label+'</span>' +
@@ -782,7 +782,7 @@ function renderDinein(){
   const altHtml = state.dineinAlts.length
     ? '<div class="alt-title">换个口味试试（按匹配度排序，非随机）</div><div class="alt-list">' +
       state.dineinAlts.map((d,i)=> '<div class="alt-item" data-i="'+i+'">' +
-        '<img class="a-thumb" src="'+dishImg(d.name)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">' +
+        '<img class="a-thumb" src="'+dishImg(d.name)+'" alt="" onerror="this.style.display=\'none\'">' +
         '<div class="a-body"><div class="a-name">'+esc(d.combo)+'</div>' +
         '<div class="a-diff">'+SPICY_LABEL[d.spicy]+' · '+TEXTURE_LABEL[d.texture]+' · '+CAL_LABEL[d.cal]+'</div></div>' +
         '<span class="chevron">›</span></div>').join('') +
