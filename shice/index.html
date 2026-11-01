@@ -356,7 +356,7 @@ const MEALS = [
 const STAPLE_LABEL = { rice:'配米饭', bun:'配馒头', flatbread:'配大饼', noodle:'配面条', dumpling:'配饺子', toast:'配面包片', burger:'配汉堡', baozi:'配包子', none:'不吃主食' };
 const SPICY_LABEL = { none:'不辣', mild:'微辣', mid:'中辣', hot:'特辣' };
 const CAL_LABEL = { low:'低卡', mid:'正常', high:'高热' };
-const TEXTURE_LABEL = { fresh:'清爽', oily:'油腻', crispy:'酥脆', soft:'软糯', soup:'带汤' };
+const TEXTURE_LABEL = { fresh:'清爽', normal:'正常', oily:'油腻', crispy:'酥脆', soft:'软糯', soup:'带汤' };
 
 const P_RICE = { name:'米饭', grams:'150g', kcal:174 };
 const P_BUN = { name:'馒头', grams:'100g', kcal:223 };
@@ -542,6 +542,7 @@ const STEPS = [
   ]},
   { key:'texture', question:'喜欢什么口感？', cols:3, skippable:true, options:[
     { id:'fresh', label:'清爽', desc:'水灵不油腻', img:'w_tex_fresh' },
+    { id:'normal', label:'正常', desc:'不挑，都行', img:'w_tex_normal' },
     { id:'oily', label:'油腻', desc:'重油重香', img:'w_tex_oily' },
     { id:'crispy', label:'酥脆', desc:'咬下去咔嚓', img:'w_tex_crispy' },
     { id:'soft', label:'软糯', desc:'软烂黏糯', img:'w_tex_soft' },
@@ -736,7 +737,7 @@ function scoreDishes(){
       if (d.cal===a.cal) s++;
       if (d.staple===a.staple) s++;
       if (d.spicy===a.spicy) s++;
-      if (d.texture===a.texture) s++;
+      if (a.texture!=='normal' && d.texture===a.texture) s++;
       return { ...d, s };
     })
     .sort((x,y)=> y.s - x.s);
@@ -806,10 +807,14 @@ function renderDinein(){
     { label:'热量', val:CAL_LABEL[main.cal], hit: main.cal===a.cal },
     { label:'主食', val:STAPLE_LABEL[main.staple], hit: main.staple===a.staple },
     { label:'口味', val:SPICY_LABEL[main.spicy], hit: main.spicy===a.spicy },
-    { label:'口感', val:TEXTURE_LABEL[main.texture], hit: main.texture===a.texture }
+    { label:'口感', val: a.texture==='normal' ? '不限' : TEXTURE_LABEL[main.texture],
+      hit: a.texture==='normal' ? true : main.texture===a.texture,
+      neutral: a.texture==='normal' ? true : false }
   ];
   const tags = dims.map(d =>
-    '<span class="match-tag '+(d.hit?'hit':'')+'">'+(d.hit?'✓ ':'✗ ')+d.label+'·'+d.val+'</span>'
+    d.neutral
+      ? '<span class="match-tag hit">· 口感·不限（你选的是都行）</span>'
+      : '<span class="match-tag '+(d.hit?'hit':'')+'">'+(d.hit?'✓ ':'✗ ')+d.label+'·'+d.val+'</span>'
   ).join('');
 
   const dishKcal = main.parts.reduce((s,p)=>s+p.kcal,0);
@@ -820,7 +825,7 @@ function renderDinein(){
 
   const hero =
     '<div class="result-hero">' +
-      '<span class="badge">堂食搭配 · 命中 '+main.s+'/4 项</span>' +
+      '<span class="badge">堂食搭配 · 命中 '+main.s+'/'+(state.wizard.answers.texture==='normal'?3:4)+' 项</span>' +
       '<img class="hero-photo" src="'+dishImg(main.name)+'" alt="'+esc(main.name)+'" onerror="this.style.display=\'none\'">' +
       '<h2>'+esc(main.combo)+'</h2>' +
       '<p class="rh-reason">'+esc(main.desc)+'</p>' +
