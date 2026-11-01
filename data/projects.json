@@ -58,5 +58,20 @@
     "accent": "#a855f7",
     "iconBg": "linear-gradient(135deg,rgba(168,85,247,0.15),rgba(59,130,196,0.15))",
     "status": "online"
+  },
+  {
+    "id": "shice",
+    "icon": "🍱",
+    "name": "食策 · 饮食助手",
+    "desc": "精准控制 + 随机抽签的饮食决策工具。五步向导按热量·主食·口味·口感·就餐方式逐层筛选，给出搭配建议、建议份量与逐项热量明细，底栏实时汇总总热量并评级；支持全天四餐随机、饮品汤品含糖/无糖标注、按天记录复盘。",
+    "url": "https://yukilynn814-cmyk.github.io/shice/",
+    "tags": [
+      "饮食决策向导",
+      "热量计算",
+      "PWA 离线可用"
+    ],
+    "accent": "#E07B39",
+    "iconBg": "linear-gradient(135deg,rgba(224,123,57,0.18),rgba(255,183,120,0.12))",
+    "status": "online"
   }
 ]
