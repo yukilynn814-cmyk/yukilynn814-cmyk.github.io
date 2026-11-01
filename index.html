@@ -345,6 +345,16 @@
       </div>
       <div class="arrow">→</div>
     </a>
+    <a class="project-card" href="https://yukilynn814-cmyk.github.io/mall/" target="_blank" rel="noopener"
+       style="--card-accent:#a855f7;--card-icon-bg:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(59,130,196,0.15))">
+      <div class="icon">📊</div>
+      <div class="info">
+        <h3>星选商城 · 经营驾驶舱 <span class="status-badge online">● 已上线</span></h3>
+        <div class="desc">商业模拟与实时数据监测终端。顾客端模拟电商购物，老板端是实时经营数据大屏——销售额/利润率/订单量多维趋势、品类占比、群体偏好雷达，搭配经营决策滑块与商业知识卡片。</div>
+        <div class="tags"><span>数据可视化</span><span>ECharts</span><span>模拟经营</span></div>
+      </div>
+      <div class="arrow">→</div>
+    </a>
     <a class="project-card" href="javascript:void(0)"
        style="--card-accent:rgba(255,255,255,0.1);--card-icon-bg:rgba(255,255,255,0.03);opacity:0.35;cursor:default">
       <div class="icon">✨</div>
@@ -356,7 +366,7 @@
       <div class="arrow">→</div>
     </a>
   </div>
-  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.9.1</span></footer>
+  <footer>❄️LynnYuki · 🪽小墨出品 · <span style="color:rgba(255,255,255,0.15);font-size:0.7rem">v1.9.2</span></footer>
 </div>
 <!-- Hover Preview -->
 <div class="hover-preview" id="hoverPreview">
@@ -1163,7 +1173,6 @@ const rC=document.getElementById("rocketLayer");
 const rX=rC.getContext("2d");
 function rkResize(){rC.width=window.innerWidth;rC.height=window.innerHeight}
 window.addEventListener("resize",rkResize);rkResize();
-
 const RKT={
   phase:"idle",           // idle | flying | exploding | rebuilding
   x:0,y:0,vx:0,vy:0,
@@ -1450,7 +1459,6 @@ window.addEventListener("keyup",e=>{
   }
 });
 document.getElementById("rocketModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeRocketPrompt();});
-
 // ===== Render Loop =====
 let _renderCrashCount=0;
 function render(){
@@ -1607,6 +1615,13 @@ window.addEventListener("resize",()=>{
 // 📋 更新日志
 // ============================================================
 const CHANGELOG=[
+  {
+    ver:"v1.9.2",
+    date:"2026-10-31",
+    items:[
+      "🛒 新增「星选商城·经营驾驶舱」项目：顾客端电商 + 老板端实时数据大屏（多维趋势/品类占比/群体偏好/决策滑块/商业知识卡片）",
+    ]
+  },
   {
     ver:"v1.9.1",
     date:"2026-10-31",

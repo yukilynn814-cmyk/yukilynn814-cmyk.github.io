@@ -43,5 +43,20 @@
     "accent": "#e05a4f",
     "iconBg": "linear-gradient(135deg,rgba(224,90,79,0.15),rgba(224,90,79,0.07))",
     "status": "online"
+  },
+  {
+    "id": "mall",
+    "icon": "📊",
+    "name": "星选商城 · 经营驾驶舱",
+    "desc": "商业模拟与实时数据监测终端。顾客端模拟电商购物，老板端是实时经营数据大屏——销售额/利润率/订单量多维趋势、品类占比、群体偏好雷达，搭配经营决策滑块与商业知识卡片。",
+    "url": "https://yukilynn814-cmyk.github.io/mall/",
+    "tags": [
+      "数据可视化",
+      "ECharts",
+      "模拟经营"
+    ],
+    "accent": "#a855f7",
+    "iconBg": "linear-gradient(135deg,rgba(168,85,247,0.15),rgba(59,130,196,0.15))",
+    "status": "online"
   }
 ]
