@@ -166,6 +166,7 @@ h1.title{font-size:var(--fs-title);font-weight:700;margin:6px 0 18px}
 .store-body{flex:1;min-width:0}
 .store-name{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
 .best-tag{font-size:10px;color:var(--brand);background:var(--brand-soft);padding:2px 8px;border-radius:10px}
+  .hit-tag{display:inline-block;margin-left:6px;font-size:11px;color:#3E9B55;background:rgba(62,155,85,.1);border-radius:6px;padding:1px 6px;vertical-align:1px}
 .store-addr{font-size:11px;color:var(--text-lo);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .store-side{text-align:right;flex-shrink:0}
 .store-dist{font-size:14px;font-weight:700;color:var(--brand)}
@@ -948,13 +949,119 @@ function keywordFromAnswers(){
   if (!parts.length) parts.push('餐厅');
   return parts.join('|');
 }
+/* ===== 浏览器定位 → 高德周边搜索 → 打分排序 ===== */
+function getPosition(){
+  return new Promise(resolve => {
+    if (!navigator.geolocation){ resolve({ ok:false, why:'浏览器不支持定位' }); return; }
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({ ok:true, lat:p.coords.latitude, lng:p.coords.longitude }),
+      err => {
+        const why = err.code===1 ? '你拒绝了定位授权'
+                 : err.code===2 ? '暂时拿不到位置'
+                 : err.code===3 ? '定位超时' : '定位失败';
+        resolve({ ok:false, why });
+      },
+      { enableHighAccuracy:true, timeout:8000, maximumAge:60000 }
+    );
+  });
+}
+
+/* 高德 Web服务：周边搜索（POI）。https 必需，JSONP 回调避免跨域 */
+function amapNearby(key, lat, lng, keywords){
+  return new Promise(resolve => {
+    const cb = '__amap_cb_' + Date.now();
+    const url = 'https://restapi.amap.com/v3/place/around'
+      + '?key=' + encodeURIComponent(key)
+      + '&location=' + lng.toFixed(6) + ',' + lat.toFixed(6)
+      + '&keywords=' + encodeURIComponent(keywords || '餐厅')
+      + '&radius=3000&sortrule=distance&offset=20&page=1'
+      + '&output=json&callback=' + cb;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); resolve({ ok:false, why:'高德接口超时' }); }, 9000);
+    function cleanup(){ clearTimeout(timer); try{ delete window[cb]; }catch(e){ window[cb]=undefined; } if(script.parentNode) script.parentNode.removeChild(script); }
+    window[cb] = res => {
+      cleanup();
+      if (!res || res.status !== '1' || !Array.isArray(res.pois)){ resolve({ ok:false, why:(res&&res.info)||'接口返回异常' }); return; }
+      resolve({ ok:true, pois: res.pois });
+    };
+    script.src = url; script.onerror = () => { cleanup(); resolve({ ok:false, why:'连不上高德接口' }); };
+    document.head.appendChild(script);
+  });
+}
+
+/* 距离解析：高德返回 "距离米数" 字段或用坐标估算 */
+function poiDist(poi, lat, lng){
+  if (poi.distance !== undefined && poi.distance !== '') return Math.round(parseFloat(poi.distance));
+  if (poi.location){
+    const [dlng, dlat] = poi.location.split(',').map(Number);
+    const R = 6371000, rad = Math.PI/180;
+    const dLat = (dlat-lat)*rad, dLng = (dlng-lng)*rad;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat*rad)*Math.cos(dlat*rad)*Math.sin(dLng/2)**2;
+    return Math.round(R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  }
+  return 9999;
+}
+
+/* 口味匹配打分：店名/类目命中用户偏好加分 */
+function scorePoi(poi, answers){
+  const text = (poi.name + '|' + (poi.type||'')).toLowerCase();
+  let sc = 0;
+  const hits = [];
+  const prefs = [];
+  if (answers.spicy==='hot') prefs.push('火锅','川菜','湘菜','麻辣','辣');
+  else if (answers.spicy==='mid') prefs.push('川菜','湘菜','家常菜','炒菜');
+  else if (answers.spicy==='mild') prefs.push('麻辣烫','香锅','冒菜');
+  else if (answers.spicy==='none') prefs.push('粤菜','江浙菜','蒸','清淡','轻食');
+  if (answers.cal==='low') prefs.push('轻食','沙拉','蒸','粥');
+  if (answers.staple==='noodle') prefs.push('面','米线','粉');
+  else if (answers.staple==='dumpling') prefs.push('饺子','包子','点心');
+  else if (answers.staple==='rice') prefs.push('饭','快餐','盖浇');
+  if (answers.texture==='soup') prefs.push('汤','粥','炖');
+  prefs.forEach(w => { if (text.includes(w)){ sc += 2; hits.push(w); } });
+  return { sc, hits:[...new Set(hits)] };
+}
+
+let LAST_LOC = null;   // 缓存本次定位，"换一批/重新定位"复用
 async function showTakeout(){
   showScreen('takeout');
   setLocBar('wait', '正在定位…');
   $('store-list').innerHTML = '';
-  if (!KEY()){ setLocBar('off', '未配置高德密钥', '显示演示数据'); renderStores(mockRanked(), true); return; }
-  setLocBar('off', '高德密钥已配置，但本演示版暂用本地数据', '演示数据');
-  renderStores(mockRanked(), true);
+  const key = KEY();
+  if (!key){ setLocBar('off', '未配置高德密钥', '点击右上角⚙填入 Key 后显示真实附近店铺'); renderStores(mockRanked(), true); return; }
+
+  // 优先用缓存位置（10 分钟内），失败再现场定位
+  if (!LAST_LOC || Date.now() - LAST_LOC.t > 600000){
+    const pos = await getPosition();
+    if (!pos.ok){
+      setLocBar('off', pos.why, '已显示演示数据 · 可到系统设置里开启定位后重试');
+      renderStores(mockRanked(), true);
+      return;
+    }
+    LAST_LOC = { lat:pos.lat, lng:pos.lng, t:Date.now() };
+  }
+  setLocBar('wait', '定位成功，正在搜索附近店铺…');
+  const kw = keywordFromAnswers();
+  const res = await amapNearby(key, LAST_LOC.lat, LAST_LOC.lng, kw);
+  if (!res.ok){
+    setLocBar('off', '搜索失败：' + res.why, '已显示演示数据');
+    renderStores(mockRanked(), true);
+    return;
+  }
+  const a = state.wizard.answers;
+  const ranked = res.pois.map(p => {
+    const dist = poiDist(p, LAST_LOC.lat, LAST_LOC.lng);
+    const { sc, hits } = scorePoi(p, a);
+    return { name:p.name, addr:(p.address && p.address.join ? p.address.join('') : (p.address||'')), dist, sc, hits, kw:sc>0, real:true };
+  }).sort((x,y) => (y.sc - x.sc) || (x.dist - y.dist));
+
+  const located = '已定位 · ' + LAST_LOC.lng.toFixed(3) + ', ' + LAST_LOC.lat.toFixed(3);
+  if (ranked.length){
+    setLocBar('on', '找到 ' + ranked.length + ' 家附近店铺', located + ' · 按口味+距离排序');
+    renderStores(ranked, false);
+  } else {
+    setLocBar('off', '附近 3km 没找到匹配的店', '已显示演示数据 · 换个口味筛选试试');
+    renderStores(mockRanked(), true);
+  }
 }
 function mockRanked(){
   const a = state.wizard.answers;
@@ -968,14 +1075,14 @@ function mockRanked(){
 function renderStores(stores, isMock){
   const bestIdx = stores.length ? ((stores[0].kw || (isMock && stores[0].sc>0)) ? 0 : -1) : -1;
   $('store-list').innerHTML =
-    (isMock?'<div class="group-label">⚠ 演示数据 · 后续接高德地图显示真实附近店铺</div>':'') +
+    (isMock?'<div class="group-label">⚠ 演示数据 · 在⚙里填入高德 Key 即可显示真实附近店铺</div>':'') +
     '<div class="group-label">'+(bestIdx>=0?'✓ 符合你的筛选':'附近店铺（按距离排序）')+'</div>' +
     stores.map((s,i) =>
       '<div class="store-card '+(i===bestIdx?'best':'')+'">' +
         '<div class="store-rank">'+(i+1)+'</div>' +
         '<div class="store-body">' +
           '<div class="store-name">'+esc(s.name)+(i===bestIdx?'<span class="best-tag">最符合</span>':'')+'</div>' +
-          '<div class="store-addr">'+esc(s.addr||'')+'</div>' +
+          '<div class="store-addr">'+esc(s.addr||'')+(s.hits&&s.hits.length?' <span class="hit-tag">'+esc(s.hits.slice(0,3).join(' · '))+'</span>':'')+'</div>' +
         '</div>' +
         '<div class="store-side">' +
           '<div class="store-dist">'+ (s.dist>=1000 ? (s.dist/1000).toFixed(1)+'km' : s.dist+'m') +'</div>' +
@@ -1170,14 +1277,39 @@ function renderLog(){
 
 function openSettings(){
   const cur = KEY();
-  const key = prompt('高德地图 Web服务 Key（留空则用演示数据）：\n\n获取方式：高德开放平台 lbs.amap.com → 注册 → 创建「Web服务」类型的 Key。', cur || '');
-  if (key === null) return;
-  const v = (key||'').trim();
-  try {
-    if (v) localStorage.setItem('amap_key', v);
-    else localStorage.removeItem('amap_key');
-    alert(v ? '✅ 已保存密钥' : '已清空密钥，将使用演示数据');
-  } catch(e){ alert('保存失败：浏览器不支持本地存储'); }
+  const mask = document.createElement('div');
+  mask.className = 'modal-mask';
+  mask.innerHTML =
+    '<div class="modal">' +
+      '<h3>接入高德地图 · 找真实附近外卖</h3>' +
+      '<ul class="m-list">' +
+        '<li>第 1 步：打开 lbs.amap.com 注册/登录（个人免费）</li>' +
+        '<li>第 2 步：控制台 → 应用管理 → 创建新应用</li>' +
+        '<li>第 3 步：添加 Key，服务平台选「Web服务」</li>' +
+        '<li>第 4 步：复制 Key 粘贴到下面</li>' +
+      '</ul>' +
+      '<div class="m-note">Key 只存在你自己的浏览器里，每天 5000 次免费调用。留空则使用演示数据。</div>' +
+      '<input class="key-input" id="__amap_key_input" type="text" placeholder="粘贴高德 Web服务 Key" value="'+esc(cur||'')+'" style="width:100%;margin:10px 0 14px;padding:10px 12px;border:1px solid rgba(35,29,21,.18);border-radius:10px;font-size:14px;background:#fff;color:#231D15">' +
+      '<div class="modal-btns">' +
+        '<button class="btn btn--ghost" data-x="0">取消</button>' +
+        '<button class="btn btn--danger" data-x="1">保存</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(mask);
+  function done(v){
+    if (mask.parentNode) mask.parentNode.removeChild(mask);
+    if (!v) return;
+    const val = mask.querySelector('#__amap_key_input').value.trim();
+    try {
+      if (val) localStorage.setItem('amap_key', val);
+      else localStorage.removeItem('amap_key');
+      LAST_LOC = null;
+      toast(val ? '✅ 已保存，下次进外卖页生效' : '已清空，将使用演示数据');
+    } catch(e){ toast('保存失败：浏览器不支持本地存储'); }
+  }
+  mask.querySelectorAll('[data-x]').forEach(b => { b.onclick = () => done(b.dataset.x === '1'); });
+  mask.onclick = e => { if (e.target === mask) done(false); };
+  setTimeout(() => { const inp = mask.querySelector('#__amap_key_input'); if (inp) inp.focus(); }, 50);
 }
 
 $('card-wizard').onclick = startWizard;
